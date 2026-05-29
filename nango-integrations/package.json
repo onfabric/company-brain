@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "compile": "bun run --bun nango compile",
-    "deploy": "bun run --bun nango deploy",
-    "dev": "bun run --bun nango dev",
-    "dryrun": "bun run --bun nango dryrun",
+    "compile": "nango compile",
+    "deploy": "nango deploy",
+    "dev": "nango dev",
+    "dryrun": "nango dryrun",
     "test": "bun test"
   },
   "devDependencies": {
