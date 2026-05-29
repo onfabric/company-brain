@@ -32,9 +32,8 @@ Resources:
               StringLike:
                 token.actions.githubusercontent.com:sub:
                   - !Sub repo:${GitHubRepo}:ref:refs/heads/main
-                  - !Sub repo:${GitHubRepo}:pull_request
       # Broad for a first dev setup. Scope down later once the resource set is
-      # stable (it only ever runs from your repo's main branch / PRs).
+      # stable (it only ever runs from your repo's main branch).
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AdministratorAccess
 

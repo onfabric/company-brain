@@ -12,17 +12,26 @@ set -euo pipefail
 instance_id=$(aws ec2 describe-instances \
   --filters "Name=tag:DeployGroup,Values=${DEPLOY_GROUP}" "Name=instance-state-name,Values=running" \
   --query "Reservations[0].Instances[0].InstanceId" --output text)
+if [ -z "$instance_id" ] || [ "$instance_id" = "None" ]; then
+  echo "::error::No running EC2 instance found for DeployGroup=${DEPLOY_GROUP}"
+  exit 1
+fi
 echo "Target instance: $instance_id"
 
 # A freshly-created box isn't registered with SSM yet; wait so send-command lands.
 echo "Waiting for the instance to register with SSM..."
+ssm_online=false
 for _ in $(seq 1 60); do
   ping=$(aws ssm describe-instance-information \
     --filters "Key=InstanceIds,Values=${instance_id}" \
     --query "InstanceInformationList[0].PingStatus" --output text 2>/dev/null || true)
-  [ "$ping" = "Online" ] && { echo "SSM is Online."; break; }
+  [ "$ping" = "Online" ] && { echo "SSM is Online."; ssm_online=true; break; }
   echo "  ssm ping: ${ping:-none}"; sleep 10
 done
+if [ "$ssm_online" != "true" ]; then
+  echo "::error::Instance ${instance_id} did not register with SSM within 10 minutes"
+  exit 1
+fi
 
 # The script that runs on the box. The bootstrap-marker wait ensures
 # Docker/Compose/AWS CLI are installed (user_data) before we deploy onto a

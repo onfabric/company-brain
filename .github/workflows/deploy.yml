@@ -11,7 +11,6 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  id-token: write # assume AWS roles via OIDC
   contents: read
 
 env:
@@ -21,9 +20,37 @@ env:
   DEPLOY_GROUP: company-brain-dev
 
 jobs:
-  # 1) Ensure infrastructure exists / is up to date.
+  # 1) Validate Terraform without AWS credentials. PRs intentionally stop here:
+  #    the privileged Terraform role is only assumable from main.
   terraform:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.11.4
+          terraform_wrapper: false
+
+      - run: terraform init -backend=false -input=false
+      - run: terraform fmt -check -recursive
+      - run: terraform validate -no-color
+
+  # 2) Ensure infrastructure exists / is up to date. Runs only from main/manual.
+  terraform_apply:
+    needs: terraform
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      ecr_repository_url: ${{ steps.tf_outputs.outputs.ecr_repository_url }}
+      artifacts_bucket: ${{ steps.tf_outputs.outputs.artifacts_bucket }}
+      github_deploy_role_arn: ${{ steps.tf_outputs.outputs.github_deploy_role_arn }}
+    permissions:
+      contents: read
+      id-token: write # assume AWS roles via OIDC
     defaults:
       run:
         working-directory: infra/terraform
@@ -39,20 +66,19 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.11.4
+          terraform_wrapper: false
 
       - run: terraform init -input=false
-      - run: terraform fmt -check -recursive
+      - run: terraform apply -input=false -auto-approve -no-color -var-file=dev.tfvars
 
-      - name: Plan (PRs)
-        if: github.event_name == 'pull_request'
-        run: terraform plan -input=false -no-color -var-file=dev.tfvars
-
-      - name: Apply (main / manual)
-        if: github.event_name != 'pull_request'
-        run: terraform apply -input=false -auto-approve -no-color -var-file=dev.tfvars
+      - name: Capture outputs
+        id: tf_outputs
+        run: |
+          echo "ecr_repository_url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
+          echo "artifacts_bucket=$(terraform output -raw artifacts_bucket)" >> "$GITHUB_OUTPUT"
+          echo "github_deploy_role_arn=$(terraform output -raw github_deploy_role_arn)" >> "$GITHUB_OUTPUT"
 
       - name: Outputs
-        if: github.event_name != 'pull_request'
         run: |
           {
             echo '## Terraform outputs'
@@ -61,12 +87,15 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # 2) Build, push, and deploy the app. Runs only after infra is ready, and
+  # 3) Build, push, and deploy the app. Runs only after infra is ready, and
   #    never on PRs.
   deploy:
-    needs: terraform
+    needs: terraform_apply
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # assume AWS roles via OIDC
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v4
@@ -76,7 +105,7 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ needs.terraform_apply.outputs.github_deploy_role_arn }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to ECR
@@ -84,7 +113,7 @@ jobs:
 
       - name: Build and push image
         env:
-          IMAGE_REPO: ${{ vars.ECR_REPOSITORY }}
+          IMAGE_REPO: ${{ needs.terraform_apply.outputs.ecr_repository_url }}
         run: |
           IMAGE_URI="${IMAGE_REPO}:${GITHUB_SHA}"
           docker build -t "$IMAGE_URI" -t "${IMAGE_REPO}:latest" ./nango
@@ -101,12 +130,12 @@ jobs:
             -C infra/deploy on_box_deploy.sh
 
       - name: Upload bundle to S3
-        run: aws s3 cp bundle.tar.gz "s3://${{ vars.ARTIFACTS_BUCKET }}/dev/latest.tar.gz"
+        run: aws s3 cp bundle.tar.gz "s3://${{ needs.terraform_apply.outputs.artifacts_bucket }}/dev/latest.tar.gz"
 
       - name: Deploy on instance via SSM
         run: infra/deploy/ssm_deploy.sh
         env:
-          BUCKET: ${{ vars.ARTIFACTS_BUCKET }}
+          BUCKET: ${{ needs.terraform_apply.outputs.artifacts_bucket }}
           DEPLOY_GROUP: ${{ env.DEPLOY_GROUP }}
           IMAGE_URI: ${{ env.IMAGE_URI }}
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}

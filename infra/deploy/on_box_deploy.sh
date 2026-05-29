@@ -6,18 +6,25 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+: "${IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}" "${NANGO_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_DEFAULT_REGION:?}"
+
 secret() {
   aws ssm get-parameter --name "${SSM_SECRET_PREFIX}/$1" --with-decryption \
     --query Parameter.Value --output text
 }
 
+NANGO_ENCRYPTION_KEY="$(secret nango_encryption_key)"
+NANGO_DB_PASSWORD="$(secret nango_db_password)"
+NANGO_DASHBOARD_USERNAME="$(secret nango_dashboard_username)"
+NANGO_DASHBOARD_PASSWORD="$(secret nango_dashboard_password)"
+
 # Render .env consumed by docker compose. Secrets come from SSM; the rest is
 # fixed prod config.
 umask 077
 cat > .env <<EOF
-NANGO_ENCRYPTION_KEY=$(secret nango_encryption_key)
+NANGO_ENCRYPTION_KEY=${NANGO_ENCRYPTION_KEY}
 NANGO_DB_USER=nango
-NANGO_DB_PASSWORD=$(secret nango_db_password)
+NANGO_DB_PASSWORD=${NANGO_DB_PASSWORD}
 NANGO_DB_NAME=nango
 NANGO_DB_SCHEMA=nango
 NANGO_SERVER_PORT=3003
@@ -29,8 +36,8 @@ ELASTICSEARCH_PORT=9200
 DOZZLE_PORT=8080
 FLAG_AUTH_ENABLED=true
 NANGO_ENTERPRISE=false
-NANGO_DASHBOARD_USERNAME=$(secret nango_dashboard_username)
-NANGO_DASHBOARD_PASSWORD=$(secret nango_dashboard_password)
+NANGO_DASHBOARD_USERNAME=${NANGO_DASHBOARD_USERNAME}
+NANGO_DASHBOARD_PASSWORD=${NANGO_DASHBOARD_PASSWORD}
 LOG_LEVEL=info
 IMAGE_URI=${IMAGE_URI}
 NANGO_HOSTNAME=${NANGO_HOSTNAME}
