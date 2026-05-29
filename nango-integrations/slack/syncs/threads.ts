@@ -334,19 +334,24 @@ const sync = createSync({
     );
     const syncUpperBoundTs = String(Date.now() / MILLISECONDS_PER_SECOND);
 
+    const ctx: ChannelProcessingContext = {
+      usersById,
+      channelsLastSyncDate,
+      updatedChannelsLastSyncDate,
+      resyncWindowTs,
+      syncUpperBoundTs,
+    };
+
     // Process channels one at a time. Threads are saved per conversations.history
     // page (see processChannel) and the checkpoint is advanced after each channel,
     // so a rate limit or crash mid-run still leaves already-synced threads in the
     // db and lets the next execution resume from the last completed channel instead
     // of refetching everything.
-    await processChannels(nango, channelsToProcess, {
-      usersById,
-      metadata,
-      channelsLastSyncDate,
-      updatedChannelsLastSyncDate,
-      resyncWindowTs,
-      syncUpperBoundTs,
-    });
+    for (const rawChannel of channelsToProcess) {
+      if (await ensureReadableChannel(nango, rawChannel, metadata)) {
+        await processChannel(nango, rawChannel, ctx);
+      }
+    }
 
     // Final checkpoint also refreshes lastSyncDate when no channels advanced it.
     await nango.saveCheckpoint({
@@ -450,29 +455,11 @@ async function ensureReadableChannel(
 
 type ChannelProcessingContext = {
   usersById: Map<string, SlackActor>;
-  metadata: z.infer<typeof MetadataSchema> | undefined;
   channelsLastSyncDate: Record<string, string>;
   updatedChannelsLastSyncDate: Record<string, string>;
   resyncWindowTs: string;
   syncUpperBoundTs: string;
 };
-
-async function processChannels(
-  nango: NangoSyncLocal,
-  channels: RawSlackChannel[],
-  ctx: ChannelProcessingContext,
-): Promise<void> {
-  const [rawChannel, ...rest] = channels;
-  if (!rawChannel) {
-    return;
-  }
-
-  if (await ensureReadableChannel(nango, rawChannel, ctx.metadata)) {
-    await processChannel(nango, rawChannel, ctx);
-  }
-
-  return processChannels(nango, rest, ctx);
-}
 
 async function processChannel(
   nango: NangoSyncLocal,
@@ -585,47 +572,35 @@ async function buildThreadsForRoots(
   usersById: Map<string, SlackActor>,
   maxSeenTs: number,
 ): Promise<{ threads: SlackThread[]; maxSeenTs: number }> {
-  const [rootMessage, ...rest] = rootMessages;
-  if (!rootMessage) {
-    return { threads: [], maxSeenTs };
-  }
+  const threads: SlackThread[] = [];
 
-  const fetchedThreadMessages =
-    rootMessage.reply_count && rootMessage.reply_count > 0
-      ? await fetchThreadMessages(
-          nango,
-          channelId,
-          rootMessage.thread_ts ?? rootMessage.ts,
-        )
-      : [rootMessage];
-  const threadMessages =
-    fetchedThreadMessages.length > 0 ? fetchedThreadMessages : [rootMessage];
+  for (const rootMessage of rootMessages) {
+    const fetchedThreadMessages =
+      rootMessage.reply_count && rootMessage.reply_count > 0
+        ? await fetchThreadMessages(
+            nango,
+            channelId,
+            rootMessage.thread_ts ?? rootMessage.ts,
+          )
+        : [rootMessage];
+    const threadMessages =
+      fetchedThreadMessages.length > 0 ? fetchedThreadMessages : [rootMessage];
 
-  const thread = buildThread(channel, threadMessages, usersById);
-  const nextMaxSeenTs = thread
-    ? Math.max(
+    const thread = buildThread(channel, threadMessages, usersById);
+    if (thread) {
+      threads.push(thread);
+      maxSeenTs = Math.max(
         maxSeenTs,
         Number(
           thread.updated_at
             ? Date.parse(thread.updated_at) / MILLISECONDS_PER_SECOND
             : rootMessage.ts,
         ),
-      )
-    : maxSeenTs;
+      );
+    }
+  }
 
-  const result = await buildThreadsForRoots(
-    nango,
-    channelId,
-    channel,
-    rest,
-    usersById,
-    nextMaxSeenTs,
-  );
-
-  return {
-    threads: thread ? [thread, ...result.threads] : result.threads,
-    maxSeenTs: result.maxSeenTs,
-  };
+  return { threads, maxSeenTs };
 }
 
 async function fetchThreadMessages(
