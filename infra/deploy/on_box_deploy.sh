@@ -1,12 +1,10 @@
 #!/bin/bash
-# Runs ON the EC2 instance, invoked by the deploy workflow via SSM.
-# Expects to run from the extracted bundle directory, alongside deploy.env.
+# Runs ON the EC2 instance, invoked by the deploy workflow via SSM. Reads its
+# non-secret config from the environment (IMAGE_URI, SSM_SECRET_PREFIX,
+# NANGO_HOSTNAME, ACME_EMAIL, AWS_DEFAULT_REGION), exported by the SSM command.
 set -euo pipefail
 
 cd "$(dirname "$0")"
-# Non-secret deploy config written by CI (region, ssm prefix, hostname, image).
-source ./deploy.env
-export AWS_DEFAULT_REGION
 
 secret() {
   aws ssm get-parameter --name "${SSM_SECRET_PREFIX}/$1" --with-decryption \
