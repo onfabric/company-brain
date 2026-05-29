@@ -2,14 +2,12 @@
   "name": "nango-integrations",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "bun@1.3.11",
   "type": "module",
-  "engines": {
-    "node": ">=22.22.2"
-  },
   "scripts": {
-    "compile": "nango compile",
-    "dev": "nango dev",
+    "compile": "bun run --bun nango compile",
+    "deploy": "bun run --bun nango deploy",
+    "dev": "bun run --bun nango dev",
+    "dryrun": "bun run --bun nango dryrun",
     "test": "bun test"
   },
   "devDependencies": {
