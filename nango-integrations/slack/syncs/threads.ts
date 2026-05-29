@@ -33,43 +33,23 @@ const SlackActorSchema = z.object({
   updated_at: z.string().optional(),
 });
 
+const SlackActorRefSchema = SlackActorSchema.pick({
+  id: true,
+  kind: true,
+  name: true,
+});
+
 const SlackChannelSchema = z.object({
   id: z.string(),
   team_id: z.string().optional(),
   type: z.enum(["public_channel", "private_channel", "mpim", "im", "unknown"]),
   name: z.string().optional(),
-  name_normalized: z.string().optional(),
   is_private: z.boolean(),
-  is_archived: z.boolean(),
-  is_shared: z.boolean().optional(),
-  is_org_shared: z.boolean().optional(),
-  is_ext_shared: z.boolean().optional(),
-  is_general: z.boolean().optional(),
-  creator_id: z.string().optional(),
-  num_members: z.number().optional(),
-  previous_names: z.array(z.string()).optional(),
-  created_at: z.string().optional(),
-  updated_at: z.string().optional(),
-  topic: z
-    .object({
-      value: z.string(),
-      creator_id: z.string().optional(),
-      updated_at: z.string().optional(),
-    })
-    .optional(),
-  purpose: z
-    .object({
-      value: z.string(),
-      creator_id: z.string().optional(),
-      updated_at: z.string().optional(),
-    })
-    .optional(),
 });
 
 const SlackReactionSchema = z.object({
   name: z.string(),
-  count: z.number(),
-  actor_ids: z.array(z.string()),
+  actors: z.array(SlackActorRefSchema),
 });
 
 const SlackFileSchema = z.object({
@@ -82,7 +62,7 @@ const SlackFileSchema = z.object({
   permalink: z.string().optional(),
   size: z.number().optional(),
   created_at: z.string().optional(),
-  actor_id: z.string().optional(),
+  actor: SlackActorRefSchema.optional(),
 });
 
 const SlackLinkSchema = z.object({
@@ -92,53 +72,22 @@ const SlackLinkSchema = z.object({
 
 const SlackThreadMessageSchema = z.object({
   id: z.string(),
-  ts: z.string(),
-  thread_ts: z.string(),
   created_at: z.string(),
   updated_at: z.string().optional(),
-  edited_by_id: z.string().optional(),
-  client_msg_id: z.string().optional(),
-  author_id: z.string(),
-  parent_author_id: z.string().optional(),
-  type: z.string(),
-  subtype: z.string().optional(),
+  author: SlackActorRefSchema,
   text: z.string(),
-  blocks: z.array(z.unknown()).optional(),
-  attachments: z.array(z.unknown()).optional(),
+  mentions: z.array(SlackActorRefSchema).optional(),
   reactions: z.array(SlackReactionSchema).optional(),
   files: z.array(SlackFileSchema).optional(),
   links: z.array(SlackLinkSchema).optional(),
-  mentioned_actor_ids: z.array(z.string()).optional(),
-  bot_id: z.string().optional(),
-  app_id: z.string().optional(),
 });
 
 const SlackThreadSchema = z.object({
   id: z.string(),
-  team_id: z.string().optional(),
+  body: z.string(),
   channel: SlackChannelSchema,
-  root_ts: z.string(),
-  permalink: z.string().optional(),
   created_at: z.string(),
   updated_at: z.string(),
-  actors: z.record(z.string(), SlackActorSchema),
-  facets: z.object({
-    channel_id: z.string(),
-    root_author_id: z.string(),
-    author_ids: z.array(z.string()),
-    actor_ids: z.array(z.string()),
-    mentioned_actor_ids: z.array(z.string()),
-    has_replies: z.boolean(),
-    has_files: z.boolean(),
-    has_reactions: z.boolean(),
-  }),
-  counts: z.object({
-    messages: z.number(),
-    replies: z.number(),
-    actors: z.number(),
-    files: z.number(),
-    reactions: z.number(),
-  }),
   messages: z.array(SlackThreadMessageSchema),
 });
 
@@ -175,6 +124,7 @@ const CheckpointSchema = z.object({
 });
 
 type SlackActor = z.infer<typeof SlackActorSchema>;
+type SlackActorRef = z.infer<typeof SlackActorRefSchema>;
 type SlackChannel = z.infer<typeof SlackChannelSchema>;
 type SlackFile = z.infer<typeof SlackFileSchema>;
 type SlackLink = z.infer<typeof SlackLinkSchema>;
@@ -665,121 +615,51 @@ function buildThread(
   }
 
   const rootTs = rootMessage.thread_ts ?? rootMessage.ts;
-  const teamId = rootMessage.team ?? channel.team_id;
-  const actors: Record<string, SlackActor> = {};
-  const authorIds = new Set<string>();
-  const mentionedActorIds = new Set<string>();
-  let fileCount = 0;
-  let reactionCount = 0;
   let latestTimestamp = Number(rootMessage.ts);
 
   const mappedMessages: SlackThreadMessage[] = messages.map((rawMessage) => {
     const author = resolveAuthor(rawMessage, usersById);
-    setActor(actors, author);
-    authorIds.add(author.id);
 
-    const mentionedIds = getMentionedActorIds(rawMessage);
-    for (const actorId of mentionedIds) {
-      mentionedActorIds.add(actorId);
-      setActor(
-        actors,
-        usersById.get(actorId) ?? unknownActor(actorId, rawMessage.team),
-      );
-    }
+    const mentions = getMentionedActorIds(rawMessage).map((actorId) =>
+      toActorRef(usersById.get(actorId) ?? unknownActor(actorId, rawMessage.team)),
+    );
 
-    const reactions = mapReactions(rawMessage);
-    for (const reaction of reactions) {
-      reactionCount += reaction.count;
-      for (const actorId of reaction.actor_ids) {
-        setActor(
-          actors,
-          usersById.get(actorId) ?? unknownActor(actorId, rawMessage.team),
-        );
-      }
-    }
+    const reactions = mapReactions(rawMessage, usersById, rawMessage.team);
 
-    const files = mapFiles(rawMessage);
-    fileCount += files.length;
-    for (const file of files) {
-      if (file.actor_id) {
-        setActor(
-          actors,
-          usersById.get(file.actor_id) ??
-            unknownActor(file.actor_id, rawMessage.team),
-        );
-      }
-    }
+    const files = mapFiles(rawMessage, usersById, author);
 
     latestTimestamp = Math.max(
       latestTimestamp,
       Number(rawMessage.edited?.ts ?? rawMessage.ts),
     );
 
-    if (rawMessage.edited?.user) {
-      setActor(
-        actors,
-        usersById.get(rawMessage.edited.user) ??
-          unknownActor(rawMessage.edited.user, rawMessage.team),
-      );
-    }
-
     const links = mapLinks(rawMessage);
+    const text = renderSlackText(rawMessage.text ?? "", usersById);
 
     return withoutUndefined({
       id: `${channel.id}-${rawMessage.ts}`,
-      ts: rawMessage.ts,
-      thread_ts: rawMessage.thread_ts ?? rootTs,
       created_at: slackTsToIso(rawMessage.ts),
       updated_at: rawMessage.edited?.ts
         ? slackTsToIso(rawMessage.edited.ts)
         : undefined,
-      edited_by_id: rawMessage.edited?.user,
-      client_msg_id: rawMessage.client_msg_id,
-      author_id: author.id,
-      parent_author_id: rawMessage.parent_user_id,
-      type: rawMessage.type ?? "message",
-      subtype: rawMessage.subtype,
-      text: rawMessage.text ?? "",
-      blocks: rawMessage.blocks,
-      attachments: rawMessage.attachments,
+      author: toActorRef(author),
+      text,
+      mentions: mentions.length > 0 ? sortActorRefs(mentions) : undefined,
       reactions: reactions.length > 0 ? reactions : undefined,
       files: files.length > 0 ? files : undefined,
       links: links.length > 0 ? links : undefined,
-      mentioned_actor_ids: mentionedIds.length > 0 ? mentionedIds : undefined,
-      bot_id: rawMessage.bot_id,
-      app_id: rawMessage.app_id,
     });
   });
 
-  const actorIds = Object.keys(actors).sort();
   const createdAt = slackTsToIso(rootMessage.ts);
   const updatedAt = slackTsToIso(String(latestTimestamp));
 
   return {
     id: `${channel.id}-${rootTs}`,
-    team_id: teamId,
+    body: renderThreadBody(channel, createdAt, mappedMessages),
     channel,
-    root_ts: rootTs,
     created_at: createdAt,
     updated_at: updatedAt,
-    actors,
-    facets: {
-      channel_id: channel.id,
-      root_author_id: mappedMessages[0]!.author_id,
-      author_ids: Array.from(authorIds).sort(),
-      actor_ids: actorIds,
-      mentioned_actor_ids: Array.from(mentionedActorIds).sort(),
-      has_replies: mappedMessages.length > 1,
-      has_files: fileCount > 0,
-      has_reactions: reactionCount > 0,
-    },
-    counts: {
-      messages: mappedMessages.length,
-      replies: Math.max(mappedMessages.length - 1, 0),
-      actors: actorIds.length,
-      files: fileCount,
-      reactions: reactionCount,
-    },
     messages: mappedMessages,
   };
 }
@@ -835,27 +715,7 @@ function mapChannel(channel: RawSlackChannel): SlackChannel {
     team_id: channel.context_team_id ?? channel.team_id,
     type: getChannelType(channel),
     name: channel.name,
-    name_normalized: channel.name_normalized,
     is_private: channel.is_private ?? false,
-    is_archived: channel.is_archived ?? false,
-    is_shared: channel.is_shared,
-    is_org_shared: channel.is_org_shared,
-    is_ext_shared: channel.is_ext_shared,
-    is_general: channel.is_general,
-    creator_id: channel.creator,
-    num_members: channel.num_members,
-    previous_names:
-      channel.previous_names && channel.previous_names.length > 0
-        ? channel.previous_names
-        : undefined,
-    created_at: channel.created
-      ? slackSecondsToIso(channel.created)
-      : undefined,
-    updated_at: channel.updated
-      ? new Date(channel.updated).toISOString()
-      : undefined,
-    topic: mapConversationText(channel.topic),
-    purpose: mapConversationText(channel.purpose),
   });
 }
 
@@ -873,26 +733,6 @@ function getChannelType(channel: RawSlackChannel): SlackChannel["type"] {
     return "public_channel";
   }
   return "unknown";
-}
-
-function mapConversationText(
-  value:
-    | {
-        value?: string;
-        creator?: string;
-        last_set?: number;
-      }
-    | undefined,
-): SlackChannel["topic"] {
-  if (!value || !value.value) {
-    return undefined;
-  }
-
-  return withoutUndefined({
-    value: value.value,
-    creator_id: value.creator || undefined,
-    updated_at: value.last_set ? slackSecondsToIso(value.last_set) : undefined,
-  });
 }
 
 function resolveAuthor(
@@ -942,28 +782,30 @@ function unknownActor(id: string, teamId?: string): SlackActor {
   });
 }
 
-function setActor(actors: Record<string, SlackActor>, actor: SlackActor): void {
-  const existing = actors[actor.id];
-  if (!existing || existing.kind === "unknown") {
-    actors[actor.id] = actor;
-  }
-}
-
 function mapReactions(
   message: RawSlackMessage,
+  usersById: Map<string, SlackActor>,
+  teamId: string | undefined,
 ): z.infer<typeof SlackReactionSchema>[] {
   return (
     message.reactions
       ?.filter((reaction) => reaction.name)
       .map((reaction) => ({
         name: reaction.name!,
-        count: reaction.count ?? reaction.users?.length ?? 0,
-        actor_ids: [...new Set(reaction.users ?? [])].sort(),
+        actors: sortActorRefs(
+          [...new Set(reaction.users ?? [])].map((actorId) =>
+            toActorRef(usersById.get(actorId) ?? unknownActor(actorId, teamId)),
+          ),
+        ),
       })) ?? []
   );
 }
 
-function mapFiles(message: RawSlackMessage): SlackFile[] {
+function mapFiles(
+  message: RawSlackMessage,
+  usersById: Map<string, SlackActor>,
+  author: SlackActor,
+): SlackFile[] {
   return (
     message.files
       ?.filter((file) => file.id)
@@ -980,7 +822,13 @@ function mapFiles(message: RawSlackMessage): SlackFile[] {
           created_at: file.created
             ? slackSecondsToIso(file.created)
             : undefined,
-          actor_id: file.user,
+          actor: file.user
+            ? toActorRef(
+                file.user === author.id
+                  ? author
+                  : usersById.get(file.user) ?? unknownActor(file.user, message.team),
+              )
+            : undefined,
         }),
       ) ?? []
   );
@@ -1007,6 +855,91 @@ function mapLinks(message: RawSlackMessage): SlackLink[] {
   }
 
   return [...links.values()];
+}
+
+function renderSlackText(text: string, usersById: Map<string, SlackActor>): string {
+  return decodeSlackEntities(
+    text
+      .replace(
+        /<@([A-Z0-9]+)(?:\|[^>]+)?>/g,
+        (_match, actorId: string) =>
+          `@${actorName(usersById.get(actorId) ?? unknownActor(actorId))}`,
+      )
+      .replace(
+        /<#([A-Z0-9]+)(?:\|([^>]+))?>/g,
+        (_match, channelId: string, label: string | undefined) =>
+          label ? `#${label}` : `#${channelId}`,
+      )
+      .replace(
+        /<!subteam\^[A-Z0-9]+(?:\|([^>]+))?>/g,
+        (_match, label: string | undefined) => label ?? "@usergroup",
+      )
+      .replace(/<!(here|channel|everyone)>/g, (_match, label: string) => `@${label}`)
+      .replace(
+        /<((?:https?:\/\/|mailto:)[^>|]+)\|([^>]+)>/g,
+        (_match, url: string, label: string) => `${label} (${url})`,
+      )
+      .replace(/<((?:https?:\/\/|mailto:)[^>]+)>/g, (_match, url: string) => url),
+  ).trim();
+}
+
+function renderThreadBody(
+  channel: SlackChannel,
+  createdAt: string,
+  messages: SlackThreadMessage[],
+): string {
+  const channelName = channel.name ? `#${channel.name}` : channel.id;
+  const lines = [`Channel: ${channelName}`, `Started: ${createdAt}`, ""];
+
+  for (const message of messages) {
+    lines.push(`${message.author.name} - ${message.created_at}`);
+    lines.push(message.text || "(no text)");
+
+    if (message.files && message.files.length > 0) {
+      lines.push(`Files: ${message.files.map(renderFile).join(", ")}`);
+    }
+
+    if (message.reactions && message.reactions.length > 0) {
+      lines.push(`Reactions: ${message.reactions.map(renderReaction).join(", ")}`);
+    }
+
+    lines.push("");
+  }
+
+  return lines.join("\n").trim();
+}
+
+function renderFile(file: SlackFile): string {
+  const label = file.title ?? file.name ?? file.id;
+  return file.permalink ? `${label} (${file.permalink})` : label;
+}
+
+function renderReaction(reaction: z.infer<typeof SlackReactionSchema>): string {
+  const actorNames = reaction.actors.map((actor) => actor.name).join(", ");
+  return actorNames ? `${reaction.name} by ${actorNames}` : reaction.name;
+}
+
+function decodeSlackEntities(text: string): string {
+  return text.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+}
+
+function toActorRef(actor: SlackActor): SlackActorRef {
+  return {
+    id: actor.id,
+    kind: actor.kind,
+    name: actorName(actor),
+  };
+}
+
+function actorName(actor: SlackActor): string {
+  return (
+    firstNonEmpty(actor.display_name, actor.real_name, actor.name, actor.username, actor.id) ??
+    actor.id
+  );
+}
+
+function sortActorRefs(actors: SlackActorRef[]): SlackActorRef[] {
+  return actors.sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
 }
 
 function getMentionedActorIds(message: RawSlackMessage): string[] {
