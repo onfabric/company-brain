@@ -92,15 +92,13 @@ jobs:
           docker push "${IMAGE_REPO}:latest"
           echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
 
-      - name: Assemble runtime bundle
+      - name: Package runtime bundle
         run: |
-          set -euo pipefail
-          mkdir -p bundle/db bundle/nango/packages/providers
-          cp docker-compose.yml docker-compose.prod.yml Caddyfile bundle/
-          cp infra/deploy/on_box_deploy.sh bundle/
-          cp db/entrypoint.sh db/init.sql bundle/db/
-          cp nango/packages/providers/providers.yaml bundle/nango/packages/providers/
-          tar czf bundle.tar.gz -C bundle .
+          tar czf bundle.tar.gz \
+            docker-compose.yml docker-compose.prod.yml Caddyfile \
+            db/entrypoint.sh db/init.sql \
+            nango/packages/providers/providers.yaml \
+            -C infra/deploy on_box_deploy.sh
 
       - name: Upload bundle to S3
         run: aws s3 cp bundle.tar.gz "s3://${{ vars.ARTIFACTS_BUCKET }}/dev/latest.tar.gz"
