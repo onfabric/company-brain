@@ -118,9 +118,29 @@ jobs:
         run: |
           set -euo pipefail
           BUCKET="${{ vars.ARTIFACTS_BUCKET }}"
+
+          instance_id=$(aws ec2 describe-instances \
+            --filters "Name=tag:DeployGroup,Values=${DEPLOY_GROUP}" "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].InstanceId" --output text)
+          echo "Target instance: $instance_id"
+
+          # Wait until the SSM agent has registered the instance, so the command
+          # can actually be delivered (a freshly-created box isn't Online yet).
+          echo "Waiting for the instance to register with SSM..."
+          for i in $(seq 1 60); do
+            ping=$(aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=${instance_id}" \
+              --query "InstanceInformationList[0].PingStatus" --output text 2>/dev/null || true)
+            if [ "$ping" = "Online" ]; then echo "SSM is Online."; break; fi
+            echo "  ssm ping: ${ping:-none} (attempt $i)"; sleep 10
+          done
+
+          # The on-box command first waits for the boot script's completion
+          # marker, so it never runs before Docker/Compose/AWS CLI are ready.
           cat > ssm-params.json <<JSON
           {"commands":[
             "set -euo pipefail",
+            "timeout 600 bash -c 'until [ -f /opt/cb-bootstrap.done ]; do echo waiting for instance bootstrap; sleep 5; done'",
             "rm -rf /opt/company-brain && mkdir -p /opt/company-brain",
             "aws s3 cp s3://${BUCKET}/dev/latest.tar.gz /tmp/bundle.tar.gz",
             "tar xzf /tmp/bundle.tar.gz -C /opt/company-brain",
@@ -131,23 +151,27 @@ jobs:
           cmd_id=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy ${GITHUB_SHA}" \
-            --targets "Key=tag:DeployGroup,Values=${DEPLOY_GROUP}" \
+            --instance-ids "$instance_id" \
             --parameters file://ssm-params.json \
             --query "Command.CommandId" --output text)
           echo "SSM command: $cmd_id"
 
-          instance_id=$(aws ec2 describe-instances \
-            --filters "Name=tag:DeployGroup,Values=${DEPLOY_GROUP}" "Name=instance-state-name,Values=running" \
-            --query "Reservations[0].Instances[0].InstanceId" --output text)
+          # Poll for completion (image pulls + compose up can take several minutes).
+          echo "Waiting for the deploy command to finish (up to ~15m)..."
+          status="Pending"
+          for i in $(seq 1 90); do
+            status=$(aws ssm get-command-invocation --command-id "$cmd_id" --instance-id "$instance_id" --query Status --output text 2>/dev/null || echo "Pending")
+            case "$status" in
+              Success) break ;;
+              Failed|Cancelled|TimedOut) break ;;
+            esac
+            sleep 10
+          done
 
-          echo "Waiting for command to finish on $instance_id ..."
-          aws ssm wait command-executed --command-id "$cmd_id" --instance-id "$instance_id" || true
-
-          status=$(aws ssm get-command-invocation --command-id "$cmd_id" --instance-id "$instance_id" --query Status --output text)
           echo "Status: $status"
           aws ssm get-command-invocation --command-id "$cmd_id" --instance-id "$instance_id" --query StandardOutputContent --output text || true
           if [ "$status" != "Success" ]; then
-            echo "::error::Deploy command did not succeed"
+            echo "::error::Deploy command did not succeed (status: $status)"
             aws ssm get-command-invocation --command-id "$cmd_id" --instance-id "$instance_id" --query StandardErrorContent --output text || true
             exit 1
           fi

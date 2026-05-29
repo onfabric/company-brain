@@ -27,3 +27,8 @@ sysctl --system
 # Deploy target directory (the SSM deploy command populates this)
 mkdir -p /opt/company-brain
 chown ec2-user:ec2-user /opt/company-brain
+
+# Completion marker — the deploy workflow waits for this before deploying, so it
+# never runs before Docker/Compose/AWS CLI are installed. Kept outside
+# /opt/company-brain because the deploy command wipes that directory.
+touch /opt/cb-bootstrap.done
