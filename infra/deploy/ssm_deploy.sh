@@ -24,24 +24,30 @@ for _ in $(seq 1 60); do
   echo "  ssm ping: ${ping:-none}"; sleep 10
 done
 
-# Build the on-box command with jq so quoting is never an issue. The first step
-# waits for the bootstrap marker so we never deploy before Docker/Compose/AWS CLI
-# are installed on a brand-new box. Config the on-box script needs is exported
-# here (no deploy.env file to ship). Secrets are read from SSM by the box itself.
-jq -n \
-  --arg bucket "$BUCKET" --arg image "$IMAGE_URI" --arg prefix "$SSM_SECRET_PREFIX" \
-  --arg host "$NANGO_HOSTNAME" --arg acme "$ACME_EMAIL" --arg region "$AWS_REGION" \
-  '{commands: [
-    "set -euo pipefail",
-    "timeout 600 bash -c \"until [ -f /opt/cb-bootstrap.done ]; do echo waiting for instance bootstrap; sleep 5; done\"",
-    "rm -rf /opt/company-brain && mkdir -p /opt/company-brain",
-    "aws s3 cp s3://\($bucket)/dev/latest.tar.gz /tmp/bundle.tar.gz",
-    "tar xzf /tmp/bundle.tar.gz -C /opt/company-brain",
-    "cd /opt/company-brain",
-    "export IMAGE_URI=\($image|@sh) SSM_SECRET_PREFIX=\($prefix|@sh) NANGO_HOSTNAME=\($host|@sh) ACME_EMAIL=\($acme|@sh) AWS_DEFAULT_REGION=\($region|@sh)",
-    "bash on_box_deploy.sh"
-  ]}' > /tmp/ssm-params.json
+# The script that runs on the box. The bootstrap-marker wait ensures
+# Docker/Compose/AWS CLI are installed (user_data) before we deploy onto a
+# brand-new box. Config the on-box script needs is exported here (no deploy.env
+# file to ship); secrets are read from SSM by the box itself. The export line is
+# built with jq @sh so the values are safely shell-quoted.
+exports=$(jq -rn \
+  --arg image "$IMAGE_URI" --arg prefix "$SSM_SECRET_PREFIX" --arg host "$NANGO_HOSTNAME" \
+  --arg acme "$ACME_EMAIL" --arg region "$AWS_REGION" \
+  '"export IMAGE_URI=\($image|@sh) SSM_SECRET_PREFIX=\($prefix|@sh) NANGO_HOSTNAME=\($host|@sh) ACME_EMAIL=\($acme|@sh) AWS_DEFAULT_REGION=\($region|@sh)"')
 
+remote_script=$(cat <<REMOTE
+set -euo pipefail
+timeout 600 bash -c 'until [ -f /opt/cb-bootstrap.done ]; do echo waiting for instance bootstrap; sleep 5; done'
+rm -rf /opt/company-brain && mkdir -p /opt/company-brain
+aws s3 cp "s3://${BUCKET}/dev/latest.tar.gz" /tmp/bundle.tar.gz
+tar xzf /tmp/bundle.tar.gz -C /opt/company-brain
+cd /opt/company-brain
+${exports}
+bash on_box_deploy.sh
+REMOTE
+)
+
+# Pass the whole script as a single command; jq handles the JSON encoding.
+jq -n --arg script "$remote_script" '{commands: [$script]}' > /tmp/ssm-params.json
 cmd_id=$(aws ssm send-command \
   --document-name "AWS-RunShellScript" \
   --comment "Deploy ${GITHUB_SHA:-manual}" \
