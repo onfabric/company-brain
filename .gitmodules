@@ -1,0 +1,4 @@
+[submodule "nango"]
+	path = nango
+	url = https://github.com/onfabric/nango.git
+	branch = master
