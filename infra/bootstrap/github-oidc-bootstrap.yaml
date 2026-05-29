@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  One-time bootstrap for company-brain. Creates the Terraform role that GitHub
+  Actions assumes to manage all other infra. The GitHub OIDC provider already
+  exists in this account, so it is referenced (not created) here.
+  Deploy this once in the AWS Console (CloudFormation > Create stack > upload this
+  file). After it exists, everything else is managed by Terraform in CI.
+
+Parameters:
+  GitHubRepo:
+    Type: String
+    Default: onfabric/company-brain
+    Description: owner/repo allowed to assume the Terraform role.
+
+Resources:
+  TerraformRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: company-brain-terraform
+      Description: Assumed by GitHub Actions to run Terraform for company-brain.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub:
+                  - !Sub repo:${GitHubRepo}:ref:refs/heads/main
+                  - !Sub repo:${GitHubRepo}:pull_request
+      # Broad for a first dev setup. Scope down later once the resource set is
+      # stable (it only ever runs from your repo's main branch / PRs).
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+Outputs:
+  TerraformRoleArn:
+    Description: Set this as the AWS_TERRAFORM_ROLE_ARN variable in the GitHub repo.
+    Value: !GetAtt TerraformRole.Arn

@@ -1,0 +1,7 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$NANGO_HOSTNAME} {
+	reverse_proxy nango-server:3003
+}

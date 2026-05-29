@@ -1,0 +1,29 @@
+#!/bin/bash
+set -euxo pipefail
+
+# Docker
+dnf update -y
+dnf install -y docker unzip
+systemctl enable --now docker
+usermod -aG docker ec2-user
+
+# AWS CLI v2 (not guaranteed on minimal AL2023; the deploy script needs it)
+if ! command -v aws >/dev/null 2>&1; then
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+  unzip -q /tmp/awscliv2.zip -d /tmp
+  /tmp/aws/install
+fi
+
+# Docker Compose plugin
+mkdir -p /usr/libexec/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-x86_64" \
+  -o /usr/libexec/docker/cli-plugins/docker-compose
+chmod +x /usr/libexec/docker/cli-plugins/docker-compose
+
+# Elasticsearch needs a higher mmap limit
+echo 'vm.max_map_count=262144' > /etc/sysctl.d/99-nango.conf
+sysctl --system
+
+# Deploy target directory (the SSM deploy command populates this)
+mkdir -p /opt/company-brain
+chown ec2-user:ec2-user /opt/company-brain
