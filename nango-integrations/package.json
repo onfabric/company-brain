@@ -6,7 +6,7 @@
   "scripts": {
     "compile": "bun run --bun nango compile",
     "deploy": "bun run --bun nango deploy",
-    "dev": "nango dev",
+    "dev": "bun run --bun nango dev",
     "dryrun": "bun run --bun nango dryrun",
     "test": "bun test"
   },

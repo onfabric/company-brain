@@ -17,6 +17,7 @@ Bun resolves the local CLI from `node_modules/.bin`. The package scripts below i
 
 ```sh
 bun run compile
+bun run dev
 bun run test
 bun run dryrun <sync-name> <connection-id> -e dev --integration-id slack --validate
 bun run deploy dev --integration slack
