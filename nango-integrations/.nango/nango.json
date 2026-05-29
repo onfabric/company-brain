@@ -5,451 +5,33 @@
     "syncs": [
       {
         "type": "sync",
-        "description": "Sync conversations allowed by granted scopes - public/private channels, DMs, and group DMs",
+        "description": "Sync self-contained Slack thread records with channel context, message authors, mentions, files, links, and reactions",
         "auto_start": true,
         "endpoints": [
           {
             "method": "POST",
-            "path": "/syncs/channels",
-            "group": "Channels"
+            "path": "/syncs/threads",
+            "group": "Threads"
           }
         ],
-        "input": "SyncMetadata_slack_channels",
-        "name": "channels",
+        "input": "SyncMetadata_slack_threads",
+        "name": "threads",
         "output": [
-          "Channel"
-        ],
-        "runs": "every 5 minutes",
-        "scopes": [],
-        "sync_type": "full",
-        "track_deletes": false,
-        "usedModels": [
-          "Channel",
-          "SyncMetadata_slack_channels"
-        ],
-        "version": "3.0.0",
-        "webhookSubscriptions": [],
-        "json_schema": {
-          "definitions": {
-            "Channel": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "name_normalized": {
-                  "type": "string"
-                },
-                "created": {
-                  "type": "number"
-                },
-                "creator": {
-                  "type": "string"
-                },
-                "is_archived": {
-                  "type": "boolean"
-                },
-                "is_general": {
-                  "type": "boolean"
-                },
-                "is_private": {
-                  "type": "boolean"
-                },
-                "is_channel": {
-                  "type": "boolean"
-                },
-                "is_group": {
-                  "type": "boolean"
-                },
-                "is_im": {
-                  "type": "boolean"
-                },
-                "is_mpim": {
-                  "type": "boolean"
-                },
-                "is_shared": {
-                  "type": "boolean"
-                },
-                "is_org_shared": {
-                  "type": "boolean"
-                },
-                "is_ext_shared": {
-                  "type": "boolean"
-                },
-                "is_pending_ext_shared": {
-                  "type": "boolean"
-                },
-                "is_member": {
-                  "type": "boolean"
-                },
-                "num_members": {
-                  "type": "number"
-                },
-                "topic": {
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "type": "string"
-                    },
-                    "creator": {
-                      "type": "string"
-                    },
-                    "last_set": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "value",
-                    "last_set"
-                  ],
-                  "additionalProperties": false
-                },
-                "purpose": {
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "type": "string"
-                    },
-                    "creator": {
-                      "type": "string"
-                    },
-                    "last_set": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "value",
-                    "last_set"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "required": [
-                "id",
-                "created",
-                "is_archived",
-                "is_general",
-                "is_private",
-                "is_channel",
-                "is_group",
-                "is_im",
-                "is_mpim",
-                "topic",
-                "purpose"
-              ],
-              "additionalProperties": false
-            },
-            "SyncMetadata_slack_channels": {
-              "type": "object",
-              "properties": {
-                "joinPublicChannels": {
-                  "description": "Whether to auto-join public channels",
-                  "type": "boolean"
-                }
-              },
-              "additionalProperties": false
-            }
-          }
-        },
-        "features": [
-          "checkpoints"
-        ]
-      },
-      {
-        "type": "sync",
-        "description": "Sync Slack conversations including channel members",
-        "auto_start": true,
-        "endpoints": [
-          {
-            "method": "GET",
-            "path": "/syncs/conversations"
-          }
-        ],
-        "input": null,
-        "name": "conversations",
-        "output": [
-          "Conversation"
+          "SlackThread"
         ],
         "runs": "every hour",
         "scopes": [],
         "sync_type": "full",
         "track_deletes": false,
         "usedModels": [
-          "Conversation"
+          "SlackThread",
+          "SyncMetadata_slack_threads"
         ],
         "version": "1.0.0",
         "webhookSubscriptions": [],
         "json_schema": {
           "definitions": {
-            "Conversation": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "created": {
-                  "type": "number"
-                },
-                "creator": {
-                  "type": "string"
-                },
-                "is_archived": {
-                  "type": "boolean"
-                },
-                "is_general": {
-                  "type": "boolean"
-                },
-                "is_channel": {
-                  "type": "boolean"
-                },
-                "is_group": {
-                  "type": "boolean"
-                },
-                "is_im": {
-                  "type": "boolean"
-                },
-                "is_mpim": {
-                  "type": "boolean"
-                },
-                "is_private": {
-                  "type": "boolean"
-                },
-                "is_shared": {
-                  "type": "boolean"
-                },
-                "is_ext_shared": {
-                  "type": "boolean"
-                },
-                "is_org_shared": {
-                  "type": "boolean"
-                },
-                "updated": {
-                  "type": "number"
-                },
-                "num_members": {
-                  "type": "number"
-                },
-                "topic": {
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "type": "string"
-                    },
-                    "creator": {
-                      "type": "string"
-                    },
-                    "last_set": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "value",
-                    "creator",
-                    "last_set"
-                  ],
-                  "additionalProperties": false
-                },
-                "purpose": {
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "type": "string"
-                    },
-                    "creator": {
-                      "type": "string"
-                    },
-                    "last_set": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "value",
-                    "creator",
-                    "last_set"
-                  ],
-                  "additionalProperties": false
-                },
-                "members": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "required": [
-                "id",
-                "created",
-                "is_archived",
-                "is_general",
-                "is_channel",
-                "is_group",
-                "is_im",
-                "is_mpim",
-                "is_private",
-                "is_shared",
-                "is_ext_shared",
-                "is_org_shared",
-                "updated",
-                "members"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "features": [
-          "checkpoints"
-        ]
-      },
-      {
-        "type": "sync",
-        "description": "Sync messages, thread replies, and reactions for conversations the bot can access; fully backfill new channels, then resync the last 10 days using channelsLastSyncDate metadata.",
-        "auto_start": true,
-        "endpoints": [
-          {
-            "method": "POST",
-            "path": "/syncs/messages-received",
-            "group": "Messages"
-          }
-        ],
-        "input": null,
-        "name": "messages-received",
-        "output": [
-          "Message"
-        ],
-        "runs": "every hour",
-        "scopes": [],
-        "sync_type": "full",
-        "track_deletes": false,
-        "usedModels": [
-          "Message"
-        ],
-        "version": "1.0.0",
-        "webhookSubscriptions": [],
-        "json_schema": {
-          "definitions": {
-            "Message": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "channel_id": {
-                  "type": "string"
-                },
-                "channel_name": {
-                  "type": "string"
-                },
-                "user_id": {
-                  "type": "string"
-                },
-                "user_name": {
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                },
-                "timestamp": {
-                  "type": "string"
-                },
-                "thread_ts": {
-                  "type": "string"
-                },
-                "parent_ts": {
-                  "type": "string"
-                },
-                "is_thread_reply": {
-                  "type": "boolean"
-                },
-                "reactions": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "count": {
-                        "type": "number"
-                      },
-                      "users": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "count",
-                      "users"
-                    ],
-                    "additionalProperties": false
-                  }
-                },
-                "reply_count": {
-                  "type": "number"
-                },
-                "reply_users": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "created_at": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "channel_id",
-                "channel_name",
-                "user_id",
-                "text",
-                "timestamp",
-                "created_at"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "features": [
-          "checkpoints"
-        ]
-      },
-      {
-        "type": "sync",
-        "description": "Sync all workspace users including deactivated accounts with email and profile fields",
-        "auto_start": true,
-        "endpoints": [
-          {
-            "method": "POST",
-            "path": "/syncs/users",
-            "group": "Users"
-          }
-        ],
-        "input": null,
-        "name": "users",
-        "output": [
-          "User"
-        ],
-        "runs": "every hour",
-        "scopes": [],
-        "sync_type": "full",
-        "track_deletes": false,
-        "usedModels": [
-          "User"
-        ],
-        "version": "3.0.0",
-        "webhookSubscriptions": [],
-        "json_schema": {
-          "definitions": {
-            "User": {
+            "SlackThread": {
               "type": "object",
               "properties": {
                 "id": {
@@ -458,46 +40,464 @@
                 "team_id": {
                   "type": "string"
                 },
-                "name": {
+                "channel": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "team_id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "public_channel",
+                        "private_channel",
+                        "mpim",
+                        "im",
+                        "unknown"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "name_normalized": {
+                      "type": "string"
+                    },
+                    "is_private": {
+                      "type": "boolean"
+                    },
+                    "is_archived": {
+                      "type": "boolean"
+                    },
+                    "is_shared": {
+                      "type": "boolean"
+                    },
+                    "is_org_shared": {
+                      "type": "boolean"
+                    },
+                    "is_ext_shared": {
+                      "type": "boolean"
+                    },
+                    "is_general": {
+                      "type": "boolean"
+                    },
+                    "creator_id": {
+                      "type": "string"
+                    },
+                    "num_members": {
+                      "type": "number"
+                    },
+                    "previous_names": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    },
+                    "topic": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "string"
+                        },
+                        "creator_id": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "purpose": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "string"
+                        },
+                        "creator_id": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "is_private",
+                    "is_archived"
+                  ],
+                  "additionalProperties": false
+                },
+                "root_ts": {
                   "type": "string"
                 },
-                "real_name": {
+                "permalink": {
                   "type": "string"
                 },
-                "email": {
+                "created_at": {
                   "type": "string"
                 },
-                "is_admin": {
-                  "type": "boolean"
+                "updated_at": {
+                  "type": "string"
                 },
-                "is_owner": {
-                  "type": "boolean"
+                "actors": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "user",
+                          "bot",
+                          "unknown"
+                        ]
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "team_id": {
+                        "type": "string"
+                      },
+                      "username": {
+                        "type": "string"
+                      },
+                      "real_name": {
+                        "type": "string"
+                      },
+                      "display_name": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "is_bot": {
+                        "type": "boolean"
+                      },
+                      "deleted": {
+                        "type": "boolean"
+                      },
+                      "avatar_url": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
                 },
-                "is_bot": {
-                  "type": "boolean"
+                "facets": {
+                  "type": "object",
+                  "properties": {
+                    "channel_id": {
+                      "type": "string"
+                    },
+                    "root_author_id": {
+                      "type": "string"
+                    },
+                    "author_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "actor_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "mentioned_actor_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "has_replies": {
+                      "type": "boolean"
+                    },
+                    "has_files": {
+                      "type": "boolean"
+                    },
+                    "has_reactions": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "channel_id",
+                    "root_author_id",
+                    "author_ids",
+                    "actor_ids",
+                    "mentioned_actor_ids",
+                    "has_replies",
+                    "has_files",
+                    "has_reactions"
+                  ],
+                  "additionalProperties": false
                 },
-                "deleted": {
-                  "type": "boolean"
+                "counts": {
+                  "type": "object",
+                  "properties": {
+                    "messages": {
+                      "type": "number"
+                    },
+                    "replies": {
+                      "type": "number"
+                    },
+                    "actors": {
+                      "type": "number"
+                    },
+                    "files": {
+                      "type": "number"
+                    },
+                    "reactions": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "messages",
+                    "replies",
+                    "actors",
+                    "files",
+                    "reactions"
+                  ],
+                  "additionalProperties": false
                 },
-                "updated": {
-                  "type": "number"
+                "messages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "ts": {
+                        "type": "string"
+                      },
+                      "thread_ts": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      },
+                      "edited_by_id": {
+                        "type": "string"
+                      },
+                      "client_msg_id": {
+                        "type": "string"
+                      },
+                      "author_id": {
+                        "type": "string"
+                      },
+                      "parent_author_id": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "subtype": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "blocks": {
+                        "type": "array",
+                        "items": {}
+                      },
+                      "attachments": {
+                        "type": "array",
+                        "items": {}
+                      },
+                      "reactions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "count": {
+                              "type": "number"
+                            },
+                            "actor_ids": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "count",
+                            "actor_ids"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "mimetype": {
+                              "type": "string"
+                            },
+                            "filetype": {
+                              "type": "string"
+                            },
+                            "url_private": {
+                              "type": "string"
+                            },
+                            "permalink": {
+                              "type": "string"
+                            },
+                            "size": {
+                              "type": "number"
+                            },
+                            "created_at": {
+                              "type": "string"
+                            },
+                            "actor_id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "links": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "label": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "url"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "mentioned_actor_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "bot_id": {
+                        "type": "string"
+                      },
+                      "app_id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "ts",
+                      "thread_ts",
+                      "created_at",
+                      "author_id",
+                      "type",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "required": [
                 "id",
-                "team_id",
-                "name",
-                "is_admin",
-                "is_owner",
-                "is_bot",
-                "deleted",
-                "updated"
+                "channel",
+                "root_ts",
+                "created_at",
+                "updated_at",
+                "actors",
+                "facets",
+                "counts",
+                "messages"
               ],
+              "additionalProperties": false
+            },
+            "SyncMetadata_slack_threads": {
+              "type": "object",
+              "properties": {
+                "joinPublicChannels": {
+                  "description": "Whether to auto-join public channels before reading their history",
+                  "type": "boolean"
+                },
+                "includeArchived": {
+                  "description": "Whether to include archived conversations",
+                  "type": "boolean"
+                },
+                "channelTypes": {
+                  "description": "Comma-separated Slack conversation types to sync",
+                  "type": "string"
+                },
+                "resyncWindowDays": {
+                  "description": "How far back to re-read existing channels to catch edits, replies, and reactions",
+                  "type": "number"
+                },
+                "maxChannelsPerRun": {
+                  "description": "Optional cap for channel processing in one execution",
+                  "type": "number"
+                }
+              },
               "additionalProperties": false
             }
           }
         },
-        "features": []
+        "features": [
+          "checkpoints"
+        ]
       }
     ],
     "onEventScripts": {
