@@ -29,6 +29,8 @@ const SlackChannelSchema = z.object({
     is_ext_shared: z.boolean().optional(),
     is_general: z.boolean().optional(),
     creator_id: z.string().optional(),
+    num_members: z.number().optional(),
+    previous_names: z.array(z.string()).optional(),
     created_at: z.string().optional(),
     updated_at: z.string().optional(),
     topic: z
@@ -77,6 +79,8 @@ const SlackThreadMessageSchema = z.object({
     thread_ts: z.string(),
     created_at: z.string(),
     updated_at: z.string().optional(),
+    edited_by_id: z.string().optional(),
+    client_msg_id: z.string().optional(),
     author_id: z.string(),
     parent_author_id: z.string().optional(),
     type: z.string(),
@@ -179,6 +183,8 @@ type RawSlackChannel = {
     is_org_shared?: boolean;
     is_ext_shared?: boolean;
     is_member?: boolean;
+    num_members?: number;
+    previous_names?: string[];
     topic?: {
         value?: string;
         creator?: string;
@@ -196,6 +202,7 @@ type RawSlackMessage = {
     subtype?: string;
     user?: string;
     username?: string;
+    client_msg_id?: string;
     text?: string;
     ts: string;
     thread_ts?: string;
@@ -276,6 +283,7 @@ const sync = createSync({
         const updatedChannelsLastSyncDate: Record<string, string> = { ...channelsLastSyncDate };
         const resyncWindowDays = metadata?.resyncWindowDays ?? 10;
         const resyncWindowTs = String((Date.now() - resyncWindowDays * 24 * 60 * 60 * 1000) / 1000);
+        const syncUpperBoundTs = String(Date.now() / 1000);
 
         for (const rawChannel of channelsToProcess) {
             if (!(await ensureReadableChannel(nango, rawChannel, metadata))) {
@@ -283,9 +291,19 @@ const sync = createSync({
             }
 
             const lastSync = channelsLastSyncDate[rawChannel.id];
+            // We poll a bounded snapshot so the checkpoint never advances past
+            // messages that were posted while this execution was already running.
+            // This window is still based on root message timestamps returned by
+            // conversations.history, not on thread activity. That means updates to
+            // threads whose root message is older than the resync window can be
+            // missed: new replies, edits/deletes, reaction changes, or file changes
+            // on old messages will not be noticed until a wider backfill catches the
+            // root again. TODO: add Slack Events API webhook handling so
+            // message_changed, message_deleted, reaction, and new-reply events
+            // rebuild the affected SlackThread immediately by channel_id + thread_ts.
             const oldest = lastSync ? Math.max(Number(lastSync), Number(resyncWindowTs)).toString() : '0';
             const channel = mapChannel(rawChannel);
-            const rootMessages = await fetchRootMessages(nango, rawChannel.id, oldest);
+            const rootMessages = await fetchRootMessages(nango, rawChannel.id, oldest, syncUpperBoundTs);
             const threads: SlackThread[] = [];
             let maxSeenTs = Number(lastSync ?? 0);
 
@@ -307,7 +325,7 @@ const sync = createSync({
                 await nango.batchSave(threads, 'SlackThread');
             }
 
-            updatedChannelsLastSyncDate[rawChannel.id] = String(Math.max(maxSeenTs, Date.now() / 1000));
+            updatedChannelsLastSyncDate[rawChannel.id] = String(Math.max(maxSeenTs, Number(syncUpperBoundTs)));
         }
 
         await nango.saveCheckpoint({
@@ -404,7 +422,7 @@ async function ensureReadableChannel(
     }
 }
 
-async function fetchRootMessages(nango: any, channelId: string, oldest: string): Promise<RawSlackMessage[]> {
+async function fetchRootMessages(nango: any, channelId: string, oldest: string, latest: string): Promise<RawSlackMessage[]> {
     const messages: RawSlackMessage[] = [];
     let cursor: string | undefined;
     let hasMore = true;
@@ -415,6 +433,7 @@ async function fetchRootMessages(nango: any, channelId: string, oldest: string):
             params: {
                 channel: channelId,
                 oldest,
+                latest,
                 limit: 100,
                 ...(cursor && { cursor })
             },
@@ -522,6 +541,10 @@ function buildThread(channel: SlackChannel, rawMessages: RawSlackMessage[], user
 
         latestTimestamp = Math.max(latestTimestamp, Number(rawMessage.edited?.ts ?? rawMessage.ts));
 
+        if (rawMessage.edited?.user) {
+            setActor(actors, usersById.get(rawMessage.edited.user) ?? unknownActor(rawMessage.edited.user, rawMessage.team));
+        }
+
         const links = mapLinks(rawMessage);
 
         return withoutUndefined({
@@ -530,6 +553,8 @@ function buildThread(channel: SlackChannel, rawMessages: RawSlackMessage[], user
             thread_ts: rawMessage.thread_ts ?? rootTs,
             created_at: slackTsToIso(rawMessage.ts),
             updated_at: rawMessage.edited?.ts ? slackTsToIso(rawMessage.edited.ts) : undefined,
+            edited_by_id: rawMessage.edited?.user,
+            client_msg_id: rawMessage.client_msg_id,
             author_id: author.id,
             parent_author_id: rawMessage.parent_user_id,
             type: rawMessage.type ?? 'message',
@@ -628,6 +653,8 @@ function mapChannel(channel: RawSlackChannel): SlackChannel {
         is_ext_shared: channel.is_ext_shared,
         is_general: channel.is_general,
         creator_id: channel.creator,
+        num_members: channel.num_members,
+        previous_names: channel.previous_names && channel.previous_names.length > 0 ? channel.previous_names : undefined,
         created_at: channel.created ? slackSecondsToIso(channel.created) : undefined,
         updated_at: channel.updated ? new Date(channel.updated).toISOString() : undefined,
         topic: mapConversationText(channel.topic),

@@ -177,6 +177,7 @@
               "thread_ts": "1700000100.123456",
               "created_at": "2023-11-14T22:15:10.111Z",
               "updated_at": "2023-11-14T22:15:12.333Z",
+              "edited_by_id": "B99",
               "author_id": "B99",
               "parent_author_id": "U1",
               "type": "message",

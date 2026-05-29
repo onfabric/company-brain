@@ -505,6 +505,15 @@
                     "creator_id": {
                       "type": "string"
                     },
+                    "num_members": {
+                      "type": "number"
+                    },
+                    "previous_names": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
                     "created_at": {
                       "type": "string"
                     },
@@ -721,6 +730,12 @@
                         "type": "string"
                       },
                       "updated_at": {
+                        "type": "string"
+                      },
+                      "edited_by_id": {
+                        "type": "string"
+                      },
+                      "client_msg_id": {
                         "type": "string"
                       },
                       "author_id": {
