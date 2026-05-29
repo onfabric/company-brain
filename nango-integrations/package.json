@@ -1,0 +1,19 @@
+{
+  "name": "nango-integrations",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "bun@1.3.11",
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "scripts": {
+    "compile": "nango compile",
+    "dev": "nango dev",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "nango": "0.70.5",
+    "zod": "4.3.6"
+  }
+}

@@ -1,0 +1,509 @@
+[
+  {
+    "providerConfigKey": "slack",
+    "actions": [],
+    "syncs": [
+      {
+        "type": "sync",
+        "description": "Sync conversations allowed by granted scopes - public/private channels, DMs, and group DMs",
+        "auto_start": true,
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/syncs/channels",
+            "group": "Channels"
+          }
+        ],
+        "input": "SyncMetadata_slack_channels",
+        "name": "channels",
+        "output": [
+          "Channel"
+        ],
+        "runs": "every 5 minutes",
+        "scopes": [],
+        "sync_type": "full",
+        "track_deletes": false,
+        "usedModels": [
+          "Channel",
+          "SyncMetadata_slack_channels"
+        ],
+        "version": "3.0.0",
+        "webhookSubscriptions": [],
+        "json_schema": {
+          "definitions": {
+            "Channel": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "name_normalized": {
+                  "type": "string"
+                },
+                "created": {
+                  "type": "number"
+                },
+                "creator": {
+                  "type": "string"
+                },
+                "is_archived": {
+                  "type": "boolean"
+                },
+                "is_general": {
+                  "type": "boolean"
+                },
+                "is_private": {
+                  "type": "boolean"
+                },
+                "is_channel": {
+                  "type": "boolean"
+                },
+                "is_group": {
+                  "type": "boolean"
+                },
+                "is_im": {
+                  "type": "boolean"
+                },
+                "is_mpim": {
+                  "type": "boolean"
+                },
+                "is_shared": {
+                  "type": "boolean"
+                },
+                "is_org_shared": {
+                  "type": "boolean"
+                },
+                "is_ext_shared": {
+                  "type": "boolean"
+                },
+                "is_pending_ext_shared": {
+                  "type": "boolean"
+                },
+                "is_member": {
+                  "type": "boolean"
+                },
+                "num_members": {
+                  "type": "number"
+                },
+                "topic": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "creator": {
+                      "type": "string"
+                    },
+                    "last_set": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "last_set"
+                  ],
+                  "additionalProperties": false
+                },
+                "purpose": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "creator": {
+                      "type": "string"
+                    },
+                    "last_set": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "last_set"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "created",
+                "is_archived",
+                "is_general",
+                "is_private",
+                "is_channel",
+                "is_group",
+                "is_im",
+                "is_mpim",
+                "topic",
+                "purpose"
+              ],
+              "additionalProperties": false
+            },
+            "SyncMetadata_slack_channels": {
+              "type": "object",
+              "properties": {
+                "joinPublicChannels": {
+                  "description": "Whether to auto-join public channels",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "features": [
+          "checkpoints"
+        ]
+      },
+      {
+        "type": "sync",
+        "description": "Sync Slack conversations including channel members",
+        "auto_start": true,
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/syncs/conversations"
+          }
+        ],
+        "input": null,
+        "name": "conversations",
+        "output": [
+          "Conversation"
+        ],
+        "runs": "every hour",
+        "scopes": [],
+        "sync_type": "full",
+        "track_deletes": false,
+        "usedModels": [
+          "Conversation"
+        ],
+        "version": "1.0.0",
+        "webhookSubscriptions": [],
+        "json_schema": {
+          "definitions": {
+            "Conversation": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "created": {
+                  "type": "number"
+                },
+                "creator": {
+                  "type": "string"
+                },
+                "is_archived": {
+                  "type": "boolean"
+                },
+                "is_general": {
+                  "type": "boolean"
+                },
+                "is_channel": {
+                  "type": "boolean"
+                },
+                "is_group": {
+                  "type": "boolean"
+                },
+                "is_im": {
+                  "type": "boolean"
+                },
+                "is_mpim": {
+                  "type": "boolean"
+                },
+                "is_private": {
+                  "type": "boolean"
+                },
+                "is_shared": {
+                  "type": "boolean"
+                },
+                "is_ext_shared": {
+                  "type": "boolean"
+                },
+                "is_org_shared": {
+                  "type": "boolean"
+                },
+                "updated": {
+                  "type": "number"
+                },
+                "num_members": {
+                  "type": "number"
+                },
+                "topic": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "creator": {
+                      "type": "string"
+                    },
+                    "last_set": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "creator",
+                    "last_set"
+                  ],
+                  "additionalProperties": false
+                },
+                "purpose": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "creator": {
+                      "type": "string"
+                    },
+                    "last_set": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "creator",
+                    "last_set"
+                  ],
+                  "additionalProperties": false
+                },
+                "members": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "created",
+                "is_archived",
+                "is_general",
+                "is_channel",
+                "is_group",
+                "is_im",
+                "is_mpim",
+                "is_private",
+                "is_shared",
+                "is_ext_shared",
+                "is_org_shared",
+                "updated",
+                "members"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "features": [
+          "checkpoints"
+        ]
+      },
+      {
+        "type": "sync",
+        "description": "Sync messages, thread replies, and reactions for conversations the bot can access; fully backfill new channels, then resync the last 10 days using channelsLastSyncDate metadata.",
+        "auto_start": true,
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/syncs/messages-received",
+            "group": "Messages"
+          }
+        ],
+        "input": null,
+        "name": "messages-received",
+        "output": [
+          "Message"
+        ],
+        "runs": "every hour",
+        "scopes": [],
+        "sync_type": "full",
+        "track_deletes": false,
+        "usedModels": [
+          "Message"
+        ],
+        "version": "1.0.0",
+        "webhookSubscriptions": [],
+        "json_schema": {
+          "definitions": {
+            "Message": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "channel_id": {
+                  "type": "string"
+                },
+                "channel_name": {
+                  "type": "string"
+                },
+                "user_id": {
+                  "type": "string"
+                },
+                "user_name": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "timestamp": {
+                  "type": "string"
+                },
+                "thread_ts": {
+                  "type": "string"
+                },
+                "parent_ts": {
+                  "type": "string"
+                },
+                "is_thread_reply": {
+                  "type": "boolean"
+                },
+                "reactions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "count": {
+                        "type": "number"
+                      },
+                      "users": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "count",
+                      "users"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "reply_count": {
+                  "type": "number"
+                },
+                "reply_users": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "created_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "channel_id",
+                "channel_name",
+                "user_id",
+                "text",
+                "timestamp",
+                "created_at"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "features": [
+          "checkpoints"
+        ]
+      },
+      {
+        "type": "sync",
+        "description": "Sync all workspace users including deactivated accounts with email and profile fields",
+        "auto_start": true,
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/syncs/users",
+            "group": "Users"
+          }
+        ],
+        "input": null,
+        "name": "users",
+        "output": [
+          "User"
+        ],
+        "runs": "every hour",
+        "scopes": [],
+        "sync_type": "full",
+        "track_deletes": false,
+        "usedModels": [
+          "User"
+        ],
+        "version": "3.0.0",
+        "webhookSubscriptions": [],
+        "json_schema": {
+          "definitions": {
+            "User": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "team_id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "real_name": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                },
+                "is_admin": {
+                  "type": "boolean"
+                },
+                "is_owner": {
+                  "type": "boolean"
+                },
+                "is_bot": {
+                  "type": "boolean"
+                },
+                "deleted": {
+                  "type": "boolean"
+                },
+                "updated": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "team_id",
+                "name",
+                "is_admin",
+                "is_owner",
+                "is_bot",
+                "deleted",
+                "updated"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "features": []
+      }
+    ],
+    "onEventScripts": {
+      "post-connection-creation": [],
+      "pre-connection-deletion": [],
+      "validate-connection": []
+    }
+  }
+]
