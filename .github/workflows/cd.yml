@@ -166,7 +166,6 @@ jobs:
       run:
         working-directory: nango-integrations
     env:
-      NANGO_HOSTPORT: https://${{ env.NANGO_HOSTNAME }}
       NANGO_SECRET_KEY_DEV: ${{ secrets.NANGO_SECRET_KEY_DEV }}
       NANGO_DEPLOY_AUTO_CONFIRM: "true"
       NANGO_CLI_DEPENDENCY_UPDATE: "false"
@@ -175,6 +174,5 @@ jobs:
 
       - uses: ./.github/actions/prepare
 
-      - run: bun install --frozen-lockfile
       - run: bun test
-      - run: bun run deploy dev --no-interactive --no-dependency-update
+      - run: NANGO_HOSTPORT="https://${NANGO_HOSTNAME}" bun run deploy dev --no-interactive --no-dependency-update

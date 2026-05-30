@@ -1,5 +1,5 @@
-import { createSync, type ProxyConfiguration } from "nango";
-import { z } from "zod";
+import { createSync, type ProxyConfiguration } from 'nango';
+import { z } from 'zod';
 
 // Slack timestamps are Unix seconds, while JS Date works in milliseconds.
 const MILLISECONDS_PER_SECOND = 1000;
@@ -20,7 +20,7 @@ const PROXY_RETRIES = 3;
 
 const SlackActorSchema = z.object({
   id: z.string(),
-  kind: z.enum(["user", "bot", "unknown"]),
+  kind: z.enum(['user', 'bot', 'unknown']),
   name: z.string(),
   team_id: z.string().optional(),
   username: z.string().optional(),
@@ -79,27 +79,17 @@ const MetadataSchema = z.object({
   joinPublicChannels: z
     .boolean()
     .optional()
-    .describe(
-      "Whether to auto-join public channels before reading their history",
-    ),
-  includeArchived: z
-    .boolean()
-    .optional()
-    .describe("Whether to include archived conversations"),
-  channelTypes: z
-    .string()
-    .optional()
-    .describe("Comma-separated Slack conversation types to sync"),
+    .describe('Whether to auto-join public channels before reading their history'),
+  includeArchived: z.boolean().optional().describe('Whether to include archived conversations'),
+  channelTypes: z.string().optional().describe('Comma-separated Slack conversation types to sync'),
   resyncWindowDays: z
     .number()
     .optional()
-    .describe(
-      "How far back to re-read existing channels to catch edits, replies, and reactions",
-    ),
+    .describe('How far back to re-read existing channels to catch edits, replies, and reactions'),
   maxChannelsPerRun: z
     .number()
     .optional()
-    .describe("Optional cap for channel processing in one execution"),
+    .describe('Optional cap for channel processing in one execution'),
 });
 
 const CheckpointSchema = z.object({
@@ -228,10 +218,10 @@ function parseOptional<T>(schema: z.ZodType<T>, value: unknown): T | undefined {
 
 const sync = createSync({
   description:
-    "Sync self-contained Slack thread records with channel context, message authors, mentions, files, links, and reactions",
-  version: "2.0.0",
-  endpoints: [{ method: "POST", path: "/syncs/threads", group: "Threads" }],
-  frequency: "every hour",
+    'Sync self-contained Slack thread records with channel context, message authors, mentions, files, links, and reactions',
+  version: '2.0.0',
+  endpoints: [{ method: 'POST', path: '/syncs/threads', group: 'Threads' }],
+  frequency: 'every hour',
   autoStart: true,
   metadata: MetadataSchema,
   checkpoint: CheckpointSchema,
@@ -242,29 +232,21 @@ const sync = createSync({
 
   exec: async (nango) => {
     const metadata = parseOptional(MetadataSchema, await nango.getMetadata());
-    const checkpoint = parseOptional(
-      CheckpointSchema,
-      await nango.getCheckpoint(),
-    );
+    const checkpoint = parseOptional(CheckpointSchema, await nango.getCheckpoint());
 
     const usersById = await fetchUsersById(nango);
     const channels = await fetchChannels(nango, metadata);
     const channelsToProcess =
-      typeof metadata?.maxChannelsPerRun === "number" &&
-      metadata.maxChannelsPerRun > 0
+      typeof metadata?.maxChannelsPerRun === 'number' && metadata.maxChannelsPerRun > 0
         ? channels.slice(0, metadata.maxChannelsPerRun)
         : channels;
-    const channelsLastSyncDate = parseChannelsLastSyncDate(
-      checkpoint?.channelsLastSyncDateJson,
-    );
+    const channelsLastSyncDate = parseChannelsLastSyncDate(checkpoint?.channelsLastSyncDateJson);
     const updatedChannelsLastSyncDate: Record<string, string> = {
       ...channelsLastSyncDate,
     };
-    const resyncWindowDays =
-      metadata?.resyncWindowDays ?? DEFAULT_RESYNC_WINDOW_DAYS;
+    const resyncWindowDays = metadata?.resyncWindowDays ?? DEFAULT_RESYNC_WINDOW_DAYS;
     const resyncWindowTs = String(
-      (Date.now() - resyncWindowDays * MILLISECONDS_PER_DAY) /
-        MILLISECONDS_PER_SECOND,
+      (Date.now() - resyncWindowDays * MILLISECONDS_PER_DAY) / MILLISECONDS_PER_SECOND,
     );
     const syncUpperBoundTs = String(Date.now() / MILLISECONDS_PER_SECOND);
 
@@ -295,21 +277,19 @@ const sync = createSync({
   },
 });
 
-async function fetchUsersById(
-  nango: NangoSyncLocal,
-): Promise<Map<string, SlackActor>> {
+async function fetchUsersById(nango: NangoSyncLocal): Promise<Map<string, SlackActor>> {
   const usersById = new Map<string, SlackActor>();
   const proxyConfig = {
-    endpoint: "users.list",
+    endpoint: 'users.list',
     params: {
       limit: USERS_PAGE_SIZE,
     },
     paginate: {
-      type: "cursor",
-      cursor_path_in_response: "response_metadata.next_cursor",
-      cursor_name_in_request: "cursor",
-      response_path: "members",
-      limit_name_in_request: "limit",
+      type: 'cursor',
+      cursor_path_in_response: 'response_metadata.next_cursor',
+      cursor_name_in_request: 'cursor',
+      response_path: 'members',
+      limit_name_in_request: 'limit',
       limit: USERS_PAGE_SIZE,
     },
     retries: PROXY_RETRIES,
@@ -333,18 +313,18 @@ async function fetchChannels(
 ): Promise<RawSlackChannel[]> {
   const channels: RawSlackChannel[] = [];
   const proxyConfig = {
-    endpoint: "conversations.list",
+    endpoint: 'conversations.list',
     params: {
-      types: metadata?.channelTypes ?? "public_channel,private_channel,mpim,im",
-      exclude_archived: metadata?.includeArchived ? "false" : "true",
+      types: metadata?.channelTypes ?? 'public_channel,private_channel,mpim,im',
+      exclude_archived: metadata?.includeArchived ? 'false' : 'true',
       limit: CHANNELS_PAGE_SIZE,
     },
     paginate: {
-      type: "cursor",
-      cursor_path_in_response: "response_metadata.next_cursor",
-      cursor_name_in_request: "cursor",
-      response_path: "channels",
-      limit_name_in_request: "limit",
+      type: 'cursor',
+      cursor_path_in_response: 'response_metadata.next_cursor',
+      cursor_name_in_request: 'cursor',
+      response_path: 'channels',
+      limit_name_in_request: 'limit',
       limit: CHANNELS_PAGE_SIZE,
     },
     retries: PROXY_RETRIES,
@@ -377,7 +357,7 @@ async function ensureReadableChannel(
 
   try {
     await nango.post({
-      endpoint: "conversations.join",
+      endpoint: 'conversations.join',
       data: { channel: channel.id },
       retries: PROXY_RETRIES,
     });
@@ -410,9 +390,7 @@ async function processChannel(
   // a wider backfill catches the root again. TODO: add Slack Events API webhook
   // handling so message_changed, message_deleted, reaction, and new-reply events
   // rebuild the affected SlackThread immediately by channel_id + thread_ts.
-  const oldest = lastSync
-    ? Math.max(Number(lastSync), Number(ctx.resyncWindowTs))
-    : 0;
+  const oldest = lastSync ? Math.max(Number(lastSync), Number(ctx.resyncWindowTs)) : 0;
   const channel = mapChannel(rawChannel);
 
   const maxSeenTs = await processRootMessagePages(
@@ -450,7 +428,7 @@ async function processRootMessagePages(
   maxSeenTs: number,
 ): Promise<number> {
   const response = await nango.get({
-    endpoint: "conversations.history",
+    endpoint: 'conversations.history',
     params: {
       channel: channelId,
       oldest,
@@ -477,7 +455,7 @@ async function processRootMessagePages(
   );
 
   if (threads.length > 0) {
-    await nango.batchSave(threads, "SlackThread");
+    await nango.batchSave(threads, 'SlackThread');
   }
 
   const hasMore = Boolean(response.data?.has_more);
@@ -487,15 +465,7 @@ async function processRootMessagePages(
     return pageMaxSeenTs;
   }
 
-  return processRootMessagePages(
-    nango,
-    channelId,
-    channel,
-    ctx,
-    oldest,
-    nextCursor,
-    pageMaxSeenTs,
-  );
+  return processRootMessagePages(nango, channelId, channel, ctx, oldest, nextCursor, pageMaxSeenTs);
 }
 
 async function buildThreadsForRoots(
@@ -511,14 +481,9 @@ async function buildThreadsForRoots(
   for (const rootMessage of rootMessages) {
     const fetchedThreadMessages =
       rootMessage.reply_count && rootMessage.reply_count > 0
-        ? await fetchThreadMessages(
-            nango,
-            channelId,
-            rootMessage.thread_ts ?? rootMessage.ts,
-          )
+        ? await fetchThreadMessages(nango, channelId, rootMessage.thread_ts ?? rootMessage.ts)
         : [rootMessage];
-    const threadMessages =
-      fetchedThreadMessages.length > 0 ? fetchedThreadMessages : [rootMessage];
+    const threadMessages = fetchedThreadMessages.length > 0 ? fetchedThreadMessages : [rootMessage];
 
     const thread = buildThread(channelId, channel, threadMessages, usersById);
     if (thread) {
@@ -546,7 +511,7 @@ async function fetchThreadMessages(
 ): Promise<RawSlackMessage[]> {
   try {
     const response = await nango.get({
-      endpoint: "conversations.replies",
+      endpoint: 'conversations.replies',
       params: {
         channel: channelId,
         ts: threadTs,
@@ -561,10 +526,7 @@ async function fetchThreadMessages(
       return accumulated;
     }
 
-    const messages = [
-      ...accumulated,
-      ...(batch as RawSlackMessage[]).filter(isContentMessage),
-    ];
+    const messages = [...accumulated, ...(batch as RawSlackMessage[]).filter(isContentMessage)];
     const hasMore = Boolean(response.data?.has_more);
     const nextCursor = response.data?.response_metadata?.next_cursor;
 
@@ -572,13 +534,7 @@ async function fetchThreadMessages(
       return messages;
     }
 
-    return fetchThreadMessages(
-      nango,
-      channelId,
-      threadTs,
-      nextCursor,
-      messages,
-    );
+    return fetchThreadMessages(nango, channelId, threadTs, nextCursor, messages);
   } catch {
     return accumulated;
   }
@@ -590,9 +546,7 @@ function buildThread(
   rawMessages: RawSlackMessage[],
   usersById: Map<string, SlackActor>,
 ): SlackThread | undefined {
-  const messages = rawMessages
-    .filter(isContentMessage)
-    .sort((a, b) => Number(a.ts) - Number(b.ts));
+  const messages = rawMessages.filter(isContentMessage).sort((a, b) => Number(a.ts) - Number(b.ts));
   const rootMessage = messages[0];
 
   if (!rootMessage) {
@@ -615,24 +569,18 @@ function buildThread(
     for (const file of files) {
       latestTimestamp = Math.max(
         latestTimestamp,
-        Date.parse(file.created_at ?? slackTsToIso(rawMessage.ts)) /
-          MILLISECONDS_PER_SECOND,
+        Date.parse(file.created_at ?? slackTsToIso(rawMessage.ts)) / MILLISECONDS_PER_SECOND,
       );
     }
 
-    latestTimestamp = Math.max(
-      latestTimestamp,
-      Number(rawMessage.edited?.ts ?? rawMessage.ts),
-    );
+    latestTimestamp = Math.max(latestTimestamp, Number(rawMessage.edited?.ts ?? rawMessage.ts));
 
     const links = mapLinks(rawMessage);
-    const text = renderSlackText(rawMessage.text ?? "", usersById);
+    const text = renderSlackText(rawMessage.text ?? '', usersById);
 
     return withoutUndefined({
       created_at: slackTsToIso(rawMessage.ts),
-      updated_at: rawMessage.edited?.ts
-        ? slackTsToIso(rawMessage.edited.ts)
-        : undefined,
+      updated_at: rawMessage.edited?.ts ? slackTsToIso(rawMessage.edited.ts) : undefined,
       author: toActorRef(author),
       text,
       mentions: mentions.length > 0 ? sortActorRefs(mentions) : undefined,
@@ -656,14 +604,11 @@ function buildThread(
 }
 
 function isThreadRootMessage(message: RawSlackMessage): boolean {
-  return (
-    isContentMessage(message) &&
-    (!message.thread_ts || message.thread_ts === message.ts)
-  );
+  return isContentMessage(message) && (!message.thread_ts || message.thread_ts === message.ts);
 }
 
 function isContentMessage(message: RawSlackMessage): boolean {
-  if (message.type && message.type !== "message") {
+  if (message.type && message.type !== 'message') {
     return false;
   }
 
@@ -671,7 +616,7 @@ function isContentMessage(message: RawSlackMessage): boolean {
     return true;
   }
 
-  return ["bot_message", "file_share"].includes(message.subtype);
+  return ['bot_message', 'file_share'].includes(message.subtype);
 }
 
 function mapUser(user: RawSlackUser): SlackActor {
@@ -682,11 +627,11 @@ function mapUser(user: RawSlackUser): SlackActor {
       user.real_name,
       user.name,
       user.id,
-    ) ?? "unknown";
+    ) ?? 'unknown';
 
   return withoutUndefined({
     id: user.id!,
-    kind: user.is_bot ? "bot" : "user",
+    kind: user.is_bot ? 'bot' : 'user',
     name,
     team_id: user.team_id,
     username: user.name,
@@ -707,26 +652,22 @@ function mapChannel(channel: RawSlackChannel): SlackChannel {
   }
 
   if (channel.is_im) {
-    return "direct-message";
+    return 'direct-message';
   }
   if (channel.is_mpim) {
-    return "group-dm";
+    return 'group-dm';
   }
   if (channel.is_private || channel.is_group) {
-    return "private-channel";
+    return 'private-channel';
   }
   if (channel.is_channel) {
-    return "public-channel";
+    return 'public-channel';
   }
-  return "unknown-channel";
+  return 'unknown-channel';
 }
 
-function resolveAuthor(
-  message: RawSlackMessage,
-  usersById: Map<string, SlackActor>,
-): SlackActor {
-  const authorId =
-    message.user ?? message.bot_profile?.user_id ?? message.bot_id ?? "unknown";
+function resolveAuthor(message: RawSlackMessage, usersById: Map<string, SlackActor>): SlackActor {
+  const authorId = message.user ?? message.bot_profile?.user_id ?? message.bot_id ?? 'unknown';
   const knownUser = usersById.get(authorId);
 
   if (knownUser) {
@@ -736,12 +677,8 @@ function resolveAuthor(
   if (message.bot_profile) {
     return withoutUndefined({
       id: authorId,
-      kind: "bot",
-      name:
-        message.bot_profile.name ??
-        message.username ??
-        message.bot_id ??
-        authorId,
+      kind: 'bot',
+      name: message.bot_profile.name ?? message.username ?? message.bot_id ?? authorId,
       team_id: message.bot_profile.team_id ?? message.team,
       username: message.username,
       is_bot: true,
@@ -762,7 +699,7 @@ function resolveAuthor(
 function unknownActor(id: string, teamId?: string): SlackActor {
   return withoutUndefined({
     id,
-    kind: "unknown",
+    kind: 'unknown',
     name: id,
     team_id: teamId,
   });
@@ -797,14 +734,12 @@ function mapFiles(
       ?.filter((file) => file.permalink)
       .map((file) =>
         withoutUndefined({
-          created_at: file.created
-            ? slackSecondsToIso(file.created)
-            : slackTsToIso(message.ts),
+          created_at: file.created ? slackSecondsToIso(file.created) : slackTsToIso(message.ts),
           author: file.user
             ? toActorRef(
                 file.user === author.id
                   ? author
-                  : usersById.get(file.user) ?? unknownActor(file.user, message.team),
+                  : (usersById.get(file.user) ?? unknownActor(file.user, message.team)),
               )
             : toActorRef(author),
           permalink: file.permalink!,
@@ -815,7 +750,7 @@ function mapFiles(
 
 function mapLinks(message: RawSlackMessage): SlackLink[] {
   const links = new Map<string, SlackLink>();
-  const text = message.text ?? "";
+  const text = message.text ?? '';
   const slackLinkPattern = /<((?:https?:\/\/|mailto:)[^>|]+)(?:\|([^>]+))?>/g;
   const plainUrlPattern = /(^|\s)((?:https?:\/\/|mailto:)[^\s<]+)/g;
 
@@ -851,7 +786,7 @@ function renderSlackText(text: string, usersById: Map<string, SlackActor>): stri
       )
       .replace(
         /<!subteam\^[A-Z0-9]+(?:\|([^>]+))?>/g,
-        (_match, label: string | undefined) => label ?? "@usergroup",
+        (_match, label: string | undefined) => label ?? '@usergroup',
       )
       .replace(/<!(here|channel|everyone)>/g, (_match, label: string) => `@${label}`)
       .replace(
@@ -870,42 +805,42 @@ function renderThreadBody(
 ): string {
   const lines = [
     `# Slack thread in #${channel}`,
-    "",
+    '',
     `- Started: ${createdAt}`,
     `- Last activity: ${updatedAt}`,
-    "",
+    '',
   ];
 
   for (const message of messages) {
     lines.push(`## ${message.created_at} - ${renderActor(message.author)}`);
-    lines.push("");
-    lines.push(message.text || "(no text)");
+    lines.push('');
+    lines.push(message.text || '(no text)');
 
     if (message.mentions && message.mentions.length > 0) {
-      lines.push("");
-      lines.push(`Mentions: ${message.mentions.map(renderActor).join(", ")}`);
+      lines.push('');
+      lines.push(`Mentions: ${message.mentions.map(renderActor).join(', ')}`);
     }
 
     if (message.files && message.files.length > 0) {
-      lines.push("");
-      lines.push("Files:");
+      lines.push('');
+      lines.push('Files:');
       for (const file of message.files) {
         lines.push(`- ${renderFile(file)}`);
       }
     }
 
     if (message.reactions && message.reactions.length > 0) {
-      lines.push("");
-      lines.push("Reactions:");
+      lines.push('');
+      lines.push('Reactions:');
       for (const reaction of message.reactions) {
         lines.push(`- ${renderReaction(reaction)}`);
       }
     }
 
-    lines.push("");
+    lines.push('');
   }
 
-  return lines.join("\n").trim();
+  return lines.join('\n').trim();
 }
 
 function renderFile(file: SlackFile): string {
@@ -913,7 +848,7 @@ function renderFile(file: SlackFile): string {
 }
 
 function renderReaction(reaction: z.infer<typeof SlackReactionSchema>): string {
-  const actorNames = reaction.actors.map(renderActor).join(", ");
+  const actorNames = reaction.actors.map(renderActor).join(', ');
   return actorNames ? `${reaction.name} by ${actorNames}` : reaction.name;
 }
 
@@ -922,7 +857,7 @@ function renderActor(actor: SlackActorRef): string {
 }
 
 function decodeSlackEntities(text: string): string {
-  return text.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  return text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 }
 
 function toActorRef(actor: SlackActor): SlackActorRef {
@@ -941,15 +876,13 @@ function actorName(actor: SlackActor): string {
 
 function sortActorRefs(actors: SlackActorRef[]): SlackActorRef[] {
   return actors.sort(
-    (a, b) =>
-      a.name.localeCompare(b.name) ||
-      (a.email ?? "").localeCompare(b.email ?? ""),
+    (a, b) => a.name.localeCompare(b.name) || (a.email ?? '').localeCompare(b.email ?? ''),
   );
 }
 
 function getMentionedActorIds(message: RawSlackMessage): string[] {
   const ids = new Set<string>();
-  const text = message.text ?? "";
+  const text = message.text ?? '';
 
   for (const match of text.matchAll(/<@([A-Z0-9]+)(?:\|[^>]+)?>/g)) {
     if (match[1]) {
@@ -970,13 +903,15 @@ function collectMentionsFromBlocks(value: unknown, ids: Set<string>): void {
     return;
   }
 
-  if (!value || typeof value !== "object") {
+  if (!value || typeof value !== 'object') {
     return;
   }
 
   const record = value as Record<string, unknown>;
-  if (record["type"] === "user" && typeof record["user_id"] === "string") {
-    ids.add(record["user_id"]);
+  // biome-ignore lint/complexity/useLiteralKeys: index-signature access requires brackets under tsconfig noPropertyAccessFromIndexSignature
+  if (record['type'] === 'user' && typeof record['user_id'] === 'string') {
+    // biome-ignore lint/complexity/useLiteralKeys: index-signature access requires brackets under tsconfig noPropertyAccessFromIndexSignature
+    ids.add(record['user_id']);
   }
 
   for (const nested of Object.values(record)) {
@@ -984,18 +919,14 @@ function collectMentionsFromBlocks(value: unknown, ids: Set<string>): void {
   }
 }
 
-function parseChannelsLastSyncDate(
-  value: string | undefined,
-): Record<string, string> {
+function parseChannelsLastSyncDate(value: string | undefined): Record<string, string> {
   if (!value) {
     return {};
   }
 
   try {
     const parsed = JSON.parse(value);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed
-      : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
   }
@@ -1009,9 +940,7 @@ function slackSecondsToIso(seconds: number): string {
   return new Date(seconds * MILLISECONDS_PER_SECOND).toISOString();
 }
 
-function firstNonEmpty(
-  ...values: Array<string | undefined>
-): string | undefined {
+function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
   return values.find((value) => value && value.trim().length > 0);
 }
 
@@ -1021,5 +950,5 @@ function withoutUndefined<T extends Record<string, unknown>>(value: T): T {
   ) as T;
 }
 
-export type NangoSyncLocal = Parameters<(typeof sync)["exec"]>[0];
+export type NangoSyncLocal = Parameters<(typeof sync)['exec']>[0];
 export default sync;
