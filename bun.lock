@@ -6,6 +6,7 @@
       "name": "company-brain",
       "devDependencies": {
         "@biomejs/biome": "^2.4.16",
+        "@types/bun": "1.3.14",
         "typescript": "^5",
       },
     },
@@ -13,7 +14,6 @@
       "name": "nango-integrations",
       "version": "1.0.0",
       "devDependencies": {
-        "@types/bun": "1.3.14",
         "nango": "0.70.5",
         "zod": "4.3.6",
       },
