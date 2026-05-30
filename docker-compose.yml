@@ -58,7 +58,7 @@ services:
       - NANGO_LOGS_ES_USER=nango
       - NANGO_LOGS_ES_PWD=nango
       - FLAG_SERVE_CONNECT_UI=true
-      - NANGO_ENTERPRISE
+      - NANGO_ENTERPRISE=true
       - ORCHESTRATOR_SERVICE_URL=http://nango-orchestrator:3008
       - PERSIST_SERVICE_URL=http://nango-persist:3007
       - JOBS_SERVICE_URL=http://nango-jobs:3005
@@ -94,7 +94,7 @@ services:
       - NANGO_LOGS_ES_URL=http://nango-elasticsearch:9200
       - NANGO_LOGS_ES_USER=nango
       - NANGO_LOGS_ES_PWD=nango
-      - NANGO_ENTERPRISE
+      - NANGO_ENTERPRISE=true
     depends_on:
       - nango-db
       - nango-redis
@@ -118,7 +118,7 @@ services:
       - NANGO_LOGS_ES_URL=http://nango-elasticsearch:9200
       - NANGO_LOGS_ES_USER=nango
       - NANGO_LOGS_ES_PWD=nango
-      - NANGO_ENTERPRISE
+      - NANGO_ENTERPRISE=true
     depends_on:
       - nango-db
       - nango-redis
@@ -148,7 +148,7 @@ services:
       - NANGO_LOGS_ES_URL=http://nango-elasticsearch:9200
       - NANGO_LOGS_ES_USER=nango
       - NANGO_LOGS_ES_PWD=nango
-      - NANGO_ENTERPRISE
+      - NANGO_ENTERPRISE=true
     volumes:
       - nango-integrations:/app/nango/packages/shared/dist/nango-integrations
     depends_on:
