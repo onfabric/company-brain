@@ -3,6 +3,11 @@ output "public_ip" {
   value       = aws_eip.app.public_ip
 }
 
+output "public_ipv6" {
+  description = "Point your Cloudflare AAAA record (DNS only / grey cloud) at this."
+  value       = one(aws_instance.app.ipv6_addresses)
+}
+
 output "hostname" {
   value = var.hostname
 }
