@@ -27,7 +27,7 @@
           "SlackThread",
           "SyncMetadata_slack_threads"
         ],
-        "version": "1.0.0",
+        "version": "2.0.0",
         "webhookSubscriptions": [],
         "json_schema": {
           "definitions": {
@@ -41,37 +41,7 @@
                   "type": "string"
                 },
                 "channel": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "team_id": {
-                      "type": "string"
-                    },
-                    "type": {
-                      "type": "string",
-                      "enum": [
-                        "public_channel",
-                        "private_channel",
-                        "mpim",
-                        "im",
-                        "unknown"
-                      ]
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "is_private": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "type",
-                    "is_private"
-                  ],
-                  "additionalProperties": false
+                  "type": "string"
                 },
                 "created_at": {
                   "type": "string"
@@ -84,9 +54,6 @@
                   "items": {
                     "type": "object",
                     "properties": {
-                      "id": {
-                        "type": "string"
-                      },
                       "created_at": {
                         "type": "string"
                       },
@@ -96,24 +63,14 @@
                       "author": {
                         "type": "object",
                         "properties": {
-                          "id": {
+                          "name": {
                             "type": "string"
                           },
-                          "kind": {
-                            "type": "string",
-                            "enum": [
-                              "user",
-                              "bot",
-                              "unknown"
-                            ]
-                          },
-                          "name": {
+                          "email": {
                             "type": "string"
                           }
                         },
                         "required": [
-                          "id",
-                          "kind",
                           "name"
                         ],
                         "additionalProperties": false
@@ -126,24 +83,14 @@
                         "items": {
                           "type": "object",
                           "properties": {
-                            "id": {
+                            "name": {
                               "type": "string"
                             },
-                            "kind": {
-                              "type": "string",
-                              "enum": [
-                                "user",
-                                "bot",
-                                "unknown"
-                              ]
-                            },
-                            "name": {
+                            "email": {
                               "type": "string"
                             }
                           },
                           "required": [
-                            "id",
-                            "kind",
                             "name"
                           ],
                           "additionalProperties": false
@@ -162,24 +109,14 @@
                               "items": {
                                 "type": "object",
                                 "properties": {
-                                  "id": {
+                                  "name": {
                                     "type": "string"
                                   },
-                                  "kind": {
-                                    "type": "string",
-                                    "enum": [
-                                      "user",
-                                      "bot",
-                                      "unknown"
-                                    ]
-                                  },
-                                  "name": {
+                                  "email": {
                                     "type": "string"
                                   }
                                 },
                                 "required": [
-                                  "id",
-                                  "kind",
                                   "name"
                                 ],
                                 "additionalProperties": false
@@ -198,61 +135,32 @@
                         "items": {
                           "type": "object",
                           "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "title": {
-                              "type": "string"
-                            },
-                            "mimetype": {
-                              "type": "string"
-                            },
-                            "filetype": {
-                              "type": "string"
-                            },
-                            "url_private": {
-                              "type": "string"
-                            },
-                            "permalink": {
-                              "type": "string"
-                            },
-                            "size": {
-                              "type": "number"
-                            },
-                            "created_at": {
-                              "type": "string"
-                            },
-                            "actor": {
+                            "author": {
                               "type": "object",
                               "properties": {
-                                "id": {
+                                "name": {
                                   "type": "string"
                                 },
-                                "kind": {
-                                  "type": "string",
-                                  "enum": [
-                                    "user",
-                                    "bot",
-                                    "unknown"
-                                  ]
-                                },
-                                "name": {
+                                "email": {
                                   "type": "string"
                                 }
                               },
                               "required": [
-                                "id",
-                                "kind",
                                 "name"
                               ],
                               "additionalProperties": false
+                            },
+                            "created_at": {
+                              "type": "string"
+                            },
+                            "permalink": {
+                              "type": "string"
                             }
                           },
                           "required": [
-                            "id"
+                            "author",
+                            "created_at",
+                            "permalink"
                           ],
                           "additionalProperties": false
                         }
@@ -264,9 +172,6 @@
                           "properties": {
                             "url": {
                               "type": "string"
-                            },
-                            "label": {
-                              "type": "string"
                             }
                           },
                           "required": [
@@ -277,7 +182,6 @@
                       }
                     },
                     "required": [
-                      "id",
                       "created_at",
                       "author",
                       "text"
