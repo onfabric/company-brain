@@ -1,0 +1,594 @@
+{
+  "nango": {
+    "batchSave": {
+      "SlackThread": [
+        {
+          "id": "C123-1700000100.123456",
+          "team_id": "T123",
+          "channel": {
+            "id": "C123",
+            "type": "public_channel",
+            "name": "engineering",
+            "name_normalized": "engineering",
+            "is_private": false,
+            "is_archived": false,
+            "is_shared": false,
+            "is_org_shared": false,
+            "is_ext_shared": false,
+            "is_general": false,
+            "creator_id": "U1",
+            "created_at": "2023-11-14T19:26:40.000Z",
+            "updated_at": "2023-11-14T22:16:40.000Z",
+            "topic": {
+              "value": "Build updates",
+              "creator_id": "U2",
+              "updated_at": "2023-11-14T19:28:20.000Z"
+            },
+            "purpose": {
+              "value": "Coordinate engineering work",
+              "creator_id": "U1",
+              "updated_at": "2023-11-14T19:26:40.000Z"
+            }
+          },
+          "root_ts": "1700000100.123456",
+          "created_at": "2023-11-14T22:15:00.123Z",
+          "updated_at": "2023-11-14T22:15:12.333Z",
+          "actors": {
+            "U1": {
+              "id": "U1",
+              "kind": "user",
+              "name": "Alice",
+              "team_id": "T123",
+              "username": "alice",
+              "real_name": "Alice Liddell",
+              "display_name": "Alice",
+              "email": "alice@example.com",
+              "is_bot": false,
+              "deleted": false,
+              "avatar_url": "https://example.com/alice-72.png",
+              "updated_at": "2023-11-14T19:26:40.000Z"
+            },
+            "U2": {
+              "id": "U2",
+              "kind": "user",
+              "name": "Bob Builder",
+              "team_id": "T123",
+              "username": "bob",
+              "real_name": "Bob Builder",
+              "email": "bob@example.com",
+              "is_bot": false,
+              "deleted": false,
+              "avatar_url": "https://example.com/bob-72.png",
+              "updated_at": "2023-11-14T19:28:20.000Z"
+            },
+            "B99": {
+              "id": "B99",
+              "kind": "bot",
+              "name": "DeployBot",
+              "team_id": "T123",
+              "is_bot": true,
+              "deleted": false,
+              "avatar_url": "https://example.com/deploybot-72.png",
+              "updated_at": "2023-11-14T19:28:20.000Z"
+            }
+          },
+          "facets": {
+            "channel_id": "C123",
+            "root_author_id": "U1",
+            "author_ids": [
+              "B99",
+              "U1",
+              "U2"
+            ],
+            "actor_ids": [
+              "B99",
+              "U1",
+              "U2"
+            ],
+            "mentioned_actor_ids": [
+              "U1",
+              "U2"
+            ],
+            "has_replies": true,
+            "has_files": true,
+            "has_reactions": true
+          },
+          "counts": {
+            "messages": 3,
+            "replies": 2,
+            "actors": 3,
+            "files": 1,
+            "reactions": 2
+          },
+          "messages": [
+            {
+              "id": "C123-1700000100.123456",
+              "ts": "1700000100.123456",
+              "thread_ts": "1700000100.123456",
+              "created_at": "2023-11-14T22:15:00.123Z",
+              "author_id": "U1",
+              "type": "message",
+              "text": "Deploy check <@U2> <https://example.com/deploy|deploy notes>",
+              "blocks": [
+                {
+                  "type": "rich_text",
+                  "block_id": "root",
+                  "elements": [
+                    {
+                      "type": "rich_text_section",
+                      "elements": [
+                        {
+                          "type": "text",
+                          "text": "Deploy check "
+                        },
+                        {
+                          "type": "user",
+                          "user_id": "U2"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "reactions": [
+                {
+                  "name": "white_check_mark",
+                  "count": 1,
+                  "actor_ids": [
+                    "U2"
+                  ]
+                }
+              ],
+              "links": [
+                {
+                  "url": "https://example.com/deploy",
+                  "label": "deploy notes"
+                }
+              ],
+              "mentioned_actor_ids": [
+                "U2"
+              ]
+            },
+            {
+              "id": "C123-1700000105.654321",
+              "ts": "1700000105.654321",
+              "thread_ts": "1700000100.123456",
+              "created_at": "2023-11-14T22:15:05.654Z",
+              "author_id": "U2",
+              "parent_author_id": "U1",
+              "type": "message",
+              "text": "<@U1> looks good",
+              "reactions": [
+                {
+                  "name": "eyes",
+                  "count": 1,
+                  "actor_ids": [
+                    "U1"
+                  ]
+                }
+              ],
+              "mentioned_actor_ids": [
+                "U1"
+              ]
+            },
+            {
+              "id": "C123-1700000110.111222",
+              "ts": "1700000110.111222",
+              "thread_ts": "1700000100.123456",
+              "created_at": "2023-11-14T22:15:10.111Z",
+              "updated_at": "2023-11-14T22:15:12.333Z",
+              "edited_by_id": "B99",
+              "author_id": "B99",
+              "parent_author_id": "U1",
+              "type": "message",
+              "subtype": "bot_message",
+              "text": "Deployment finished",
+              "files": [
+                {
+                  "id": "F1",
+                  "name": "deploy.log",
+                  "title": "deploy.log",
+                  "mimetype": "text/plain",
+                  "filetype": "text",
+                  "url_private": "https://files.slack.com/files-pri/T123-F1/deploy.log",
+                  "permalink": "https://example.slack.com/files/F1",
+                  "size": 42,
+                  "created_at": "2023-11-14T22:15:05.000Z",
+                  "actor_id": "B99"
+                }
+              ],
+              "bot_id": "B99",
+              "app_id": "A1"
+            }
+          ]
+        },
+        {
+          "id": "C123-1700000000.500000",
+          "team_id": "T123",
+          "channel": {
+            "id": "C123",
+            "type": "public_channel",
+            "name": "engineering",
+            "name_normalized": "engineering",
+            "is_private": false,
+            "is_archived": false,
+            "is_shared": false,
+            "is_org_shared": false,
+            "is_ext_shared": false,
+            "is_general": false,
+            "creator_id": "U1",
+            "created_at": "2023-11-14T19:26:40.000Z",
+            "updated_at": "2023-11-14T22:16:40.000Z",
+            "topic": {
+              "value": "Build updates",
+              "creator_id": "U2",
+              "updated_at": "2023-11-14T19:28:20.000Z"
+            },
+            "purpose": {
+              "value": "Coordinate engineering work",
+              "creator_id": "U1",
+              "updated_at": "2023-11-14T19:26:40.000Z"
+            }
+          },
+          "root_ts": "1700000000.500000",
+          "created_at": "2023-11-14T22:13:20.500Z",
+          "updated_at": "2023-11-14T22:13:20.500Z",
+          "actors": {
+            "U2": {
+              "id": "U2",
+              "kind": "user",
+              "name": "Bob Builder",
+              "team_id": "T123",
+              "username": "bob",
+              "real_name": "Bob Builder",
+              "email": "bob@example.com",
+              "is_bot": false,
+              "deleted": false,
+              "avatar_url": "https://example.com/bob-72.png",
+              "updated_at": "2023-11-14T19:28:20.000Z"
+            },
+            "U1": {
+              "id": "U1",
+              "kind": "user",
+              "name": "Alice",
+              "team_id": "T123",
+              "username": "alice",
+              "real_name": "Alice Liddell",
+              "display_name": "Alice",
+              "email": "alice@example.com",
+              "is_bot": false,
+              "deleted": false,
+              "avatar_url": "https://example.com/alice-72.png",
+              "updated_at": "2023-11-14T19:26:40.000Z"
+            }
+          },
+          "facets": {
+            "channel_id": "C123",
+            "root_author_id": "U2",
+            "author_ids": [
+              "U2"
+            ],
+            "actor_ids": [
+              "U1",
+              "U2"
+            ],
+            "mentioned_actor_ids": [
+              "U1"
+            ],
+            "has_replies": false,
+            "has_files": false,
+            "has_reactions": true
+          },
+          "counts": {
+            "messages": 1,
+            "replies": 0,
+            "actors": 2,
+            "files": 0,
+            "reactions": 1
+          },
+          "messages": [
+            {
+              "id": "C123-1700000000.500000",
+              "ts": "1700000000.500000",
+              "thread_ts": "1700000000.500000",
+              "created_at": "2023-11-14T22:13:20.500Z",
+              "author_id": "U2",
+              "type": "message",
+              "text": "Standalone note for <@U1> http://example.com/report",
+              "reactions": [
+                {
+                  "name": "+1",
+                  "count": 1,
+                  "actor_ids": [
+                    "U1"
+                  ]
+                }
+              ],
+              "links": [
+                {
+                  "url": "http://example.com/report"
+                }
+              ],
+              "mentioned_actor_ids": [
+                "U1"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "api": {
+    "get": {
+      "/users.list": {
+        "response": {
+          "ok": true,
+          "members": [
+            {
+              "id": "U1",
+              "team_id": "T123",
+              "name": "alice",
+              "real_name": "Alice Liddell",
+              "is_bot": false,
+              "deleted": false,
+              "updated": 1699990000,
+              "profile": {
+                "real_name": "Alice Liddell",
+                "display_name": "Alice",
+                "email": "alice@example.com",
+                "image_72": "https://example.com/alice-72.png"
+              }
+            },
+            {
+              "id": "U2",
+              "team_id": "T123",
+              "name": "bob",
+              "real_name": "Bob Builder",
+              "is_bot": false,
+              "deleted": false,
+              "updated": 1699990100,
+              "profile": {
+                "real_name": "Bob Builder",
+                "display_name": "",
+                "email": "bob@example.com",
+                "image_72": "https://example.com/bob-72.png"
+              }
+            }
+          ],
+          "response_metadata": {
+            "next_cursor": ""
+          }
+        }
+      },
+      "/conversations.list": {
+        "response": {
+          "ok": true,
+          "channels": [
+            {
+              "id": "C123",
+              "name": "engineering",
+              "name_normalized": "engineering",
+              "created": 1699990000,
+              "creator": "U1",
+              "updated": 1700000200000,
+              "is_archived": false,
+              "is_general": false,
+              "is_private": false,
+              "is_channel": true,
+              "is_group": false,
+              "is_im": false,
+              "is_mpim": false,
+              "is_shared": false,
+              "is_org_shared": false,
+              "is_ext_shared": false,
+              "is_member": true,
+              "topic": {
+                "value": "Build updates",
+                "creator": "U2",
+                "last_set": 1699990100
+              },
+              "purpose": {
+                "value": "Coordinate engineering work",
+                "creator": "U1",
+                "last_set": 1699990000
+              }
+            }
+          ],
+          "response_metadata": {
+            "next_cursor": ""
+          }
+        }
+      },
+      "/conversations.history": {
+        "response": {
+          "ok": true,
+          "messages": [
+            {
+              "type": "message",
+              "user": "U1",
+              "text": "Deploy check <@U2> <https://example.com/deploy|deploy notes>",
+              "team": "T123",
+              "ts": "1700000100.123456",
+              "thread_ts": "1700000100.123456",
+              "reply_count": 2,
+              "reply_users": [
+                "U2",
+                "B99"
+              ],
+              "latest_reply": "1700000110.111222",
+              "blocks": [
+                {
+                  "type": "rich_text",
+                  "block_id": "root",
+                  "elements": [
+                    {
+                      "type": "rich_text_section",
+                      "elements": [
+                        {
+                          "type": "text",
+                          "text": "Deploy check "
+                        },
+                        {
+                          "type": "user",
+                          "user_id": "U2"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "reactions": [
+                {
+                  "name": "white_check_mark",
+                  "count": 1,
+                  "users": [
+                    "U2"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "message",
+              "user": "U2",
+              "text": "Standalone note for <@U1> http://example.com/report",
+              "team": "T123",
+              "ts": "1700000000.500000",
+              "reactions": [
+                {
+                  "name": "+1",
+                  "count": 1,
+                  "users": [
+                    "U1"
+                  ]
+                }
+              ]
+            },
+            {
+              "subtype": "channel_join",
+              "user": "U1",
+              "text": "<@U1> has joined the channel",
+              "type": "message",
+              "ts": "1699990000.000000"
+            }
+          ],
+          "has_more": false,
+          "response_metadata": {
+            "next_cursor": ""
+          }
+        }
+      },
+      "/conversations.replies": {
+        "response": {
+          "ok": true,
+          "messages": [
+            {
+              "type": "message",
+              "user": "U1",
+              "text": "Deploy check <@U2> <https://example.com/deploy|deploy notes>",
+              "team": "T123",
+              "ts": "1700000100.123456",
+              "thread_ts": "1700000100.123456",
+              "reply_count": 2,
+              "reply_users": [
+                "U2",
+                "B99"
+              ],
+              "latest_reply": "1700000110.111222",
+              "blocks": [
+                {
+                  "type": "rich_text",
+                  "block_id": "root",
+                  "elements": [
+                    {
+                      "type": "rich_text_section",
+                      "elements": [
+                        {
+                          "type": "text",
+                          "text": "Deploy check "
+                        },
+                        {
+                          "type": "user",
+                          "user_id": "U2"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "reactions": [
+                {
+                  "name": "white_check_mark",
+                  "count": 1,
+                  "users": [
+                    "U2"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "message",
+              "user": "U2",
+              "text": "<@U1> looks good",
+              "team": "T123",
+              "ts": "1700000105.654321",
+              "thread_ts": "1700000100.123456",
+              "parent_user_id": "U1",
+              "reactions": [
+                {
+                  "name": "eyes",
+                  "count": 1,
+                  "users": [
+                    "U1"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "message",
+              "subtype": "bot_message",
+              "bot_id": "B99",
+              "app_id": "A1",
+              "text": "Deployment finished",
+              "team": "T123",
+              "ts": "1700000110.111222",
+              "thread_ts": "1700000100.123456",
+              "parent_user_id": "U1",
+              "bot_profile": {
+                "id": "B99",
+                "name": "DeployBot",
+                "team_id": "T123",
+                "deleted": false,
+                "updated": 1699990100,
+                "icons": {
+                  "image_72": "https://example.com/deploybot-72.png"
+                }
+              },
+              "files": [
+                {
+                  "id": "F1",
+                  "name": "deploy.log",
+                  "title": "deploy.log",
+                  "mimetype": "text/plain",
+                  "filetype": "text",
+                  "url_private": "https://files.slack.com/files-pri/T123-F1/deploy.log",
+                  "permalink": "https://example.slack.com/files/F1",
+                  "size": 42,
+                  "created": 1700000105,
+                  "user": "B99"
+                }
+              ],
+              "edited": {
+                "user": "B99",
+                "ts": "1700000112.333444"
+              }
+            }
+          ],
+          "has_more": false,
+          "response_metadata": {
+            "next_cursor": ""
+          }
+        }
+      }
+    }
+  }
+}
