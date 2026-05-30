@@ -4,6 +4,12 @@ resource "aws_instance" "app" {
   subnet_id              = data.aws_subnets.default.ids[0]
   vpc_security_group_ids = [aws_security_group.instance.id]
   iam_instance_profile   = aws_iam_instance_profile.instance.name
+  ipv6_address_count     = 1
+
+  # Same physical subnet as data.aws_subnets.default.ids[0], but referencing the
+  # known data-source id keeps subnet_id (ForceNew) diff-free. depends_on ensures
+  # the subnet has its IPv6 CIDR before the address is assigned to the instance.
+  depends_on = [aws_default_subnet.app]
 
   user_data                   = templatefile("${path.module}/user_data.sh.tftpl", {})
   user_data_replace_on_change = false
