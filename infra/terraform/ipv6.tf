@@ -1,6 +1,7 @@
 # Amazon-provided /56 for the default VPC, so the instance can get a public IPv6.
 resource "aws_vpc_ipv6_cidr_block_association" "default" {
-  vpc_id = data.aws_vpc.default.id
+  vpc_id                           = data.aws_vpc.default.id
+  assign_generated_ipv6_cidr_block = true
 }
 
 # AZ of the subnet the instance already runs in. Adopting the default subnet by
