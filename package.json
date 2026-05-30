@@ -1,0 +1,21 @@
+{
+  "name": "company-brain-monorepo",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "bun run --filter '*' test",
+    "check:types": "bun run --filter '*' check:types",
+    "check:codestyle": "bun run --bun biome check",
+    "check:all": "bun check:types && bun check:codestyle",
+    "fix:codestyle": "bun run --bun biome check --write"
+  },
+  "workspaces": {
+    "packages": [
+      "nango-integrations/"
+    ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.16",
+    "typescript": "^5"
+  }
+}

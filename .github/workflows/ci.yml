@@ -24,7 +24,6 @@ jobs:
 
       - uses: ./.github/actions/prepare
 
-      - run: bun install --frozen-lockfile
       - run: bun test
       - run: bun run compile --no-interactive --no-dependency-update
 

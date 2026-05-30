@@ -14,6 +14,18 @@ Monorepo for the Company Brain experiment.
 - Keep files small and domain-scoped: one concern per file. When a file starts mixing concerns, split into as many files as concerns
 - Single source of truth — never duplicate keys, enum values, or type info that belongs to a class/module; derive from the source instead
 
+## Validation
+
+After finishing an implementation, always run:
+
+1. `bun fix:codestyle` — auto-fix formatting/lint issues
+2. `bun check:all` — verify types and codestyle pass
+3. `bun run test` - verify that the code is working properly, including safety of the types exposed by the packages
+
+## Run scripts
+
+When running a script, always check `package.json` scripts (root and per-app) for available commands first.
+
 ## Conventions
 
 - Always use Conventional Commits for commit messages and PR titles.

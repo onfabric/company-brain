@@ -8,7 +8,8 @@
     "deploy": "nango deploy",
     "dev": "nango dev",
     "dryrun": "nango dryrun",
-    "test": "bun test"
+    "test": "bun test",
+    "check:types": "bun run --bun tsc"
   },
   "devDependencies": {
     "nango": "0.70.5",

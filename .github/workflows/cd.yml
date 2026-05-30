@@ -175,6 +175,5 @@ jobs:
 
       - uses: ./.github/actions/prepare
 
-      - run: bun install --frozen-lockfile
       - run: bun test
       - run: bun run deploy dev --no-interactive --no-dependency-update
