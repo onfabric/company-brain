@@ -11,6 +11,7 @@ concurrency:
 
 permissions:
   contents: read
+  id-token: write # assume AWS roles via OIDC
 
 env:
   AWS_REGION: eu-west-2
@@ -26,9 +27,6 @@ jobs:
       ecr_repository_url: ${{ steps.tf_outputs.outputs.ecr_repository_url }}
       artifacts_bucket: ${{ steps.tf_outputs.outputs.artifacts_bucket }}
       github_deploy_role_arn: ${{ steps.tf_outputs.outputs.github_deploy_role_arn }}
-    permissions:
-      contents: read
-      id-token: write # assume AWS roles via OIDC
     defaults:
       run:
         working-directory: infra/terraform
@@ -67,9 +65,6 @@ jobs:
   deploy:
     needs: terraform_apply
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write # assume AWS roles via OIDC
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v6
