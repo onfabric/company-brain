@@ -1,0 +1,31 @@
+name: CI (dev)
+
+on:
+  pull_request:
+
+concurrency:
+  group: ci-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NO_COLOR: "1"
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: jdx/mise-action@v4
+        with:
+          cache: true
+
+      - run: terraform init -backend=false -input=false
+      - run: terraform fmt -check -recursive
+      - run: terraform validate

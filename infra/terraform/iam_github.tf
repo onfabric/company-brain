@@ -2,7 +2,7 @@
 #
 # The OIDC provider itself and the privileged Terraform role are created by the
 # one-time CloudFormation bootstrap (infra/bootstrap/), so here we only look the
-# provider up and create the narrowly-scoped role the deploy.yml workflow uses.
+# provider up and create the narrowly-scoped role the CD workflow uses.
 
 data "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"

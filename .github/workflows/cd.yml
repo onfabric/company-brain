@@ -1,13 +1,12 @@
-name: CI/CD (dev)
+name: CD (dev)
 
 on:
   push:
     branches: [main]
-  pull_request: {}
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 concurrency:
-  group: cicd-dev
+  group: cd-dev
   cancel-in-progress: false
 
 permissions:
@@ -18,31 +17,10 @@ env:
   SSM_SECRET_PREFIX: /company-brain/dev
   NANGO_HOSTNAME: nango-dev.onfabric.io
   DEPLOY_GROUP: company-brain-dev
+  NO_COLOR: "1"
 
 jobs:
-  # 1) Validate Terraform without AWS credentials. PRs intentionally stop here:
-  #    the privileged Terraform role is only assumable from main.
-  terraform:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: infra/terraform
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.11.4
-          terraform_wrapper: false
-
-      - run: terraform init -backend=false -input=false
-      - run: terraform fmt -check -recursive
-      - run: terraform validate -no-color
-
-  # 2) Ensure infrastructure exists / is up to date. Runs only from main/manual.
   terraform_apply:
-    needs: terraform
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       ecr_repository_url: ${{ steps.tf_outputs.outputs.ecr_repository_url }}
@@ -55,21 +33,20 @@ jobs:
       run:
         working-directory: infra/terraform
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+
+      - uses: jdx/mise-action@v4
+        with:
+          cache: true
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.11.4
-          terraform_wrapper: false
-
       - run: terraform init -input=false
-      - run: terraform apply -input=false -auto-approve -no-color -var-file=dev.tfvars
+      - run: terraform apply -input=false -auto-approve -var-file=dev.tfvars
 
       - name: Capture outputs
         id: tf_outputs
@@ -87,23 +64,20 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # 3) Build, push, and deploy the app. Runs only after infra is ready, and
-  #    never on PRs.
   deploy:
     needs: terraform_apply
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write # assume AWS roles via OIDC
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ needs.terraform_apply.outputs.github_deploy_role_arn }}
           aws-region: ${{ env.AWS_REGION }}
