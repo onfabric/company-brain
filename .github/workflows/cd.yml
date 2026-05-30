@@ -66,7 +66,9 @@ jobs:
     needs: terraform_apply
     runs-on: ubuntu-latest
     env:
-      BUNDLE_KEY: dev/${{ github.sha }}.tar.gz
+      IMAGE_REPO: ${{ needs.terraform_apply.outputs.ecr_repository_url }}
+      IMAGE_URI: ${{ needs.terraform_apply.outputs.ecr_repository_url }}:${{ github.sha }}
+      BUNDLE_URL: s3://${{ needs.terraform_apply.outputs.artifacts_bucket }}/dev/${{ github.sha }}.tar.gz
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v6
@@ -82,15 +84,19 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push image
-        env:
-          IMAGE_REPO: ${{ needs.terraform_apply.outputs.ecr_repository_url }}
-        run: |
-          IMAGE_URI="${IMAGE_REPO}:${GITHUB_SHA}"
-          docker build -t "$IMAGE_URI" -t "${IMAGE_REPO}:latest" ./nango
-          docker push "$IMAGE_URI"
-          docker push "${IMAGE_REPO}:latest"
-          echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
+        uses: docker/build-push-action@v6
+        with:
+          context: ./nango
+          push: true
+          tags: |
+            ${{ env.IMAGE_URI }}
+            ${{ env.IMAGE_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Package runtime bundle
         run: |
@@ -101,13 +107,12 @@ jobs:
             -C infra/deploy on_box_deploy.sh
 
       - name: Upload bundle to S3
-        run: aws s3 cp bundle.tar.gz "s3://${{ needs.terraform_apply.outputs.artifacts_bucket }}/${BUNDLE_KEY}"
+        run: aws s3 cp bundle.tar.gz "$BUNDLE_URL"
 
       - name: Deploy on instance via SSM
         run: infra/deploy/ssm_deploy.sh
         env:
-          BUCKET: ${{ needs.terraform_apply.outputs.artifacts_bucket }}
-          BUNDLE_KEY: ${{ env.BUNDLE_KEY }}
+          BUNDLE_URL: ${{ env.BUNDLE_URL }}
           DEPLOY_GROUP: ${{ env.DEPLOY_GROUP }}
           IMAGE_URI: ${{ env.IMAGE_URI }}
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
