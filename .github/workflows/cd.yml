@@ -65,6 +65,8 @@ jobs:
   deploy:
     needs: terraform_apply
     runs-on: ubuntu-latest
+    env:
+      BUNDLE_KEY: dev/${{ github.sha }}.tar.gz
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v6
@@ -99,12 +101,13 @@ jobs:
             -C infra/deploy on_box_deploy.sh
 
       - name: Upload bundle to S3
-        run: aws s3 cp bundle.tar.gz "s3://${{ needs.terraform_apply.outputs.artifacts_bucket }}/dev/latest.tar.gz"
+        run: aws s3 cp bundle.tar.gz "s3://${{ needs.terraform_apply.outputs.artifacts_bucket }}/${BUNDLE_KEY}"
 
       - name: Deploy on instance via SSM
         run: infra/deploy/ssm_deploy.sh
         env:
           BUCKET: ${{ needs.terraform_apply.outputs.artifacts_bucket }}
+          BUNDLE_KEY: ${{ env.BUNDLE_KEY }}
           DEPLOY_GROUP: ${{ env.DEPLOY_GROUP }}
           IMAGE_URI: ${{ env.IMAGE_URI }}
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}

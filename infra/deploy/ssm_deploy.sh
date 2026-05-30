@@ -2,11 +2,11 @@
 # Runs in CI. Triggers the on-box deploy on the EC2 instance over SSM (no SSH):
 # finds the box, waits until it can receive commands, runs the deploy, and
 # streams the result back. Required env (set by the deploy workflow):
-#   BUCKET DEPLOY_GROUP IMAGE_URI SSM_SECRET_PREFIX NANGO_HOSTNAME ACME_EMAIL AWS_REGION
+#   BUCKET BUNDLE_KEY DEPLOY_GROUP IMAGE_URI SSM_SECRET_PREFIX NANGO_HOSTNAME ACME_EMAIL AWS_REGION
 # AWS credentials come from the environment (configure-aws-credentials).
 set -euo pipefail
 
-: "${BUCKET:?}" "${DEPLOY_GROUP:?}" "${IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}"
+: "${BUCKET:?}" "${BUNDLE_KEY:?}" "${DEPLOY_GROUP:?}" "${IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}"
 : "${NANGO_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_REGION:?}"
 
 instance_id=$(aws ec2 describe-instances \
@@ -47,7 +47,7 @@ remote_script=$(cat <<REMOTE
 set -euo pipefail
 timeout 600 bash -c 'until [ -f /opt/cb-bootstrap.done ]; do echo waiting for instance bootstrap; sleep 5; done'
 rm -rf /opt/company-brain && mkdir -p /opt/company-brain
-aws s3 cp "s3://${BUCKET}/dev/latest.tar.gz" /tmp/bundle.tar.gz
+aws s3 cp "s3://${BUCKET}/${BUNDLE_KEY}" /tmp/bundle.tar.gz
 tar xzf /tmp/bundle.tar.gz -C /opt/company-brain
 cd /opt/company-brain
 ${exports}
