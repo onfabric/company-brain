@@ -1,0 +1,116 @@
+name: CD (dev)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # assume AWS roles via OIDC
+
+env:
+  AWS_REGION: eu-west-2
+  SSM_SECRET_PREFIX: /company-brain/dev
+  NANGO_HOSTNAME: nango-dev.onfabric.io
+  DEPLOY_GROUP: company-brain-dev
+  NO_COLOR: "1"
+
+jobs:
+  terraform_apply:
+    runs-on: ubuntu-latest
+    outputs:
+      ecr_repository_url: ${{ steps.tf_outputs.outputs.ecr_repository_url }}
+      artifacts_bucket: ${{ steps.tf_outputs.outputs.artifacts_bucket }}
+      github_deploy_role_arn: ${{ steps.tf_outputs.outputs.github_deploy_role_arn }}
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: jdx/mise-action@v4
+        with:
+          cache: true
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - run: terraform init -input=false
+      - run: terraform apply -input=false -auto-approve -var-file=dev.tfvars
+
+      - name: Capture outputs
+        id: tf_outputs
+        run: |
+          echo "ecr_repository_url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
+          echo "artifacts_bucket=$(terraform output -raw artifacts_bucket)" >> "$GITHUB_OUTPUT"
+          echo "github_deploy_role_arn=$(terraform output -raw github_deploy_role_arn)" >> "$GITHUB_OUTPUT"
+
+      - name: Outputs
+        run: |
+          {
+            echo '## Terraform outputs'
+            echo '```'
+            terraform output
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: terraform_apply
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_KEY: dev/${{ github.sha }}.tar.gz
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ needs.terraform_apply.outputs.github_deploy_role_arn }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        env:
+          IMAGE_REPO: ${{ needs.terraform_apply.outputs.ecr_repository_url }}
+        run: |
+          IMAGE_URI="${IMAGE_REPO}:${GITHUB_SHA}"
+          docker build -t "$IMAGE_URI" -t "${IMAGE_REPO}:latest" ./nango
+          docker push "$IMAGE_URI"
+          docker push "${IMAGE_REPO}:latest"
+          echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
+
+      - name: Package runtime bundle
+        run: |
+          tar czf bundle.tar.gz \
+            docker-compose.yml docker-compose.prod.yml Caddyfile \
+            db/entrypoint.sh db/init.sql \
+            nango/packages/providers/providers.yaml \
+            -C infra/deploy on_box_deploy.sh
+
+      - name: Upload bundle to S3
+        run: aws s3 cp bundle.tar.gz "s3://${{ needs.terraform_apply.outputs.artifacts_bucket }}/${BUNDLE_KEY}"
+
+      - name: Deploy on instance via SSM
+        run: infra/deploy/ssm_deploy.sh
+        env:
+          BUCKET: ${{ needs.terraform_apply.outputs.artifacts_bucket }}
+          BUNDLE_KEY: ${{ env.BUNDLE_KEY }}
+          DEPLOY_GROUP: ${{ env.DEPLOY_GROUP }}
+          IMAGE_URI: ${{ env.IMAGE_URI }}
+          SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
+          NANGO_HOSTNAME: ${{ env.NANGO_HOSTNAME }}
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
+          AWS_REGION: ${{ env.AWS_REGION }}

@@ -1,0 +1,88 @@
+# --- GitHub Actions OIDC: scoped role for the APP deploy workflow ---
+#
+# The OIDC provider itself and the privileged Terraform role are created by the
+# one-time CloudFormation bootstrap (infra/bootstrap/), so here we only look the
+# provider up and create the narrowly-scoped role the CD workflow uses.
+
+data "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
+}
+
+data "aws_iam_policy_document" "github_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    principals {
+      type        = "Federated"
+      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:${var.github_repo}:ref:refs/heads/${var.github_branch}"]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_deploy" {
+  name               = "company-brain-${var.environment}-github-deploy"
+  assume_role_policy = data.aws_iam_policy_document.github_assume.json
+}
+
+data "aws_iam_policy_document" "github_deploy" {
+  # Push images to ECR.
+  statement {
+    sid       = "EcrAuth"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+  statement {
+    sid = "EcrPush"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:CompleteLayerUpload",
+      "ecr:InitiateLayerUpload",
+      "ecr:PutImage",
+      "ecr:UploadLayerPart",
+      "ecr:BatchGetImage",
+      "ecr:GetDownloadUrlForLayer",
+    ]
+    resources = [aws_ecr_repository.nango.arn]
+  }
+
+  # Upload the runtime bundle.
+  statement {
+    sid       = "ArtifactsWrite"
+    actions   = ["s3:PutObject", "s3:GetObject", "s3:ListBucket"]
+    resources = [aws_s3_bucket.artifacts.arn, "${aws_s3_bucket.artifacts.arn}/*"]
+  }
+
+  # Find the target instance behind the deploy tag.
+  statement {
+    sid       = "Ec2Describe"
+    actions   = ["ec2:DescribeInstances"]
+    resources = ["*"]
+  }
+
+  # Trigger the deploy on the instance and read command status.
+  statement {
+    sid       = "SsmSend"
+    actions   = ["ssm:SendCommand"]
+    resources = ["*"]
+  }
+  statement {
+    sid       = "SsmStatus"
+    actions   = ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations", "ssm:ListCommands"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "github_deploy" {
+  name   = "company-brain-${var.environment}-github-deploy"
+  role   = aws_iam_role.github_deploy.id
+  policy = data.aws_iam_policy_document.github_deploy.json
+}
