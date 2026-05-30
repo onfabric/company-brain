@@ -1,0 +1,299 @@
+{
+  "nango": {},
+  "api": {
+    "get": {
+      "/users.list": {
+        "response": {
+          "ok": true,
+          "members": [
+            {
+              "id": "U111",
+              "team_id": "T999",
+              "name": "maya",
+              "real_name": "Maya Chen",
+              "is_bot": false,
+              "deleted": false,
+              "updated": 1761900000,
+              "profile": {
+                "real_name": "Maya Chen",
+                "display_name": "Maya Chen",
+                "email": "maya@example.com",
+                "image_72": "https://example.com/maya.png"
+              }
+            },
+            {
+              "id": "U222",
+              "team_id": "T999",
+              "name": "alex",
+              "real_name": "Alex Rivera",
+              "is_bot": false,
+              "deleted": false,
+              "updated": 1761900100,
+              "profile": {
+                "real_name": "Alex Rivera",
+                "display_name": "Alex Rivera",
+                "email": "alex@example.com",
+                "image_72": "https://example.com/alex.png"
+              }
+            },
+            {
+              "id": "U333",
+              "team_id": "T999",
+              "name": "priya",
+              "real_name": "Priya Shah",
+              "is_bot": false,
+              "deleted": false,
+              "updated": 1761900200,
+              "profile": {
+                "real_name": "Priya Shah",
+                "display_name": "Priya Shah",
+                "email": "priya@example.com",
+                "image_72": "https://example.com/priya.png"
+              }
+            }
+          ],
+          "response_metadata": {
+            "next_cursor": ""
+          }
+        }
+      },
+      "/conversations.list": {
+        "response": {
+          "ok": true,
+          "channels": [
+            {
+              "id": "C999",
+              "context_team_id": "T999",
+              "name": "product-launch",
+              "name_normalized": "product-launch",
+              "created": 1761800000,
+              "creator": "U111",
+              "updated": 1761910000000,
+              "is_archived": false,
+              "is_general": false,
+              "is_private": false,
+              "is_channel": true,
+              "is_group": false,
+              "is_im": false,
+              "is_mpim": false,
+              "is_shared": false,
+              "is_org_shared": false,
+              "is_ext_shared": false,
+              "is_member": true,
+              "topic": {
+                "value": "Launch planning and release coordination",
+                "creator": "U111",
+                "last_set": 1761800100
+              },
+              "purpose": {
+                "value": "Coordinate launch work",
+                "creator": "U111",
+                "last_set": 1761800000
+              }
+            }
+          ],
+          "response_metadata": {
+            "next_cursor": ""
+          }
+        }
+      },
+      "/conversations.history": {
+        "response": {
+          "ok": true,
+          "messages": [
+            {
+              "type": "message",
+              "user": "U111",
+              "text": "*Launch planning for Monday-Wednesday:*\n• Website <@U222>, needed by EOD Tuesday\n• QA pass on onboarding <@U333>\n• Retrieval demo plan <@U333>\nDocs: <https://company.example/launch-plan|launch plan>\nKeeping this in <#C999|product-launch>. Anything else?",
+              "team": "T999",
+              "ts": "1761923700.772849",
+              "thread_ts": "1761923700.772849",
+              "reply_count": 3,
+              "reply_users": [
+                "U222",
+                "U333",
+                "B999"
+              ],
+              "latest_reply": "1761923950.000000",
+              "blocks": [
+                {
+                  "type": "rich_text",
+                  "block_id": "planning-root",
+                  "elements": [
+                    {
+                      "type": "rich_text_section",
+                      "elements": [
+                        {
+                          "type": "text",
+                          "text": "Launch planning for Monday-Wednesday:",
+                          "style": {
+                            "bold": true
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "text": "\n"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rich_text_list",
+                      "style": "bullet",
+                      "indent": 0,
+                      "border": 0,
+                      "elements": [
+                        {
+                          "type": "rich_text_section",
+                          "elements": [
+                            {
+                              "type": "text",
+                              "text": "Website "
+                            },
+                            {
+                              "type": "user",
+                              "user_id": "U222"
+                            },
+                            {
+                              "type": "text",
+                              "text": ", needed by EOD Tuesday"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rich_text_section",
+                          "elements": [
+                            {
+                              "type": "text",
+                              "text": "QA pass on onboarding "
+                            },
+                            {
+                              "type": "user",
+                              "user_id": "U333"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "reactions": [
+                {
+                  "name": "+1",
+                  "count": 2,
+                  "users": [
+                    "U222",
+                    "U333"
+                  ]
+                }
+              ]
+            }
+          ],
+          "has_more": false,
+          "response_metadata": {
+            "next_cursor": ""
+          }
+        }
+      },
+      "/conversations.replies": {
+        "response": {
+          "ok": true,
+          "messages": [
+            {
+              "type": "message",
+              "user": "U111",
+              "text": "*Launch planning for Monday-Wednesday:*\n• Website <@U222>, needed by EOD Tuesday\n• QA pass on onboarding <@U333>\n• Retrieval demo plan <@U333>\nDocs: <https://company.example/launch-plan|launch plan>\nKeeping this in <#C999|product-launch>. Anything else?",
+              "team": "T999",
+              "ts": "1761923700.772849",
+              "thread_ts": "1761923700.772849",
+              "reply_count": 3,
+              "reply_users": [
+                "U222",
+                "U333",
+                "B999"
+              ],
+              "latest_reply": "1761923950.000000",
+              "reactions": [
+                {
+                  "name": "+1",
+                  "count": 2,
+                  "users": [
+                    "U222",
+                    "U333"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "message",
+              "user": "U222",
+              "text": "I'm blocked on final copy but can ship by Tuesday. <@U111> please confirm homepage hero.",
+              "team": "T999",
+              "ts": "1761923791.682979",
+              "thread_ts": "1761923700.772849",
+              "parent_user_id": "U111",
+              "reactions": [
+                {
+                  "name": "eyes",
+                  "count": 1,
+                  "users": [
+                    "U111"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "message",
+              "user": "U333",
+              "text": "QA plan is here: https://company.example/qa-checklist\nI'll cover onboarding and retrieval.",
+              "team": "T999",
+              "ts": "1761923884.123456",
+              "thread_ts": "1761923700.772849",
+              "parent_user_id": "U111",
+              "files": [
+                {
+                  "id": "FQA1",
+                  "name": "qa-checklist.pdf",
+                  "title": "qa-checklist.pdf",
+                  "mimetype": "application/pdf",
+                  "filetype": "pdf",
+                  "url_private": "https://files.slack.com/files-pri/T999-FQA1/qa-checklist.pdf",
+                  "permalink": "https://example.slack.com/files/FQA1",
+                  "size": 512000,
+                  "created": 1761923875,
+                  "user": "U333"
+                }
+              ]
+            },
+            {
+              "type": "message",
+              "subtype": "bot_message",
+              "bot_id": "B999",
+              "app_id": "A999",
+              "username": "LaunchBot",
+              "text": "Reminder set for Tuesday 16:00",
+              "team": "T999",
+              "ts": "1761923950.000000",
+              "thread_ts": "1761923700.772849",
+              "parent_user_id": "U111",
+              "bot_profile": {
+                "id": "B999",
+                "name": "LaunchBot",
+                "team_id": "T999",
+                "deleted": false,
+                "updated": 1761900300,
+                "icons": {
+                  "image_72": "https://example.com/launchbot.png"
+                }
+              }
+            }
+          ],
+          "has_more": false,
+          "response_metadata": {
+            "next_cursor": ""
+          }
+        }
+      }
+    }
+  }
+}
