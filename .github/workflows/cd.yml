@@ -21,7 +21,7 @@ env:
   NO_COLOR: "1"
 
 jobs:
-  terraform_apply:
+  terraform-apply:
     runs-on: ubuntu-latest
     outputs:
       ecr_repository_url: ${{ steps.tf_outputs.outputs.ecr_repository_url }}
@@ -33,9 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: jdx/mise-action@v4
-        with:
-          cache: true
+      - uses: ./.github/actions/prepare
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6
@@ -62,13 +60,11 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-  deploy:
-    needs: terraform_apply
+  build-docker:
+    needs: terraform-apply
     runs-on: ubuntu-latest
-    env:
-      IMAGE_REPO: ${{ needs.terraform_apply.outputs.ecr_repository_url }}
-      IMAGE_URI: ${{ needs.terraform_apply.outputs.ecr_repository_url }}:${{ github.sha }}
-      BUNDLE_URL: s3://${{ needs.terraform_apply.outputs.artifacts_bucket }}/dev/${{ github.sha }}.tar.gz
+    outputs:
+      image_uri: ${{ steps.meta.outputs.image_uri }}
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v6
@@ -78,11 +74,19 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ needs.terraform_apply.outputs.github_deploy_role_arn }}
+          role-to-assume: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve image refs
+        id: meta
+        env:
+          IMAGE_REPO: ${{ needs.terraform-apply.outputs.ecr_repository_url }}
+        run: |
+          echo "image_repo=$IMAGE_REPO" >> "$GITHUB_OUTPUT"
+          echo "image_uri=$IMAGE_REPO:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -93,10 +97,33 @@ jobs:
           context: ./nango
           push: true
           tags: |
-            ${{ env.IMAGE_URI }}
-            ${{ env.IMAGE_REPO }}:latest
+            ${{ steps.meta.outputs.image_uri }}
+            ${{ steps.meta.outputs.image_repo }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  build-bundle:
+    needs: terraform-apply
+    runs-on: ubuntu-latest
+    outputs:
+      bundle_url: ${{ steps.meta.outputs.bundle_url }}
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve bundle URL
+        id: meta
+        env:
+          ARTIFACTS_BUCKET: ${{ needs.terraform-apply.outputs.artifacts_bucket }}
+        run: echo "bundle_url=s3://$ARTIFACTS_BUCKET/dev/$GITHUB_SHA.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Package runtime bundle
         run: |
@@ -107,14 +134,26 @@ jobs:
             -C infra/deploy on_box_deploy.sh
 
       - name: Upload bundle to S3
-        run: aws s3 cp bundle.tar.gz "$BUNDLE_URL"
+        run: aws s3 cp bundle.tar.gz "${{ steps.meta.outputs.bundle_url }}"
+
+  deploy:
+    needs: [terraform-apply, build-docker, build-bundle]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy on instance via SSM
         run: infra/deploy/ssm_deploy.sh
         env:
-          BUNDLE_URL: ${{ env.BUNDLE_URL }}
+          BUNDLE_URL: ${{ needs.build-bundle.outputs.bundle_url }}
           DEPLOY_GROUP: ${{ env.DEPLOY_GROUP }}
-          IMAGE_URI: ${{ env.IMAGE_URI }}
+          IMAGE_URI: ${{ needs.build-docker.outputs.image_uri }}
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
           NANGO_HOSTNAME: ${{ env.NANGO_HOSTNAME }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
