@@ -76,7 +76,7 @@ data "aws_iam_policy_document" "github_deploy" {
   }
   statement {
     sid       = "SsmStatus"
-    actions   = ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations", "ssm:ListCommands"]
+    actions   = ["ssm:DescribeInstanceInformation", "ssm:GetCommandInvocation", "ssm:ListCommandInvocations", "ssm:ListCommands"]
     resources = ["*"]
   }
 }
