@@ -37,7 +37,7 @@
                 "id": {
                   "type": "string"
                 },
-                "team_id": {
+                "body": {
                   "type": "string"
                 },
                 "channel": {
@@ -62,236 +62,22 @@
                     "name": {
                       "type": "string"
                     },
-                    "name_normalized": {
-                      "type": "string"
-                    },
                     "is_private": {
                       "type": "boolean"
-                    },
-                    "is_archived": {
-                      "type": "boolean"
-                    },
-                    "is_shared": {
-                      "type": "boolean"
-                    },
-                    "is_org_shared": {
-                      "type": "boolean"
-                    },
-                    "is_ext_shared": {
-                      "type": "boolean"
-                    },
-                    "is_general": {
-                      "type": "boolean"
-                    },
-                    "creator_id": {
-                      "type": "string"
-                    },
-                    "num_members": {
-                      "type": "number"
-                    },
-                    "previous_names": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "created_at": {
-                      "type": "string"
-                    },
-                    "updated_at": {
-                      "type": "string"
-                    },
-                    "topic": {
-                      "type": "object",
-                      "properties": {
-                        "value": {
-                          "type": "string"
-                        },
-                        "creator_id": {
-                          "type": "string"
-                        },
-                        "updated_at": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "value"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "purpose": {
-                      "type": "object",
-                      "properties": {
-                        "value": {
-                          "type": "string"
-                        },
-                        "creator_id": {
-                          "type": "string"
-                        },
-                        "updated_at": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "value"
-                      ],
-                      "additionalProperties": false
                     }
                   },
                   "required": [
                     "id",
                     "type",
-                    "is_private",
-                    "is_archived"
+                    "is_private"
                   ],
                   "additionalProperties": false
-                },
-                "root_ts": {
-                  "type": "string"
-                },
-                "permalink": {
-                  "type": "string"
                 },
                 "created_at": {
                   "type": "string"
                 },
                 "updated_at": {
                   "type": "string"
-                },
-                "actors": {
-                  "type": "object",
-                  "propertyNames": {
-                    "type": "string"
-                  },
-                  "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "kind": {
-                        "type": "string",
-                        "enum": [
-                          "user",
-                          "bot",
-                          "unknown"
-                        ]
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "team_id": {
-                        "type": "string"
-                      },
-                      "username": {
-                        "type": "string"
-                      },
-                      "real_name": {
-                        "type": "string"
-                      },
-                      "display_name": {
-                        "type": "string"
-                      },
-                      "email": {
-                        "type": "string"
-                      },
-                      "is_bot": {
-                        "type": "boolean"
-                      },
-                      "deleted": {
-                        "type": "boolean"
-                      },
-                      "avatar_url": {
-                        "type": "string"
-                      },
-                      "updated_at": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "kind",
-                      "name"
-                    ],
-                    "additionalProperties": false
-                  }
-                },
-                "facets": {
-                  "type": "object",
-                  "properties": {
-                    "channel_id": {
-                      "type": "string"
-                    },
-                    "root_author_id": {
-                      "type": "string"
-                    },
-                    "author_ids": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "actor_ids": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "mentioned_actor_ids": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "has_replies": {
-                      "type": "boolean"
-                    },
-                    "has_files": {
-                      "type": "boolean"
-                    },
-                    "has_reactions": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "channel_id",
-                    "root_author_id",
-                    "author_ids",
-                    "actor_ids",
-                    "mentioned_actor_ids",
-                    "has_replies",
-                    "has_files",
-                    "has_reactions"
-                  ],
-                  "additionalProperties": false
-                },
-                "counts": {
-                  "type": "object",
-                  "properties": {
-                    "messages": {
-                      "type": "number"
-                    },
-                    "replies": {
-                      "type": "number"
-                    },
-                    "actors": {
-                      "type": "number"
-                    },
-                    "files": {
-                      "type": "number"
-                    },
-                    "reactions": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "messages",
-                    "replies",
-                    "actors",
-                    "files",
-                    "reactions"
-                  ],
-                  "additionalProperties": false
                 },
                 "messages": {
                   "type": "array",
@@ -301,46 +87,67 @@
                       "id": {
                         "type": "string"
                       },
-                      "ts": {
-                        "type": "string"
-                      },
-                      "thread_ts": {
-                        "type": "string"
-                      },
                       "created_at": {
                         "type": "string"
                       },
                       "updated_at": {
                         "type": "string"
                       },
-                      "edited_by_id": {
-                        "type": "string"
-                      },
-                      "client_msg_id": {
-                        "type": "string"
-                      },
-                      "author_id": {
-                        "type": "string"
-                      },
-                      "parent_author_id": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "type": "string"
-                      },
-                      "subtype": {
-                        "type": "string"
+                      "author": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "user",
+                              "bot",
+                              "unknown"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "name"
+                        ],
+                        "additionalProperties": false
                       },
                       "text": {
                         "type": "string"
                       },
-                      "blocks": {
+                      "mentions": {
                         "type": "array",
-                        "items": {}
-                      },
-                      "attachments": {
-                        "type": "array",
-                        "items": {}
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "user",
+                                "bot",
+                                "unknown"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "kind",
+                            "name"
+                          ],
+                          "additionalProperties": false
+                        }
                       },
                       "reactions": {
                         "type": "array",
@@ -350,20 +157,38 @@
                             "name": {
                               "type": "string"
                             },
-                            "count": {
-                              "type": "number"
-                            },
-                            "actor_ids": {
+                            "actors": {
                               "type": "array",
                               "items": {
-                                "type": "string"
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "user",
+                                      "bot",
+                                      "unknown"
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "kind",
+                                  "name"
+                                ],
+                                "additionalProperties": false
                               }
                             }
                           },
                           "required": [
                             "name",
-                            "count",
-                            "actor_ids"
+                            "actors"
                           ],
                           "additionalProperties": false
                         }
@@ -400,8 +225,30 @@
                             "created_at": {
                               "type": "string"
                             },
-                            "actor_id": {
-                              "type": "string"
+                            "actor": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "user",
+                                    "bot",
+                                    "unknown"
+                                  ]
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "kind",
+                                "name"
+                              ],
+                              "additionalProperties": false
                             }
                           },
                           "required": [
@@ -427,27 +274,12 @@
                           ],
                           "additionalProperties": false
                         }
-                      },
-                      "mentioned_actor_ids": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      },
-                      "bot_id": {
-                        "type": "string"
-                      },
-                      "app_id": {
-                        "type": "string"
                       }
                     },
                     "required": [
                       "id",
-                      "ts",
-                      "thread_ts",
                       "created_at",
-                      "author_id",
-                      "type",
+                      "author",
                       "text"
                     ],
                     "additionalProperties": false
@@ -456,13 +288,10 @@
               },
               "required": [
                 "id",
+                "body",
                 "channel",
-                "root_ts",
                 "created_at",
                 "updated_at",
-                "actors",
-                "facets",
-                "counts",
                 "messages"
               ],
               "additionalProperties": false
