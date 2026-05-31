@@ -17,6 +17,7 @@ env:
   AWS_REGION: eu-west-2
   SSM_SECRET_PREFIX: /company-brain/dev
   NANGO_HOSTNAME: nango-dev.onfabric.io
+  NANGO_CONNECT_HOSTNAME: nango-auth-dev.onfabric.io
   DEPLOY_GROUP: company-brain-dev
   NO_COLOR: "1"
 
@@ -159,6 +160,7 @@ jobs:
           IMAGE_URI: ${{ needs.build-docker.outputs.docker_image_tag }}
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
           NANGO_HOSTNAME: ${{ env.NANGO_HOSTNAME }}
+          NANGO_CONNECT_HOSTNAME: ${{ env.NANGO_CONNECT_HOSTNAME }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
           AWS_REGION: ${{ env.AWS_REGION }}
 
