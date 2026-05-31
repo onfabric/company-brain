@@ -1,0 +1,14 @@
+# Dozzle simple-auth users file. The real file is NOT committed: it's stored in
+# SSM (/company-brain/dev/dozzle_users) and rendered to dozzle/data/users.yml on
+# the box at deploy time, then mounted at /data/users.yml.
+#
+# Generate (bcrypt-hashed password) and upload to SSM:
+#   docker run --rm amir20/dozzle:latest generate \
+#     --name "Admin" --email admin@onfabric.io --password '<password>' admin > users.yml
+#   aws ssm put-parameter --name /company-brain/dev/dozzle_users \
+#     --type SecureString --value "$(cat users.yml)" --overwrite
+users:
+  admin:
+    email: admin@onfabric.io
+    name: Admin
+    password: $2a$11$REPLACE_WITH_BCRYPT_HASH

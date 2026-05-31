@@ -26,17 +26,25 @@ services:
     image: ${IMAGE_URI}
     build: !reset null
 
+  dozzle:
+    environment:
+      DOZZLE_AUTH_PROVIDER: simple
+    volumes:
+      - ./dozzle/data:/data
+
   caddy:
     image: caddy:2.8
     container_name: caddy
     restart: always
     depends_on:
       - nango-server
+      - dozzle
     ports:
       - "80:80"
       - "443:443"
     environment:
       - NANGO_HOSTNAME
+      - DOZZLE_HOSTNAME
       - ACME_EMAIL
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
