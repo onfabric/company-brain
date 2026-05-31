@@ -18,6 +18,7 @@ env:
   SSM_SECRET_PREFIX: /company-brain/dev
   NANGO_HOSTNAME: nango-dev.onfabric.io
   NANGO_CONNECT_HOSTNAME: nango-auth-dev.onfabric.io
+  DOZZLE_HOSTNAME: dozzle-dev.onfabric.io
   DEPLOY_GROUP: company-brain-dev
   NO_COLOR: "1"
 
@@ -161,6 +162,7 @@ jobs:
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
           NANGO_HOSTNAME: ${{ env.NANGO_HOSTNAME }}
           NANGO_CONNECT_HOSTNAME: ${{ env.NANGO_CONNECT_HOSTNAME }}
+          DOZZLE_HOSTNAME: ${{ env.DOZZLE_HOSTNAME }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
           AWS_REGION: ${{ env.AWS_REGION }}
 

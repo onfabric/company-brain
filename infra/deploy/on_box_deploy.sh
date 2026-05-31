@@ -1,13 +1,13 @@
 #!/bin/bash
 # Runs ON the EC2 instance, invoked by the deploy workflow via SSM. Reads its
 # non-secret config from the environment (IMAGE_URI, SSM_SECRET_PREFIX,
-# NANGO_HOSTNAME, NANGO_CONNECT_HOSTNAME, ACME_EMAIL, AWS_DEFAULT_REGION),
-# exported by the SSM command.
+# NANGO_HOSTNAME, NANGO_CONNECT_HOSTNAME, DOZZLE_HOSTNAME, ACME_EMAIL,
+# AWS_DEFAULT_REGION), exported by the SSM command.
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
-: "${IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}" "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_DEFAULT_REGION:?}"
+: "${IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}" "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_DEFAULT_REGION:?}"
 
 secret() {
   aws ssm get-parameter --name "${SSM_SECRET_PREFIX}/$1" --with-decryption \
@@ -19,9 +19,14 @@ NANGO_DB_PASSWORD="$(secret nango_db_password)"
 NANGO_DASHBOARD_USERNAME="$(secret nango_dashboard_username)"
 NANGO_DASHBOARD_PASSWORD="$(secret nango_dashboard_password)"
 
+# Dozzle simple-auth users file (full users.yml, generated via `dozzle generate`),
+# mounted into the container at /data/users.yml by the prod compose override.
+umask 077
+mkdir -p dozzle/data
+secret dozzle_users > dozzle/data/users.yml
+
 # Render .env consumed by docker compose. Secrets come from SSM; the rest is
 # fixed prod config.
-umask 077
 cat > .env <<EOF
 NANGO_ENCRYPTION_KEY=${NANGO_ENCRYPTION_KEY}
 NANGO_DB_USER=nango
@@ -43,6 +48,7 @@ LOG_LEVEL=info
 IMAGE_URI=${IMAGE_URI}
 NANGO_HOSTNAME=${NANGO_HOSTNAME}
 NANGO_CONNECT_HOSTNAME=${NANGO_CONNECT_HOSTNAME}
+DOZZLE_HOSTNAME=${DOZZLE_HOSTNAME}
 ACME_EMAIL=${ACME_EMAIL}
 EOF
 

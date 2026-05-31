@@ -6,7 +6,7 @@
 set -euo pipefail
 
 : "${BUNDLE_URL:?}" "${DEPLOY_GROUP:?}" "${IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}"
-: "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_REGION:?}"
+: "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_REGION:?}"
 
 instance_id=$(aws ec2 describe-instances \
   --filters "Name=tag:DeployGroup,Values=${DEPLOY_GROUP}" "Name=instance-state-name,Values=running" \
@@ -39,8 +39,8 @@ fi
 # built with jq @sh so the values are safely shell-quoted.
 exports=$(jq -rn \
   --arg image "$IMAGE_URI" --arg prefix "$SSM_SECRET_PREFIX" --arg host "$NANGO_HOSTNAME" \
-  --arg connect_host "$NANGO_CONNECT_HOSTNAME" --arg acme "$ACME_EMAIL" --arg region "$AWS_REGION" \
-  '"export IMAGE_URI=\($image|@sh) SSM_SECRET_PREFIX=\($prefix|@sh) NANGO_HOSTNAME=\($host|@sh) NANGO_CONNECT_HOSTNAME=\($connect_host|@sh) ACME_EMAIL=\($acme|@sh) AWS_DEFAULT_REGION=\($region|@sh)"')
+  --arg connect_host "$NANGO_CONNECT_HOSTNAME" --arg dozzle_host "$DOZZLE_HOSTNAME" --arg acme "$ACME_EMAIL" --arg region "$AWS_REGION" \
+  '"export IMAGE_URI=\($image|@sh) SSM_SECRET_PREFIX=\($prefix|@sh) NANGO_HOSTNAME=\($host|@sh) NANGO_CONNECT_HOSTNAME=\($connect_host|@sh) DOZZLE_HOSTNAME=\($dozzle_host|@sh) ACME_EMAIL=\($acme|@sh) AWS_DEFAULT_REGION=\($region|@sh)"')
 
 remote_script=$(cat <<REMOTE
 set -euo pipefail

@@ -1,5 +1,8 @@
 .env
 
+# Dozzle simple-auth users file (rendered on the box from SSM)
+dozzle/data/
+
 # Terraform
 infra/terraform/.terraform/
 infra/terraform/*.tfstate

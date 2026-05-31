@@ -39,3 +39,17 @@ resource "aws_ssm_parameter" "dashboard_password" {
   type  = "SecureString"
   value = random_password.dashboard.result
 }
+
+# Dozzle simple-auth users.yml. Can't be generated here (it holds a bcrypt
+# password hash), so Terraform only creates the slot; set the real value with:
+#   aws ssm put-parameter --name <prefix>/dozzle_users --type SecureString \
+#     --value "$(cat users.yml)" --overwrite
+resource "aws_ssm_parameter" "dozzle_users" {
+  name  = "${var.ssm_secret_prefix}/dozzle_users"
+  type  = "SecureString"
+  value = "users: {}"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}

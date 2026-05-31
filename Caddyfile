@@ -9,3 +9,7 @@
 {$NANGO_CONNECT_HOSTNAME} {
 	reverse_proxy nango-server:3009
 }
+
+{$DOZZLE_HOSTNAME} {
+	reverse_proxy dozzle:8080
+}
