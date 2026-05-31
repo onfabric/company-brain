@@ -5,3 +5,7 @@
 {$NANGO_HOSTNAME} {
 	reverse_proxy nango-server:3003
 }
+
+{$NANGO_CONNECT_HOSTNAME} {
+	reverse_proxy nango-server:3009
+}

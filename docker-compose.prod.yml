@@ -37,6 +37,7 @@ services:
       - "443:443"
     environment:
       - NANGO_HOSTNAME
+      - NANGO_CONNECT_HOSTNAME
       - ACME_EMAIL
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
