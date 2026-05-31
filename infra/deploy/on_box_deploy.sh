@@ -71,7 +71,7 @@ log "Pruning dangling images"
 docker image prune -f
 
 log "Compose service status"
-$compose ps
+$compose ps --format 'table {{.Name}}\t{{.Status}}'
 
 log "Image versions"
 $compose images
