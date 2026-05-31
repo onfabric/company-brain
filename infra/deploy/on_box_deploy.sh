@@ -7,6 +7,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+log() { echo "=== [on_box_deploy $(date -u +%H:%M:%S)] $* ==="; }
+
 : "${IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}" "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_DEFAULT_REGION:?}"
 
 secret() {
@@ -54,9 +56,24 @@ EOF
 
 # Authenticate Docker to ECR.
 registry="${IMAGE_URI%%/*}"
+log "Authenticating Docker to ECR (${registry})"
 aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
 
 compose="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+
+log "Pulling images"
 $compose pull
+
+log "Starting services (up -d --remove-orphans)"
 $compose up -d --remove-orphans
+
+log "Pruning dangling images"
 docker image prune -f
+
+log "Compose service status"
+$compose ps --format 'table {{.Name}}\t{{.Status}}'
+
+log "Image versions"
+$compose images
+
+log "Deploy finished"
