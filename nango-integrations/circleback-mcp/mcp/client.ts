@@ -9,6 +9,10 @@ import { z } from 'zod';
 const MCP_ENDPOINT = 'mcp';
 const PROTOCOL_VERSION = '2025-06-18';
 const PROXY_RETRIES = 3;
+const EMPTY_BODY_RETRIES = 6;
+const EMPTY_BODY_RETRY_DELAY_MS = 500;
+const RATE_LIMIT_RETRIES = 5;
+const RATE_LIMIT_BASE_DELAY_MS = 1000;
 
 const JsonRpcErrorSchema = z.object({
   code: z.number().optional(),
@@ -67,39 +71,62 @@ export class CirclebackMcpClient {
     });
   }
 
+  // Circleback rate-limits the MCP server and reports it as a tool-level error
+  // (HTTP 200 with isError), so the proxy's retries do not cover it; back off
+  // and retry the tool call before giving up.
   async callTool<T>(name: string, args: Record<string, unknown>, schema: z.ZodType<T>): Promise<T> {
-    const result = await this.send('tools/call', { name, arguments: args });
-    const toolResult = ToolResultSchema.parse(result ?? {});
-    const payload = extractToolPayload(toolResult);
+    for (let attempt = 0; ; attempt++) {
+      const result = await this.send('tools/call', { name, arguments: args });
+      const toolResult = ToolResultSchema.parse(result ?? {});
+      const payload = extractToolPayload(toolResult);
 
-    if (toolResult.isError) {
-      const detail = typeof payload === 'string' ? payload : JSON.stringify(payload);
-      throw new Error(`Circleback MCP tool "${name}" returned an error: ${detail}`);
+      if (toolResult.isError) {
+        const detail = typeof payload === 'string' ? payload : JSON.stringify(payload);
+        if (isRateLimited(detail) && attempt < RATE_LIMIT_RETRIES) {
+          await delay(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt);
+          continue;
+        }
+        throw new Error(`Circleback MCP tool "${name}" returned an error: ${detail}`);
+      }
+
+      return schema.parse(payload);
     }
-
-    return schema.parse(payload);
   }
 
+  // The MCP server intermittently answers a POST with an empty 200 body
+  // (delivering the reply on its SSE channel instead). That is not an HTTP
+  // error, so the proxy's own retries do not cover it; retry here until the
+  // response is delivered inline.
   private async send(method: string, params: Record<string, unknown>): Promise<unknown> {
     const id = this.nextId++;
-    const response = await this.nango.post({
-      endpoint: MCP_ENDPOINT,
-      headers: this.headers(),
-      data: { jsonrpc: '2.0', id, method, params },
-      retries: PROXY_RETRIES,
-    });
 
-    const sessionId = readSessionId(response.headers);
-    if (sessionId) {
-      this.sessionId = sessionId;
+    for (let attempt = 0; attempt <= EMPTY_BODY_RETRIES; attempt++) {
+      const response = await this.nango.post({
+        endpoint: MCP_ENDPOINT,
+        headers: this.headers(),
+        data: { jsonrpc: '2.0', id, method, params },
+        retries: PROXY_RETRIES,
+      });
+
+      const sessionId = readSessionId(response.headers);
+      if (sessionId) {
+        this.sessionId = sessionId;
+      }
+
+      if (isBlankBody(response.data)) {
+        await delay(EMPTY_BODY_RETRY_DELAY_MS);
+        continue;
+      }
+
+      const message = parseJsonRpc(response.data, id);
+      if (message.error) {
+        throw new Error(`Circleback MCP "${method}" failed: ${message.error.message}`);
+      }
+
+      return message.result;
     }
 
-    const message = parseJsonRpc(response.data, id);
-    if (message.error) {
-      throw new Error(`Circleback MCP "${method}" failed: ${message.error.message}`);
-    }
-
-    return message.result;
+    throw new Error(`Circleback MCP "${method}" returned an empty response after retries`);
   }
 
   private headers(): Record<string, string> {
@@ -115,6 +142,29 @@ export class CirclebackMcpClient {
 
     return headers;
   }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function isRateLimited(detail: string): boolean {
+  return /rate limit/i.test(detail);
+}
+
+function isBlankBody(data: unknown): boolean {
+  if (data == null) {
+    return true;
+  }
+  if (typeof data === 'string') {
+    return data.trim().length === 0;
+  }
+  if (typeof data === 'object') {
+    return Object.keys(data as Record<string, unknown>).length === 0;
+  }
+  return false;
 }
 
 function readSessionId(headers: unknown): string | undefined {
