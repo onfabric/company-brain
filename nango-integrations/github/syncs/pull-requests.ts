@@ -4,6 +4,7 @@ import { z } from 'zod';
 const PAGE_SIZE = 100;
 const PROXY_RETRIES = 3;
 const CHECKPOINT_OVERLAP_MS = 1000;
+const GITHUB_ORGANIZATION = 'onfabric';
 
 const GITHUB_API_HEADERS: Record<string, string> = {
   Accept: 'application/vnd.github+json',
@@ -77,7 +78,7 @@ const MetadataSchema = z.object({
     .array(z.string())
     .optional()
     .describe(
-      'GitHub repositories in owner/repo format. If omitted, all accessible repos are listed',
+      `Optional subset of ${GITHUB_ORGANIZATION} repositories in owner/repo format. If omitted, all accessible ${GITHUB_ORGANIZATION} repositories are listed`,
     ),
   state: z.enum(['open', 'closed', 'all']).optional().describe('Pull request state to sync'),
 });
@@ -229,7 +230,9 @@ const sync = createSync({
     const repositories = await getRepositoriesInScope(nango, metadata);
 
     if (repositories.length === 0) {
-      await nango.log('No GitHub repositories available for pull request sync');
+      await nango.log(
+        `No ${GITHUB_ORGANIZATION} GitHub repositories available for pull request sync`,
+      );
       return;
     }
 
@@ -264,14 +267,24 @@ async function getRepositoriesInScope(
 ): Promise<string[]> {
   const configuredRepos = normalizeRepositoryNames(metadata?.repos ?? []);
   if (configuredRepos.length > 0) {
-    return configuredRepos;
+    const onfabricRepos = configuredRepos.filter(isOnfabricRepository);
+    const ignoredRepos = configuredRepos.filter((repository) => !isOnfabricRepository(repository));
+
+    if (ignoredRepos.length > 0) {
+      await nango.log(
+        `Ignoring non-${GITHUB_ORGANIZATION} GitHub repositories: ${ignoredRepos.join(', ')}`,
+      );
+    }
+
+    return onfabricRepos;
   }
 
   const repositories: string[] = [];
   const proxyConfig = {
-    endpoint: '/user/repos',
+    endpoint: `/orgs/${GITHUB_ORGANIZATION}/repos`,
     headers: GITHUB_API_HEADERS,
     params: {
+      type: 'all',
       sort: 'updated',
       direction: 'desc',
       per_page: PAGE_SIZE,
@@ -291,7 +304,7 @@ async function getRepositoriesInScope(
     }
   }
 
-  return normalizeRepositoryNames(repositories);
+  return normalizeRepositoryNames(repositories).filter(isOnfabricRepository);
 }
 
 async function processRepository(
@@ -832,6 +845,10 @@ function normalizeRepositoryNames(repositories: string[]): string[] {
       .map((repository) => repository.trim())
       .filter((repository) => repository.length > 0),
   );
+}
+
+function isOnfabricRepository(repository: string): boolean {
+  return repository.toLowerCase().startsWith(`${GITHUB_ORGANIZATION}/`);
 }
 
 function parseRepositoriesLastSyncDate(value: string | undefined): Record<string, string> {

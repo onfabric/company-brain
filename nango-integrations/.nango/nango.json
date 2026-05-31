@@ -556,7 +556,7 @@
               "type": "object",
               "properties": {
                 "repos": {
-                  "description": "GitHub repositories in owner/repo format. If omitted, all accessible repos are listed",
+                  "description": "Optional subset of onfabric repositories in owner/repo format. If omitted, all accessible onfabric repositories are listed",
                   "type": "array",
                   "items": {
                     "type": "string"
