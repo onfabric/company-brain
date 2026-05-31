@@ -31,6 +31,7 @@ interface Fixture {
   nango?: {
     getMetadata?: unknown;
     getCheckpoint?: unknown;
+    getConnection?: unknown;
     batchSave?: Record<string, unknown[]>;
     batchDelete?: Record<string, unknown[]>;
   };
@@ -54,6 +55,10 @@ export class NangoSyncMock {
     return Promise.resolve(this.fixture.nango?.getCheckpoint);
   }
 
+  getConnection(): Promise<unknown> {
+    return Promise.resolve(this.fixture.nango?.getConnection);
+  }
+
   async saveCheckpoint(): Promise<void> {}
 
   async trackDeletesStart(): Promise<void> {}
@@ -63,6 +68,8 @@ export class NangoSyncMock {
   async batchSave(_data: unknown[], _model: string): Promise<void> {}
 
   async batchDelete(_data: unknown[], _model: string): Promise<void> {}
+
+  async log(): Promise<void> {}
 
   post(config: ProxyConfig): Promise<ApiResponse> {
     return Promise.resolve(this.apiResponse('post', config.endpoint));

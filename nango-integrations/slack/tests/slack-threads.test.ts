@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test';
 
+import { NangoSyncMock } from '../../test-support/nango-sync-mock.js';
 import createSync, { type NangoSyncLocal } from '../syncs/threads.js';
-import { NangoSyncMock } from './nango-sync-mock.js';
 
 const SlackThreadModel = createSync.models.SlackThread;
 
