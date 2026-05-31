@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test';
-import { NangoSyncMock } from '../../slack/tests/nango-sync-mock.js';
+import { NangoSyncMock } from '../../test-support/nango-sync-mock.js';
 import createSync, { type NangoSyncLocal } from '../syncs/pages.js';
 
 const NotionPageModel = createSync.models.NotionPage;
