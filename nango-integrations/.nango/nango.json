@@ -588,7 +588,7 @@
     }
   },
   {
-    "providerConfigKey": "circleback",
+    "providerConfigKey": "circleback-mcp",
     "actions": [],
     "syncs": [
       {
@@ -602,7 +602,7 @@
             "group": "Meetings"
           }
         ],
-        "input": "SyncMetadata_circleback_meetings",
+        "input": "SyncMetadata_circleback_mcp_meetings",
         "name": "meetings",
         "output": [
           "CirclebackMeeting"
@@ -613,7 +613,7 @@
         "track_deletes": false,
         "usedModels": [
           "CirclebackMeeting",
-          "SyncMetadata_circleback_meetings"
+          "SyncMetadata_circleback_mcp_meetings"
         ],
         "version": "1.0.0",
         "webhookSubscriptions": [],
@@ -696,7 +696,7 @@
               ],
               "additionalProperties": false
             },
-            "SyncMetadata_circleback_meetings": {
+            "SyncMetadata_circleback_mcp_meetings": {
               "type": "object",
               "properties": {
                 "query": {
