@@ -19,14 +19,14 @@ Keep:
 - stable root `id` required by Nango
 - source context, such as channel, project, repository, document, or path
 - timestamps for the record and important nested events
-- legible actor names and provider-exposed disambiguators, such as email
+- stable person identifiers for actors and collaborators, preferably email or a provider-unique username/handle
 - content, replies, comments, reactions, files, links, and other user-visible facts
 
 Normalize every saved timestamp to an ISO 8601 date string. Preserve the provider's timezone when the source value includes one, and convert accurately from provider-specific formats such as Unix seconds, Unix milliseconds, or local datetime strings with offsets. If the provider value has no timezone information, treat it as UTC rather than guessing a local timezone.
 
 Avoid:
 
-- nested provider IDs
+- nested provider IDs, except as a last-resort person identifier when no email or unique username exists
 - raw payloads, blocks, attachments, cursors, pagination metadata, and debug fields
 - provider object types, permissions, private flags, team IDs, and other implementation details
 - duplicate counts or labels that can be derived from existing fields
@@ -57,7 +57,7 @@ Do not hide important information only in nested structured fields. If it matter
 
 Keep nested arrays compact:
 
-- represent people with human-readable identifiers and provider-exposed disambiguators, not raw provider internals
+- represent people with a single stable unique identifier. Prefer email, then a provider-unique username or handle. Do not store display name alongside the identifier. If the provider exposes no email or unique username, include the stable provider person ID as a last-resort identifier and keep it scoped to the compact person reference.
 - represent links and external references with the smallest useful shape for retrieval and display
 - represent attachments with only the information needed to understand who shared them, when, and where to access them
 - represent reactions, replies, comments, and other nested events with their own meaningful time, actor, content, and compact context
