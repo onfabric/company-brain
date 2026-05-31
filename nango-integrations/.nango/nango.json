@@ -890,5 +890,145 @@
       "pre-connection-deletion": [],
       "validate-connection": []
     }
+  },
+  {
+    "providerConfigKey": "circleback-mcp",
+    "actions": [],
+    "syncs": [
+      {
+        "type": "sync",
+        "description": "Sync Circleback meetings as self-contained records: the call summary as the Markdown body and the full transcript with speaker labels",
+        "auto_start": true,
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/syncs/meetings",
+            "group": "Meetings"
+          }
+        ],
+        "input": "SyncMetadata_circleback_mcp_meetings",
+        "name": "meetings",
+        "output": [
+          "CirclebackMeeting"
+        ],
+        "runs": "every hour",
+        "scopes": [],
+        "sync_type": "full",
+        "track_deletes": false,
+        "usedModels": [
+          "CirclebackMeeting",
+          "SyncMetadata_circleback_mcp_meetings"
+        ],
+        "version": "1.0.0",
+        "webhookSubscriptions": [],
+        "json_schema": {
+          "definitions": {
+            "CirclebackMeeting": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "duration_seconds": {
+                  "type": "number"
+                },
+                "attendees": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "transcript": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "speaker": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "offset_seconds": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "speaker",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "body",
+                "title",
+                "created_at",
+                "transcript"
+              ],
+              "additionalProperties": false
+            },
+            "SyncMetadata_circleback_mcp_meetings": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "description": "Optional searchTerm passed to Circleback SearchMeetings",
+                  "type": "string"
+                },
+                "lookbackDays": {
+                  "description": "How many days back to search on the first run before a checkpoint exists",
+                  "type": "number"
+                },
+                "maxMeetings": {
+                  "description": "Optional cap on meetings processed per execution",
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "features": [
+          "checkpoints"
+        ]
+      }
+    ],
+    "onEventScripts": {
+      "post-connection-creation": [],
+      "pre-connection-deletion": [],
+      "validate-connection": []
+    }
   }
 ]
