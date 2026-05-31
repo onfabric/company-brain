@@ -1,7 +1,12 @@
-import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test';
+import { afterEach, describe, expect, it, mock, setDefaultTimeout, spyOn } from 'bun:test';
 
 import { NangoSyncMock } from '../../test-support/nango-sync-mock.js';
 import createSync, { type NangoSyncLocal } from '../syncs/meetings.js';
+
+// The MCP client throttles requests to respect Circleback's rate limit, so each
+// exec drives several real inter-request delays.
+const TEST_TIMEOUT_MS = 30_000;
+setDefaultTimeout(TEST_TIMEOUT_MS);
 
 const CirclebackMeetingModel = createSync.models.CirclebackMeeting;
 
@@ -83,7 +88,7 @@ describe('circleback meetings sync tests', () => {
     const toolCalls = postSpy.mock.calls
       .map(([config]) => (config as { data?: { method?: string; params?: unknown } }).data)
       .filter((data) => data?.method === 'tools/call')
-      .map((data) => data?.params as { name: string; arguments: Record<string, unknown> });
+      .map((data) => data?.params as { name: string; arguments: { intent?: unknown } });
 
     expect(toolCalls.map((call) => call.name)).toEqual([
       'SearchMeetings',
@@ -92,7 +97,7 @@ describe('circleback meetings sync tests', () => {
       'GetTranscriptsForMeetings',
     ]);
     for (const call of toolCalls) {
-      expect(typeof call.arguments['intent']).toBe('string');
+      expect(typeof call.arguments.intent).toBe('string');
     }
   });
 

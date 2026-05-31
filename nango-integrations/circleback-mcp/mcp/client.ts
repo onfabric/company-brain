@@ -11,8 +11,9 @@ const PROTOCOL_VERSION = '2025-06-18';
 const PROXY_RETRIES = 3;
 const EMPTY_BODY_RETRIES = 6;
 const EMPTY_BODY_RETRY_DELAY_MS = 500;
-const RATE_LIMIT_RETRIES = 5;
-const RATE_LIMIT_BASE_DELAY_MS = 1000;
+const RATE_LIMIT_RETRIES = 6;
+const RATE_LIMIT_BASE_DELAY_MS = 2000;
+const MIN_REQUEST_INTERVAL_MS = 1200;
 
 const JsonRpcErrorSchema = z.object({
   code: z.number().optional(),
@@ -53,8 +54,19 @@ export interface McpProxyClient {
 export class CirclebackMcpClient {
   private sessionId: string | undefined;
   private nextId = 1;
+  private lastRequestAt = 0;
 
   constructor(private readonly nango: McpProxyClient) {}
+
+  // Space out requests to stay under Circleback's rate limit, which is strict
+  // enough that back-to-back calls during a backfill trip it.
+  private async throttle(): Promise<void> {
+    const wait = MIN_REQUEST_INTERVAL_MS - (Date.now() - this.lastRequestAt);
+    if (wait > 0) {
+      await delay(wait);
+    }
+    this.lastRequestAt = Date.now();
+  }
 
   async initialize(): Promise<void> {
     await this.send('initialize', {
@@ -63,6 +75,7 @@ export class CirclebackMcpClient {
       clientInfo: { name: 'company-brain', version: '1.0.0' },
     });
 
+    await this.throttle();
     await this.nango.post({
       endpoint: MCP_ENDPOINT,
       headers: this.headers(),
@@ -101,6 +114,7 @@ export class CirclebackMcpClient {
     const id = this.nextId++;
 
     for (let attempt = 0; attempt <= EMPTY_BODY_RETRIES; attempt++) {
+      await this.throttle();
       const response = await this.nango.post({
         endpoint: MCP_ENDPOINT,
         headers: this.headers(),

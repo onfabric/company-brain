@@ -117,8 +117,13 @@ const sync = createSync({
 
     const since = resolveSince(checkpoint, metadata);
     const summaries = await searchMeetings(mcp, metadata, since);
+    // Oldest first so the per-chunk checkpoint only ever advances past meetings
+    // that were fully saved; if a later chunk is rate-limited and the run fails,
+    // the unsaved meetings are all newer than the checkpoint and the next run
+    // re-fetches them instead of skipping them.
     const newMeetings = summaries
       .filter((meeting) => isNewerThan(meeting.createdAt, since))
+      .sort((a, b) => Date.parse(toIso(a.createdAt)) - Date.parse(toIso(b.createdAt)))
       .slice(0, metadata?.maxMeetings ?? summaries.length);
 
     let latestCreatedAt = since;
