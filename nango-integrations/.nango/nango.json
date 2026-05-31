@@ -1,5 +1,309 @@
 [
   {
+    "providerConfigKey": "notion",
+    "actions": [],
+    "syncs": [
+      {
+        "type": "sync",
+        "description": "Sync flattened Notion page records with page/database references kept as links and expiring file URLs omitted",
+        "auto_start": true,
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/syncs/pages",
+            "group": "Pages"
+          }
+        ],
+        "input": "SyncMetadata_notion_pages",
+        "name": "pages",
+        "output": [
+          "NotionPage"
+        ],
+        "runs": "every hour",
+        "scopes": [],
+        "sync_type": "full",
+        "track_deletes": false,
+        "usedModels": [
+          "NotionPage",
+          "SyncMetadata_notion_pages"
+        ],
+        "version": "1.0.0",
+        "webhookSubscriptions": [],
+        "json_schema": {
+          "definitions": {
+            "NotionPage": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "public_url": {
+                  "type": "string"
+                },
+                "parent": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "workspace",
+                        "page",
+                        "data_source",
+                        "database",
+                        "block",
+                        "agent",
+                        "unknown"
+                      ]
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "additionalProperties": false
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "type": "string"
+                },
+                "created_by": {
+                  "type": "object",
+                  "properties": {
+                    "identifier": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "identifier"
+                  ],
+                  "additionalProperties": false
+                },
+                "updated_by": {
+                  "type": "object",
+                  "properties": {
+                    "identifier": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "identifier"
+                  ],
+                  "additionalProperties": false
+                },
+                "people": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "identifier": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "identifier"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "mentioned_people": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "identifier": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "identifier"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "content": {
+                  "type": "string"
+                },
+                "properties": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "files": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "caption": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "url": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "url"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "child_pages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "title"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "child_databases": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "title"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "related_pages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "title"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "body",
+                "title",
+                "url",
+                "parent",
+                "created_at",
+                "updated_at"
+              ],
+              "additionalProperties": false
+            },
+            "SyncMetadata_notion_pages": {
+              "type": "object",
+              "properties": {
+                "pageSize": {
+                  "description": "Notion API page size for paginated reads",
+                  "type": "number"
+                },
+                "batchSize": {
+                  "description": "How many page records to save per batch",
+                  "type": "number"
+                },
+                "maxPagesPerRun": {
+                  "description": "Optional cap for page records processed in one run",
+                  "type": "number"
+                },
+                "maxBlockDepth": {
+                  "description": "Maximum block nesting depth to render for each page",
+                  "type": "number"
+                },
+                "includeTrashed": {
+                  "description": "Whether to include pages that are in trash",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "features": []
+      }
+    ],
+    "onEventScripts": {
+      "post-connection-creation": [],
+      "pre-connection-deletion": [],
+      "validate-connection": []
+    }
+  },
+  {
     "providerConfigKey": "slack",
     "actions": [],
     "syncs": [
