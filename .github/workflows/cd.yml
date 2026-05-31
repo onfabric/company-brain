@@ -102,7 +102,6 @@ jobs:
             ${{ steps.tags.outputs.docker_image_tag_commit }}
             ${{ steps.tags.outputs.docker_image_tag_latest }}
           labels: |
-            org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
