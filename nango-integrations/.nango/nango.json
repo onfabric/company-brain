@@ -238,5 +238,353 @@
       "pre-connection-deletion": [],
       "validate-connection": []
     }
+  },
+  {
+    "providerConfigKey": "github",
+    "actions": [],
+    "syncs": [
+      {
+        "type": "sync",
+        "description": "Sync GitHub pull requests as self-contained records with repository context, reviewers, commits, comments, and review activity",
+        "auto_start": true,
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/syncs/pull-requests",
+            "group": "Pull Requests"
+          }
+        ],
+        "input": "SyncMetadata_github_pullrequests",
+        "name": "pull-requests",
+        "output": [
+          "GitHubPullRequest"
+        ],
+        "runs": "every hour",
+        "scopes": [
+          "repo"
+        ],
+        "sync_type": "full",
+        "track_deletes": false,
+        "usedModels": [
+          "GitHubPullRequest",
+          "SyncMetadata_github_pullrequests"
+        ],
+        "version": "1.0.0",
+        "webhookSubscriptions": [],
+        "json_schema": {
+          "definitions": {
+            "GitHubPullRequest": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "repository": {
+                  "type": "string"
+                },
+                "number": {
+                  "type": "number"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "open",
+                    "closed",
+                    "merged"
+                  ]
+                },
+                "draft": {
+                  "type": "boolean"
+                },
+                "author": {
+                  "type": "object",
+                  "properties": {
+                    "username": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "username"
+                  ],
+                  "additionalProperties": false
+                },
+                "reviewers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "username": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "username"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "requested_reviewers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "username": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "username"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "assignees": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "username": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "username"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "milestone": {
+                  "type": "string"
+                },
+                "source_branch": {
+                  "type": "string"
+                },
+                "target_branch": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "type": "string"
+                },
+                "closed_at": {
+                  "type": "string"
+                },
+                "merged_at": {
+                  "type": "string"
+                },
+                "additions": {
+                  "type": "number"
+                },
+                "deletions": {
+                  "type": "number"
+                },
+                "changed_files": {
+                  "type": "number"
+                },
+                "commits": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      },
+                      "authored_at": {
+                        "type": "string"
+                      },
+                      "author": {
+                        "type": "object",
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "username"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "title",
+                      "author"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "reviews": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "reviewer": {
+                        "type": "object",
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "username"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "state": {
+                        "type": "string"
+                      },
+                      "submitted_at": {
+                        "type": "string"
+                      },
+                      "body": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reviewer",
+                      "state"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "comments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "discussion",
+                          "code"
+                        ]
+                      },
+                      "author": {
+                        "type": "object",
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "username"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      },
+                      "body": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "line": {
+                        "type": "number"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "author",
+                      "created_at",
+                      "body"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "body",
+                "repository",
+                "number",
+                "title",
+                "url",
+                "state",
+                "status",
+                "draft",
+                "author",
+                "source_branch",
+                "target_branch",
+                "created_at",
+                "updated_at",
+                "commits",
+                "reviews",
+                "comments"
+              ],
+              "additionalProperties": false
+            },
+            "SyncMetadata_github_pullrequests": {
+              "type": "object",
+              "properties": {
+                "repos": {
+                  "description": "GitHub repositories in owner/repo format. If omitted, all accessible repos are listed",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "state": {
+                  "description": "Pull request state to sync",
+                  "type": "string",
+                  "enum": [
+                    "open",
+                    "closed",
+                    "all"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "features": [
+          "checkpoints"
+        ]
+      }
+    ],
+    "onEventScripts": {
+      "post-connection-creation": [],
+      "pre-connection-deletion": [],
+      "validate-connection": []
+    }
   }
 ]

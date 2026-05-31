@@ -22,6 +22,8 @@ Keep:
 - legible actor names and provider-exposed disambiguators, such as email
 - content, replies, comments, reactions, files, links, and other user-visible facts
 
+Normalize every saved timestamp to an ISO 8601 date string. Preserve the provider's timezone when the source value includes one, and convert accurately from provider-specific formats such as Unix seconds, Unix milliseconds, or local datetime strings with offsets. If the provider value has no timezone information, treat it as UTC rather than guessing a local timezone.
+
 Avoid:
 
 - nested provider IDs
