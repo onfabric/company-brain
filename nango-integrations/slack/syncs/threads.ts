@@ -1,6 +1,9 @@
 import { createSync, type ProxyConfiguration } from 'nango';
 import { z } from 'zod';
 
+import { BatchWriter } from '../../syncs/batch-writer.js';
+import { defineCompanyBrainRecord } from '../../syncs/company-brain-record.js';
+
 // Slack timestamps are Unix seconds, while JS Date works in milliseconds.
 const MILLISECONDS_PER_SECOND = 1000;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * MILLISECONDS_PER_SECOND;
@@ -66,9 +69,7 @@ const SlackThreadMessageSchema = z.object({
   links: z.array(SlackLinkSchema).optional(),
 });
 
-const SlackThreadSchema = z.object({
-  id: z.string(),
-  body: z.string(),
+const SlackThreadSchema = defineCompanyBrainRecord({
   channel: SlackChannelSchema,
   created_at: z.string(),
   updated_at: z.string(),
@@ -249,8 +250,15 @@ const sync = createSync({
       (Date.now() - resyncWindowDays * MILLISECONDS_PER_DAY) / MILLISECONDS_PER_SECOND,
     );
     const syncUpperBoundTs = String(Date.now() / MILLISECONDS_PER_SECOND);
+    const writer = new BatchWriter<SlackThread>({
+      nango,
+      model: 'SlackThread',
+      batchSize: HISTORY_PAGE_SIZE,
+      schema: SlackThreadSchema,
+    });
 
     const ctx: ChannelProcessingContext = {
+      writer,
       usersById,
       channelsLastSyncDate,
       updatedChannelsLastSyncDate,
@@ -368,6 +376,7 @@ async function ensureReadableChannel(
 }
 
 type ChannelProcessingContext = {
+  writer: BatchWriter<SlackThread>;
   usersById: Map<string, SlackActor>;
   channelsLastSyncDate: Record<string, string>;
   updatedChannelsLastSyncDate: Record<string, string>;
@@ -454,9 +463,8 @@ async function processRootMessagePages(
     maxSeenTs,
   );
 
-  if (threads.length > 0) {
-    await nango.batchSave(threads, 'SlackThread');
-  }
+  await ctx.writer.saveMany(threads);
+  await ctx.writer.flush();
 
   const hasMore = Boolean(response.data?.has_more);
   const nextCursor = response.data?.response_metadata?.next_cursor;
