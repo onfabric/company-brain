@@ -1,0 +1,98 @@
+{
+  "nango": {
+    "getCheckpoint": {
+      "lastSyncDate": "2025-01-01T00:00:00.000Z"
+    }
+  },
+  "api": {
+    "post": {
+      "/mcp": [
+        {
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+              "protocolVersion": "2025-06-18",
+              "capabilities": {},
+              "serverInfo": { "name": "circleback", "version": "1.0.0" }
+            }
+          }
+        },
+        { "response": {} },
+        {
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": {
+              "structuredContent": {
+                "meetings": [
+                  {
+                    "id": "mtg_123",
+                    "name": "Weekly product sync",
+                    "createdAt": "2025-11-20T15:00:00.000Z"
+                  },
+                  {
+                    "id": "mtg_999",
+                    "name": "Stale meeting before checkpoint",
+                    "createdAt": "2024-12-01T09:00:00.000Z"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": {
+              "structuredContent": {
+                "meetings": [
+                  {
+                    "id": "mtg_123",
+                    "name": "Weekly product sync",
+                    "createdAt": "2025-11-20T15:00:00.000Z",
+                    "duration": 1830,
+                    "url": "https://meet.google.com/abc-defg-hij",
+                    "tags": ["product", "weekly"],
+                    "attendees": [
+                      { "name": "Ada Lovelace", "email": "ada@onfabric.io" },
+                      { "name": "Alan Turing", "email": "alan@onfabric.io" }
+                    ],
+                    "summary": "The team agreed to ship the retrieval sync this week.",
+                    "notes": "## Decisions\n\n- Ship the retrieval sync this week.\n\n## Next steps\n\n- Ada to draft the schema."
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 4,
+            "result": {
+              "structuredContent": [
+                {
+                  "meetingId": "mtg_123",
+                  "transcript": [
+                    {
+                      "speaker": "Ada Lovelace",
+                      "text": "Let's start with the retrieval sync.",
+                      "start": 0
+                    },
+                    {
+                      "speaker": "Alan Turing",
+                      "text": "I'll own the schema draft.",
+                      "start": 12
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
