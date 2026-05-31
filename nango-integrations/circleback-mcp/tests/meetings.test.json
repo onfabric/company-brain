@@ -24,20 +24,27 @@
             "jsonrpc": "2.0",
             "id": 2,
             "result": {
-              "structuredContent": {
-                "meetings": [
-                  {
-                    "id": "mtg_123",
-                    "name": "Weekly product sync",
-                    "createdAt": "2025-11-20T15:00:00.000Z"
-                  },
-                  {
-                    "id": "mtg_999",
-                    "name": "Stale meeting before checkpoint",
-                    "createdAt": "2024-12-01T09:00:00.000Z"
-                  }
-                ]
-              }
+              "structuredContent": [
+                {
+                  "id": 8887844,
+                  "linkId": "k1ocGXtQnfOVAbGdwYVOg",
+                  "name": "Weekly product sync",
+                  "createdAt": "2025-11-20T15:00:04.721Z",
+                  "notes": "#### Overview\n- Shipped the retrieval sync this week.",
+                  "attendees": [
+                    { "name": "Ada Lovelace", "email": "ada@onfabric.io" },
+                    { "name": "Alan Turing", "email": null }
+                  ]
+                },
+                {
+                  "id": 7000001,
+                  "linkId": "staleLinkId",
+                  "name": "Stale meeting before checkpoint",
+                  "createdAt": "2024-06-01T09:00:00.000Z",
+                  "notes": "Old.",
+                  "attendees": []
+                }
+              ]
             }
           }
         },
@@ -45,26 +52,7 @@
           "response": {
             "jsonrpc": "2.0",
             "id": 3,
-            "result": {
-              "structuredContent": {
-                "meetings": [
-                  {
-                    "id": "mtg_123",
-                    "name": "Weekly product sync",
-                    "createdAt": "2025-11-20T15:00:00.000Z",
-                    "duration": 1830,
-                    "url": "https://meet.google.com/abc-defg-hij",
-                    "tags": ["product", "weekly"],
-                    "attendees": [
-                      { "name": "Ada Lovelace", "email": "ada@onfabric.io" },
-                      { "name": "Alan Turing", "email": "alan@onfabric.io" }
-                    ],
-                    "summary": "The team agreed to ship the retrieval sync this week.",
-                    "notes": "## Decisions\n\n- Ship the retrieval sync this week.\n\n## Next steps\n\n- Ada to draft the schema."
-                  }
-                ]
-              }
-            }
+            "result": { "structuredContent": [] }
           }
         },
         {
@@ -74,18 +62,41 @@
             "result": {
               "structuredContent": [
                 {
-                  "meetingId": "mtg_123",
+                  "id": 8887844,
+                  "name": "Weekly product sync",
+                  "createdAt": "2025-11-20T15:00:04.721Z",
+                  "duration": 1830.5,
+                  "url": "https://meet.google.com/abc-defg-hij",
+                  "tags": ["product", "weekly"],
+                  "attendees": [
+                    { "name": "Ada Lovelace", "email": "ada@onfabric.io" },
+                    { "name": "Alan Turing", "email": "alan@onfabric.io" }
+                  ],
+                  "notes": "#### Overview\n- Shipped the retrieval sync this week.\n\n#### Next steps\n- Ada to draft the schema.",
+                  "actionItems": [],
+                  "insights": {},
+                  "icalUid": "abc@google.com"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 5,
+            "result": {
+              "structuredContent": [
+                {
+                  "meetingId": "k1ocGXtQnfOVAbGdwYVOg",
+                  "meetingName": "Weekly product sync",
                   "transcript": [
                     {
                       "speaker": "Ada Lovelace",
                       "text": "Let's start with the retrieval sync.",
-                      "start": 0
+                      "timestamp": 0
                     },
-                    {
-                      "speaker": "Alan Turing",
-                      "text": "I'll own the schema draft.",
-                      "start": 12
-                    }
+                    { "speaker": "Alan Turing", "text": "I'll own the schema draft.", "timestamp": 12.5 }
                   ]
                 }
               ]

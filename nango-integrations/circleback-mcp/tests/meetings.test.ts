@@ -45,11 +45,11 @@ describe('circleback meetings sync tests', () => {
     expect(savedMeetings).toHaveLength(1);
     expectCirclebackMeetingSchema(meeting);
     expect(meeting).toMatchObject({
-      id: 'mtg_123',
+      id: '8887844',
       title: 'Weekly product sync',
       url: 'https://meet.google.com/abc-defg-hij',
-      created_at: '2025-11-20T15:00:00.000Z',
-      duration_seconds: 1830,
+      created_at: '2025-11-20T15:00:04.721Z',
+      duration_seconds: 1831,
       tags: ['product', 'weekly'],
       attendees: [
         { name: 'Ada Lovelace', email: 'ada@onfabric.io' },
@@ -61,21 +61,39 @@ describe('circleback meetings sync tests', () => {
           text: "Let's start with the retrieval sync.",
           offset_seconds: 0,
         },
-        { speaker: 'Alan Turing', text: "I'll own the schema draft.", offset_seconds: 12 },
+        { speaker: 'Alan Turing', text: "I'll own the schema draft.", offset_seconds: 12.5 },
       ],
     });
 
     expect(meeting.body.startsWith('# Weekly product sync')).toBe(true);
     expect(meeting.body.includes('## Summary')).toBe(true);
-    expect(meeting.body.includes('The team agreed to ship the retrieval sync this week.')).toBe(
-      true,
-    );
-    expect(meeting.body.includes('## Notes')).toBe(true);
-    expect(meeting.body.includes('## Decisions')).toBe(true);
+    expect(meeting.body.includes('Shipped the retrieval sync this week.')).toBe(true);
+    expect(meeting.body.includes('Ada to draft the schema.')).toBe(true);
     expect(meeting.body.includes('- Duration: 31m')).toBe(true);
     expect(meeting.body.includes('Ada Lovelace <ada@onfabric.io>')).toBe(true);
 
     expect(meeting.body.includes("Let's start with the retrieval sync.")).toBe(false);
+  });
+
+  it('passes the required intent to every Circleback MCP tool call', async () => {
+    const { nangoMock, postSpy } = createTestContext();
+
+    await createSync.exec(nangoMock);
+
+    const toolCalls = postSpy.mock.calls
+      .map(([config]) => (config as { data?: { method?: string; params?: unknown } }).data)
+      .filter((data) => data?.method === 'tools/call')
+      .map((data) => data?.params as { name: string; arguments: Record<string, unknown> });
+
+    expect(toolCalls.map((call) => call.name)).toEqual([
+      'SearchMeetings',
+      'SearchMeetings',
+      'ReadMeetings',
+      'GetTranscriptsForMeetings',
+    ]);
+    for (const call of toolCalls) {
+      expect(typeof call.arguments['intent']).toBe('string');
+    }
   });
 
   it('skips meetings older than the checkpoint', async () => {
@@ -87,8 +105,8 @@ describe('circleback meetings sync tests', () => {
       .flatMap((call) => (call[1] === 'CirclebackMeeting' ? call[0] : []))
       .map((meeting) => (meeting as { id: string }).id);
 
-    expect(savedIds).toEqual(['mtg_123']);
-    expect(savedIds).not.toContain('mtg_999');
+    expect(savedIds).toEqual(['8887844']);
+    expect(savedIds).not.toContain('7000001');
   });
 
   it('keeps raw provider details out of the saved record', async () => {

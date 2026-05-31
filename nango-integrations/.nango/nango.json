@@ -1004,7 +1004,7 @@
               "type": "object",
               "properties": {
                 "query": {
-                  "description": "Optional keyword passed to Circleback SearchMeetings",
+                  "description": "Optional searchTerm passed to Circleback SearchMeetings",
                   "type": "string"
                 },
                 "lookbackDays": {

@@ -10,6 +10,11 @@ const MILLISECONDS_PER_DAY = 24 * 60 * 60 * MILLISECONDS_PER_SECOND;
 // meetings are hydrated and saved in bounded chunks to keep memory low and make
 // partial progress durable across checkpoints.
 const MEETING_CHUNK_SIZE = 20;
+// Safety bound on SearchMeetings paging, which returns a plain array with no
+// cursor or total; paging stops earlier once a page comes back empty.
+const MAX_SEARCH_PAGES = 100;
+// Every Circleback MCP tool requires an `intent` describing why it is called.
+const SYNC_INTENT = 'Sync meetings into Company Brain for search and retrieval';
 
 const CirclebackAttendeeSchema = z.object({
   name: z.string(),
@@ -35,7 +40,7 @@ const CirclebackMeetingSchema = z.object({
 });
 
 const MetadataSchema = z.object({
-  query: z.string().optional().describe('Optional keyword passed to Circleback SearchMeetings'),
+  query: z.string().optional().describe('Optional searchTerm passed to Circleback SearchMeetings'),
   lookbackDays: z
     .number()
     .optional()
@@ -47,69 +52,40 @@ const CheckpointSchema = z.object({
   lastSyncDate: z.string(),
 });
 
+const nullableString = z.string().nullable().optional();
+const nullableNumber = z.number().nullable().optional();
+
 const RawAttendeeSchema = z.object({
-  name: z.string().optional(),
-  email: z.string().optional(),
-  displayName: z.string().optional(),
+  name: nullableString,
+  email: nullableString,
 });
 
 const RawTranscriptSegmentSchema = z.object({
-  speaker: z.string().optional(),
-  speakerName: z.string().optional(),
-  name: z.string().optional(),
-  text: z.string().optional(),
-  content: z.string().optional(),
-  start: z.number().optional(),
-  startTime: z.number().optional(),
-  offset: z.number().optional(),
+  speaker: nullableString,
+  text: nullableString,
+  timestamp: nullableNumber,
 });
 
 const RawMeetingSchema = z.object({
   id: z.union([z.string(), z.number()]),
-  name: z.string().optional(),
-  title: z.string().optional(),
-  createdAt: z.string().optional(),
-  duration: z.number().optional(),
-  url: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  attendees: z.array(RawAttendeeSchema).optional(),
-  notes: z.string().optional(),
-  summary: z.string().optional(),
-  transcript: z.array(RawTranscriptSegmentSchema).optional(),
+  linkId: nullableString,
+  name: nullableString,
+  createdAt: nullableString,
+  duration: nullableNumber,
+  url: nullableString,
+  tags: z.array(z.string()).nullable().optional(),
+  attendees: z.array(RawAttendeeSchema).nullable().optional(),
+  notes: nullableString,
 });
 
-const RawMeetingListSchema = z
-  .union([
-    z.array(RawMeetingSchema),
-    z.object({
-      meetings: z.array(RawMeetingSchema).optional(),
-      results: z.array(RawMeetingSchema).optional(),
-      nextCursor: z.string().optional(),
-      cursor: z.string().optional(),
-    }),
-  ])
-  .transform((value) => {
-    if (Array.isArray(value)) {
-      return { meetings: value, nextCursor: undefined as string | undefined };
-    }
-    return {
-      meetings: value.meetings ?? value.results ?? [],
-      nextCursor: value.nextCursor ?? value.cursor,
-    };
-  });
+const RawMeetingListSchema = z.array(RawMeetingSchema);
 
 const TranscriptEntrySchema = z.object({
-  meetingId: z.union([z.string(), z.number()]).optional(),
-  id: z.union([z.string(), z.number()]).optional(),
-  transcript: z.array(RawTranscriptSegmentSchema).optional(),
-  segments: z.array(RawTranscriptSegmentSchema).optional(),
+  meetingId: z.union([z.string(), z.number()]).nullable().optional(),
+  transcript: z.array(RawTranscriptSegmentSchema).nullable().optional(),
 });
 
 const TranscriptEntryListSchema = z.array(TranscriptEntrySchema);
-const TranscriptWrappedSchema = z.object({ transcripts: TranscriptEntryListSchema });
-const TranscriptMapSchema = z.record(z.string(), z.array(RawTranscriptSegmentSchema));
-
-type TranscriptEntry = z.infer<typeof TranscriptEntrySchema>;
 
 type CirclebackAttendee = z.infer<typeof CirclebackAttendeeSchema>;
 type CirclebackMeeting = z.infer<typeof CirclebackMeetingSchema>;
@@ -148,12 +124,16 @@ const sync = createSync({
     let latestCreatedAt = since;
 
     for (const chunk of chunkBy(newMeetings, MEETING_CHUNK_SIZE)) {
-      const ids = chunk.map((meeting) => String(meeting.id));
+      const ids = chunk.map((meeting) => meeting.id);
       const details = await readMeetings(mcp, ids);
       const transcripts = await getTranscripts(mcp, ids);
 
       const records = chunk.map((summary) =>
-        buildMeeting(summary, details.get(String(summary.id)), transcripts.get(String(summary.id))),
+        buildMeeting(
+          summary,
+          details.get(String(summary.id)),
+          summary.linkId ? transcripts.get(summary.linkId) : undefined,
+        ),
       );
 
       if (records.length > 0) {
@@ -171,75 +151,64 @@ const sync = createSync({
   },
 });
 
+// SearchMeetings returns a plain array per page and paginates by numeric
+// pageIndex (starting at 0), with no cursor or total, so paging walks pages
+// until one comes back empty.
 async function searchMeetings(
   mcp: CirclebackMcpClient,
   metadata: z.infer<typeof MetadataSchema> | undefined,
   since: string,
 ): Promise<RawMeeting[]> {
   const meetings: RawMeeting[] = [];
-  let cursor: string | undefined;
 
-  do {
+  for (let pageIndex = 0; pageIndex < MAX_SEARCH_PAGES; pageIndex++) {
     const args = withoutUndefined({
-      query: metadata?.query,
-      startDate: since,
-      cursor,
+      intent: SYNC_INTENT,
+      pageIndex,
+      startDate: toDateOnly(since),
+      searchTerm: metadata?.query,
     });
     const page = await mcp.callTool('SearchMeetings', args, RawMeetingListSchema);
-    meetings.push(...page.meetings);
-    cursor = page.nextCursor;
-  } while (cursor);
+    if (page.length === 0) {
+      break;
+    }
+    meetings.push(...page);
+  }
 
   return meetings;
 }
 
 async function readMeetings(
   mcp: CirclebackMcpClient,
-  meetingIds: string[],
+  meetingIds: Array<string | number>,
 ): Promise<Map<string, RawMeeting>> {
-  const page = await mcp.callTool('ReadMeetings', { meetingIds }, RawMeetingListSchema);
-  return new Map(page.meetings.map((meeting) => [String(meeting.id), meeting]));
+  const page = await mcp.callTool(
+    'ReadMeetings',
+    { intent: SYNC_INTENT, meetingIds },
+    RawMeetingListSchema,
+  );
+  return new Map(page.map((meeting) => [String(meeting.id), meeting]));
 }
 
+// Transcripts come back as an array keyed by `meetingId`, which is the meeting's
+// string linkId (not its numeric id), so the returned map is keyed by linkId.
 async function getTranscripts(
   mcp: CirclebackMcpClient,
-  meetingIds: string[],
+  meetingIds: Array<string | number>,
 ): Promise<Map<string, RawTranscriptSegment[]>> {
-  const raw = await mcp.callTool('GetTranscriptsForMeetings', { meetingIds }, z.unknown());
-  return normalizeTranscripts(raw);
-}
+  const entries = await mcp.callTool(
+    'GetTranscriptsForMeetings',
+    { intent: SYNC_INTENT, meetingIds },
+    TranscriptEntryListSchema,
+  );
 
-// GetTranscriptsForMeetings is not formally documented, so accept the plausible
-// shapes: an array of entries, a `{ transcripts: [...] }` wrapper, or a map keyed
-// by meeting id. Each entry is reduced to its segment list.
-function normalizeTranscripts(raw: unknown): Map<string, RawTranscriptSegment[]> {
-  const byMeeting = new Map<string, RawTranscriptSegment[]>();
-
-  const wrapped = TranscriptWrappedSchema.safeParse(raw);
-  const list = TranscriptEntryListSchema.safeParse(raw);
-  if (wrapped.success || list.success) {
-    const entries: TranscriptEntry[] = wrapped.success
-      ? wrapped.data.transcripts
-      : list.success
-        ? list.data
-        : [];
-    for (const entry of entries) {
-      const key = entry.meetingId ?? entry.id;
-      if (key !== undefined) {
-        byMeeting.set(String(key), entry.transcript ?? entry.segments ?? []);
-      }
-    }
-    return byMeeting;
-  }
-
-  const map = TranscriptMapSchema.safeParse(raw);
-  if (map.success) {
-    for (const [key, segments] of Object.entries(map.data)) {
-      byMeeting.set(key, segments);
+  const byLinkId = new Map<string, RawTranscriptSegment[]>();
+  for (const entry of entries) {
+    if (entry.meetingId != null) {
+      byLinkId.set(String(entry.meetingId), entry.transcript ?? []);
     }
   }
-
-  return byMeeting;
+  return byLinkId;
 }
 
 function buildMeeting(
@@ -248,20 +217,21 @@ function buildMeeting(
   transcriptSegments: RawTranscriptSegment[] | undefined,
 ): CirclebackMeeting {
   const merged = { ...summary, ...withoutUndefined(details ?? {}) };
-  const title = firstNonEmpty(merged.name, merged.title) ?? 'Untitled meeting';
+  const title = firstNonEmpty(merged.name) ?? 'Untitled meeting';
   const createdAt = toIso(merged.createdAt);
   const attendees = mapAttendees(merged.attendees);
   const tags = uniqueStrings(merged.tags ?? []);
-  const transcript = mapTranscript(transcriptSegments ?? merged.transcript ?? []);
+  const transcript = mapTranscript(transcriptSegments ?? []);
 
   return CirclebackMeetingSchema.parse(
     withoutUndefined({
       id: String(merged.id),
       body: renderBody(title, createdAt, merged, attendees),
       title,
-      url: merged.url,
+      url: merged.url ?? undefined,
       created_at: createdAt,
-      duration_seconds: merged.duration,
+      duration_seconds:
+        typeof merged.duration === 'number' ? Math.round(merged.duration) : undefined,
       attendees: attendees.length > 0 ? attendees : undefined,
       tags: tags.length > 0 ? tags : undefined,
       transcript,
@@ -269,12 +239,12 @@ function buildMeeting(
   );
 }
 
-function mapAttendees(attendees: RawAttendee[] | undefined): CirclebackAttendee[] {
+function mapAttendees(attendees: RawAttendee[] | null | undefined): CirclebackAttendee[] {
   return (attendees ?? [])
     .map((attendee) =>
       withoutUndefined({
-        name: firstNonEmpty(attendee.name, attendee.displayName, attendee.email) ?? 'unknown',
-        email: attendee.email,
+        name: firstNonEmpty(attendee.name, attendee.email) ?? 'unknown',
+        email: attendee.email ?? undefined,
       }),
     )
     .filter((attendee) => attendee.name !== 'unknown' || attendee.email);
@@ -284,9 +254,9 @@ function mapTranscript(segments: RawTranscriptSegment[]): CirclebackTranscriptSe
   return segments
     .map((segment) =>
       withoutUndefined({
-        speaker: firstNonEmpty(segment.speaker, segment.speakerName, segment.name) ?? 'Unknown',
-        text: (segment.text ?? segment.content ?? '').trim(),
-        offset_seconds: segment.start ?? segment.startTime ?? segment.offset,
+        speaker: firstNonEmpty(segment.speaker) ?? 'Unknown',
+        text: (segment.text ?? '').trim(),
+        offset_seconds: segment.timestamp ?? undefined,
       }),
     )
     .filter((segment) => segment.text.length > 0);
@@ -312,20 +282,7 @@ function renderBody(
     lines.push(`- URL: ${meeting.url}`);
   }
 
-  const summary = firstNonEmpty(meeting.summary);
-  const notes = firstNonEmpty(meeting.notes);
-
-  if (summary) {
-    lines.push('', '## Summary', '', summary);
-  }
-
-  if (notes) {
-    lines.push('', '## Notes', '', notes);
-  }
-
-  if (!summary && !notes) {
-    lines.push('', '## Summary', '', '(no summary)');
-  }
+  lines.push('', '## Summary', '', firstNonEmpty(meeting.notes) ?? '(no summary)');
 
   return lines.join('\n').trim();
 }
@@ -366,7 +323,7 @@ function chunkBy<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
-function isNewerThan(timestamp: string | undefined, since: string): boolean {
+function isNewerThan(timestamp: string | null | undefined, since: string): boolean {
   if (!timestamp) {
     return true;
   }
@@ -378,7 +335,11 @@ function laterIso(current: string, candidate: string): string {
   return Date.parse(candidate) > Date.parse(current) ? candidate : current;
 }
 
-function toIso(value: string | undefined): string {
+function toDateOnly(value: string): string {
+  return value.slice(0, 10);
+}
+
+function toIso(value: string | null | undefined): string {
   if (!value) {
     return new Date(0).toISOString();
   }
@@ -393,8 +354,8 @@ function uniqueStrings(values: string[]): string[] {
   ].sort();
 }
 
-function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
-  return values.find((value) => value && value.trim().length > 0);
+function firstNonEmpty(...values: Array<string | null | undefined>): string | undefined {
+  return values.find((value) => value && value.trim().length > 0) ?? undefined;
 }
 
 function parseOptional<T>(schema: z.ZodType<T>, value: unknown): T | undefined {

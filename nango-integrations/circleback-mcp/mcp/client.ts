@@ -70,12 +70,14 @@ export class CirclebackMcpClient {
   async callTool<T>(name: string, args: Record<string, unknown>, schema: z.ZodType<T>): Promise<T> {
     const result = await this.send('tools/call', { name, arguments: args });
     const toolResult = ToolResultSchema.parse(result ?? {});
+    const payload = extractToolPayload(toolResult);
 
     if (toolResult.isError) {
-      throw new Error(`Circleback MCP tool "${name}" returned an error`);
+      const detail = typeof payload === 'string' ? payload : JSON.stringify(payload);
+      throw new Error(`Circleback MCP tool "${name}" returned an error: ${detail}`);
     }
 
-    return schema.parse(extractToolPayload(toolResult));
+    return schema.parse(payload);
   }
 
   private async send(method: string, params: Record<string, unknown>): Promise<unknown> {
@@ -130,7 +132,7 @@ function readSessionId(headers: unknown): string | undefined {
 }
 
 function parseJsonRpc(data: unknown, id: number): JsonRpcResponse {
-  const messages = typeof data === 'string' ? parseSse(data) : [data];
+  const messages = typeof data === 'string' ? parseStringBody(data) : [data];
   const candidates = messages
     .map((message) => JsonRpcResponseSchema.safeParse(message))
     .filter((parsed) => parsed.success)
@@ -142,6 +144,21 @@ function parseJsonRpc(data: unknown, id: number): JsonRpcResponse {
   );
 
   return matched ?? enveloped ?? { result: data };
+}
+
+// The proxy returns the body as a string for both `application/json` and
+// `text/event-stream` responses, so try a plain JSON parse first and fall back
+// to SSE frame extraction.
+function parseStringBody(raw: string): unknown[] {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      return [JSON.parse(trimmed)];
+    } catch {
+      // Not a plain JSON body; treat as SSE below.
+    }
+  }
+  return parseSse(raw);
 }
 
 function parseSse(raw: string): unknown[] {
