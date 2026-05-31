@@ -64,7 +64,7 @@ jobs:
     needs: terraform-apply
     runs-on: ubuntu-latest
     outputs:
-      image_uri: ${{ steps.meta.outputs.image_uri }}
+      docker_image_tag: ${{ steps.tags.outputs.docker_image_tag_latest }}
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v6
@@ -80,13 +80,13 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Resolve image refs
-        id: meta
+      - name: Prepare tags
+        id: tags
         env:
           IMAGE_REPO: ${{ needs.terraform-apply.outputs.ecr_repository_url }}
         run: |
-          echo "image_repo=$IMAGE_REPO" >> "$GITHUB_OUTPUT"
-          echo "image_uri=$IMAGE_REPO:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "docker_image_tag_commit=$IMAGE_REPO:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "docker_image_tag_latest=$IMAGE_REPO:latest" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -97,8 +97,11 @@ jobs:
           context: ./nango
           push: true
           tags: |
-            ${{ steps.meta.outputs.image_uri }}
-            ${{ steps.meta.outputs.image_repo }}:latest
+            ${{ steps.tags.outputs.docker_image_tag_commit }}
+            ${{ steps.tags.outputs.docker_image_tag_latest }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -153,7 +156,7 @@ jobs:
         env:
           BUNDLE_URL: ${{ needs.build-bundle.outputs.bundle_url }}
           DEPLOY_GROUP: ${{ env.DEPLOY_GROUP }}
-          IMAGE_URI: ${{ needs.build-docker.outputs.image_uri }}
+          IMAGE_URI: ${{ needs.build-docker.outputs.docker_image_tag }}
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
           NANGO_HOSTNAME: ${{ env.NANGO_HOSTNAME }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
