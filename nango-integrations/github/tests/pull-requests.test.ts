@@ -19,6 +19,7 @@ describe('github pull request sync tests', () => {
     return {
       nangoMock: asNango(nangoMock),
       batchSaveSpy: spyOn(nangoMock, 'batchSave'),
+      getSpy: spyOn(nangoMock, 'get'),
     };
   };
 
@@ -28,9 +29,10 @@ describe('github pull request sync tests', () => {
   });
 
   it('should build readable GitHub pull request records', async () => {
-    const { nangoMock, batchSaveSpy } = createTestContext();
+    const { nangoMock, batchSaveSpy, getSpy } = createTestContext();
 
     await createSync.exec(nangoMock);
+    const requestedEndpoints = getSpy.mock.calls.map(([config]) => config.endpoint);
 
     const savedPullRequests = batchSaveSpy.mock.calls.flatMap((call) =>
       call[1] === 'GitHubPullRequest' ? call[0] : [],
@@ -38,10 +40,14 @@ describe('github pull request sync tests', () => {
     const [pullRequest] = JSON.parse(JSON.stringify(savedPullRequests));
 
     expect(savedPullRequests).toHaveLength(1);
+    expect(requestedEndpoints).toContain('/orgs/onfabric/repos');
+    expect(requestedEndpoints.some((endpoint) => endpoint.includes('massimoalbarello'))).toBe(
+      false,
+    );
     expectGitHubPullRequestSchema(pullRequest);
     expect(pullRequest).toMatchObject({
-      id: 'acme/widgets#42',
-      repository: 'acme/widgets',
+      id: 'onfabric/widgets#42',
+      repository: 'onfabric/widgets',
       number: 42,
       title: 'Add retrieval-aware PR records',
       description:
@@ -53,7 +59,7 @@ describe('github pull request sync tests', () => {
       labels: ['company-brain', 'integration'],
       milestone: 'Q4 knowledge sync',
       source_branch: 'maya:feature/github-pr-sync',
-      target_branch: 'acme:main',
+      target_branch: 'onfabric:main',
       additions: 124,
       deletions: 18,
       changed_files: 5,
@@ -101,7 +107,7 @@ describe('github pull request sync tests', () => {
         username: 'search-infra',
       },
     ]);
-    expect(pullRequest.body.startsWith('# Pull request acme/widgets#42')).toBe(true);
+    expect(pullRequest.body.startsWith('# Pull request onfabric/widgets#42')).toBe(true);
     expect(
       pullRequest.body.includes('Sync pull requests into one embedding-friendly document.'),
     ).toBe(true);
