@@ -77,8 +77,39 @@ $compose up -d --remove-orphans
 log "Pruning dangling images"
 docker image prune -f
 
+# Gate the deploy on container health: every long-running service must report a
+# `healthy` healthcheck, and one-shot services (db-prepare) must have exited 0.
+# Poll until that holds or we time out, then fail so CI/SSM surfaces a bad deploy
+# instead of reporting success while a container is unhealthy or crash-looping.
+# Parsed with pure shell (the box has no jq).
+log "Waiting for all containers to become healthy"
+deadline=$((SECONDS + 360))
+while :; do
+  unhealthy=""
+  while IFS='|' read -r name state health exitcode; do
+    [ -z "$name" ] && continue
+    if [ -n "$health" ]; then
+      [ "$health" = "healthy" ] || unhealthy="${unhealthy}${name}: health=${health}\n"
+    elif [ "$state" = "exited" ]; then
+      [ "${exitcode:-0}" = "0" ] || unhealthy="${unhealthy}${name}: exited(${exitcode})\n"
+    elif [ "$state" != "running" ]; then
+      unhealthy="${unhealthy}${name}: state=${state}\n"
+    fi
+  done <<EOF
+$($compose ps -a --format '{{.Name}}|{{.State}}|{{.Health}}|{{.ExitCode}}')
+EOF
+  [ -z "$unhealthy" ] && { log "All containers healthy"; break; }
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    log "Containers not healthy after timeout:"
+    printf '%b' "$unhealthy"
+    $compose ps -a --format 'table {{.Name}}\t{{.Status}}'
+    exit 1
+  fi
+  sleep 5
+done
+
 log "Compose service status"
-$compose ps --format 'table {{.Name}}\t{{.Status}}'
+$compose ps -a --format 'table {{.Name}}\t{{.Status}}'
 
 log "Image versions"
 $compose images
