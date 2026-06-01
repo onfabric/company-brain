@@ -5,5 +5,3 @@ import { healthController } from '#routes/health/controller.ts';
 export function createApp() {
   return new Elysia().onError(elysiaErrorHandler).use(healthController);
 }
-
-export type App = ReturnType<typeof createApp>;

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "paths": {
+      "@company-brain/backend/types": ["../backend/src/types.ts"]
+    }
+  },
+  "include": ["_backend-client/**/*.ts"],
+  "exclude": ["node_modules", "dist", "build", ".nango"]
+}
