@@ -20,6 +20,14 @@ See [AGENTS.md](./AGENTS.md) for contributor and agent guidance.
 
 ## Agent Sync Installer Smoke Test
 
+The release installer only installs the `company-brain-agent-sync` CLI. After installing, run:
+
+```bash
+company-brain-agent-sync init
+```
+
+`init` writes the required local config first, then installs and starts the macOS LaunchAgent. If required config is still missing, the LaunchAgent is not installed.
+
 On macOS, run this before publishing an agent-sync release:
 
 ```bash

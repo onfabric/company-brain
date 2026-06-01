@@ -22,7 +22,7 @@ export async function runDaemon(): Promise<void> {
         missing_config: missing,
       });
       console.error(
-        `agent-sync setup needed. Run: company-brain-agent-sync configure (${missing.join(', ')})`,
+        `agent-sync setup needed. Run: company-brain-agent-sync init (${missing.join(', ')})`,
       );
       await sleep(config.scanIntervalMs);
       continue;

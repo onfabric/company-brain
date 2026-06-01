@@ -48,11 +48,6 @@ script -q /dev/null \
   env \
   "HOME=$home_dir" \
   "COMPANY_BRAIN_AGENT_SYNC_RELEASE_URL=$release_url" \
-  "COMPANY_BRAIN_AGENT_SYNC_SKIP_DAEMON=1" \
-  "COMPANY_BRAIN_AGENT_SYNC_CONFIGURE_MISSING_ONLY=1" \
-  "COMPANY_BRAIN_NANGO_WEBHOOK_URL=https://nango.test/webhook/env/agent-conversations" \
-  "COMPANY_BRAIN_NANGO_CONNECTION_ID=local-agent-sync" \
-  "COMPANY_BRAIN_NANGO_WEBHOOK_SECRET=shared-secret" \
   bash "$install_script"
 
 installed_bin="$home_dir/Library/Application Support/company-brain/agent-sync/$BIN_NAME"
@@ -66,6 +61,9 @@ HOME="$home_dir" \
   COMPANY_BRAIN_NANGO_WEBHOOK_URL="https://nango.test/webhook/env/agent-conversations" \
   COMPANY_BRAIN_NANGO_CONNECTION_ID="local-agent-sync" \
   COMPANY_BRAIN_NANGO_WEBHOOK_SECRET="shared-secret" \
+  "$installed_bin" init --missing-only --skip-daemon
+
+HOME="$home_dir" \
   "$installed_bin" status --json > "$status_json"
 STATUS_JSON="$status_json" bun -e "const status = await Bun.file(process.env.STATUS_JSON).json(); if (status.missing_config.length > 0) { console.error(JSON.stringify(status, null, 2)); process.exit(1); }"
 
@@ -92,11 +90,10 @@ script -q /dev/null \
   env \
   "HOME=$fake_home_dir" \
   "COMPANY_BRAIN_AGENT_SYNC_RELEASE_URL=file://$fake_release_dir" \
-  "COMPANY_BRAIN_AGENT_SYNC_SKIP_DAEMON=1" \
   bash "$fake_release_dir/install.sh"
 
-if ! grep -qx 'configure' "$fake_home_dir/agent-sync-args.log"; then
-  echo "Expected normal installer path to call configure without extra arguments." >&2
+if [[ -e "$fake_home_dir/agent-sync-args.log" ]]; then
+  echo "Expected installer to install the CLI without running configuration commands." >&2
   cat "$fake_home_dir/agent-sync-args.log" >&2
   exit 1
 fi

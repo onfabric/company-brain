@@ -5,10 +5,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { captureTranscriptFile } from '../src/capture.js';
-import { loadConfig, writeConfigFile } from '../src/config.js';
+import { loadConfig, readConfigFile, writeConfigFile } from '../src/config.js';
 import { discoverConversations } from '../src/discovery.js';
 import { ensureIdentity } from '../src/identity.js';
-import { launchAgentConfig, renderLaunchAgentPlist } from '../src/launchd.js';
+import { initializeAgentSync } from '../src/init.js';
+import { installLaunchAgent, launchAgentConfig, renderLaunchAgentPlist } from '../src/launchd.js';
 import { scanLocalSessions } from '../src/session-scanner.js';
 import { AgentSyncStore } from '../src/store.js';
 import { parseTranscriptFile } from '../src/transcript-parser.js';
@@ -74,6 +75,26 @@ describe('agent sync', () => {
     expect(config.scanIntervalMs).toBe(ENV_SCAN_INTERVAL_MS);
     expect(config.nangoPushTimeoutMs).toBe(DEFAULT_NANGO_PUSH_TIMEOUT_MS);
     expect(config.codexSessionDir).toBe(path.join(os.homedir(), '.codex/sessions'));
+  });
+
+  it('persists environment-backed required config during initialization', async () => {
+    const tempDir = await makeTempDir();
+    process.env[NANGO_WEBHOOK_URL_ENV] = 'https://nango.test/webhook/env/agent-conversations';
+    process.env[NANGO_CONNECTION_ID_ENV] = 'local-agent-sync';
+    process.env[NANGO_WEBHOOK_SECRET_ENV] = 'shared-secret';
+
+    const result = await initializeAgentSync({
+      dataDir: tempDir,
+      missingOnly: true,
+      skipDaemon: true,
+    });
+    const fileConfig = await readConfigFile(tempDir);
+
+    expect(result.missing).toEqual([]);
+    expect(result.launchAgentInstalled).toBe(false);
+    expect(fileConfig.nangoWebhookUrl).toBe('https://nango.test/webhook/env/agent-conversations');
+    expect(fileConfig.nangoConnectionId).toBe('local-agent-sync');
+    expect(fileConfig.nangoWebhookSecret).toBe('shared-secret');
   });
 
   it('generates a stable local user identifier', async () => {
@@ -275,17 +296,23 @@ describe('agent sync', () => {
     expect(plist).toContain('daemon.out.log');
   });
 
-  it('keeps installer prompts attached to the terminal', async () => {
+  it('does not install the LaunchAgent from environment-only config', async () => {
+    const tempDir = await makeTempDir();
+    process.env[NANGO_WEBHOOK_URL_ENV] = 'https://nango.test/webhook/env/agent-conversations';
+    process.env[NANGO_CONNECTION_ID_ENV] = 'local-agent-sync';
+    process.env[NANGO_WEBHOOK_SECRET_ENV] = 'shared-secret';
+
+    await expect(installLaunchAgent(tempDir)).rejects.toThrow('agent-sync setup needed');
+  });
+
+  it('installs the CLI without running configuration', async () => {
     const script = await fs.promises.readFile(INSTALL_SCRIPT_PATH, 'utf8');
 
-    expect(script).toContain('exec 3< /dev/tty');
-    expect(script).toContain('"$INSTALL_DIR/$BIN_NAME" configure <&3');
-    expect(script).toContain('"$INSTALL_DIR/$BIN_NAME" configure --missing-only <&3');
-    expect(script).toContain('"$INSTALL_DIR/$BIN_NAME" install-daemon');
+    expect(script).toContain('$HOME/.local/bin/$BIN_NAME init');
     expect(script).toContain('COMPANY_BRAIN_AGENT_SYNC_RELEASE_URL');
-    expect(script).toContain('COMPANY_BRAIN_AGENT_SYNC_CONFIGURE_MISSING_ONLY');
-    expect(script).toContain('COMPANY_BRAIN_AGENT_SYNC_SKIP_DAEMON');
-    expect(script).not.toContain('>&3');
+    expect(script).not.toContain('/dev/tty');
+    expect(script).not.toContain('"$INSTALL_DIR/$BIN_NAME" configure');
+    expect(script).not.toContain('"$INSTALL_DIR/$BIN_NAME" install-daemon');
   });
 });
 
