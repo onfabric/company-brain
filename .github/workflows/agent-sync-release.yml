@@ -22,7 +22,18 @@ env:
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
 jobs:
+  installer-smoke:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/prepare
+
+      - name: Smoke test agent-sync installer
+        run: scripts/smoke-test-agent-sync-installer.sh
+
   release:
+    needs: installer-smoke
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

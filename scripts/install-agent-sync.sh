@@ -21,7 +21,9 @@ case "$(uname -m)" in
 esac
 
 asset="$BIN_NAME-$platform.tar.gz"
-if [[ "$VERSION" == "latest" ]]; then
+if [[ -n "${COMPANY_BRAIN_AGENT_SYNC_RELEASE_URL:-}" ]]; then
+  release_url="${COMPANY_BRAIN_AGENT_SYNC_RELEASE_URL%/}"
+elif [[ "$VERSION" == "latest" ]]; then
   release_url="https://github.com/$REPO/releases/latest/download"
 else
   release_url="https://github.com/$REPO/releases/download/$VERSION"
@@ -38,7 +40,7 @@ if [[ -n "${GITHUB_TOKEN:-}" ]]; then
   curl_args+=(-H "Authorization: Bearer $GITHUB_TOKEN")
 fi
 
-echo "Downloading $asset from $REPO..."
+echo "Downloading $asset from $release_url..."
 curl "${curl_args[@]}" "$release_url/$asset" -o "$tmp_dir/$asset"
 curl "${curl_args[@]}" "$release_url/$asset.sha256" -o "$tmp_dir/$asset.sha256"
 
@@ -56,18 +58,31 @@ ln -sfn "$INSTALL_DIR/$BIN_NAME" "$HOME/.local/bin/$BIN_NAME"
 
 echo "Installed $BIN_NAME to $INSTALL_DIR/$BIN_NAME"
 
-if ! ( : <> /dev/tty ) 2>/dev/null; then
+if ! ( : < /dev/tty ) 2>/dev/null; then
   echo "agent-sync install requires an interactive terminal for configuration." >&2
   echo "Run '$INSTALL_DIR/$BIN_NAME configure' from a terminal, then run '$INSTALL_DIR/$BIN_NAME install-daemon'." >&2
   exit 1
 fi
-exec 3<> /dev/tty
+exec 3< /dev/tty
 
 echo "Configuring agent-sync..."
-"$INSTALL_DIR/$BIN_NAME" configure <&3 >&3
+configure_args=()
+case "${COMPANY_BRAIN_AGENT_SYNC_CONFIGURE_MISSING_ONLY:-}" in
+  1 | true | yes)
+    configure_args+=(--missing-only)
+    ;;
+esac
+"$INSTALL_DIR/$BIN_NAME" configure "${configure_args[@]}" <&3
 
-echo "Installing macOS LaunchAgent..."
-"$INSTALL_DIR/$BIN_NAME" install-daemon <&3 >&3
+case "${COMPANY_BRAIN_AGENT_SYNC_SKIP_DAEMON:-}" in
+  1 | true | yes)
+    echo "Skipping macOS LaunchAgent install."
+    ;;
+  *)
+    echo "Installing macOS LaunchAgent..."
+    "$INSTALL_DIR/$BIN_NAME" install-daemon
+    ;;
+esac
 
 echo "agent-sync is installed."
 echo "Run '$INSTALL_DIR/$BIN_NAME status' to check it."
