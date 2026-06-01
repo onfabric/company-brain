@@ -1,7 +1,6 @@
 import { createSync, type ProxyConfiguration } from 'nango';
 import { z } from 'zod';
 import { BatchWriter } from '../../syncs/batch-writer.js';
-import { createBackendClient } from '../../syncs/brain-backend/client.js';
 import { defineCompanyBrainRecord } from '../../syncs/company-brain-record.js';
 
 // Slack timestamps are Unix seconds, while JS Date works in milliseconds.
@@ -232,7 +231,6 @@ const sync = createSync({
   },
 
   exec: async (nango) => {
-    const brain = createBackendClient(nango);
     const metadata = parseOptional(MetadataSchema, await nango.getMetadata());
     const checkpoint = parseOptional(CheckpointSchema, await nango.getCheckpoint());
 
@@ -256,15 +254,6 @@ const sync = createSync({
       model: 'SlackThread',
       batchSize: HISTORY_PAGE_SIZE,
       schema: SlackThreadSchema,
-      afterSave: async (records) => {
-        const { data, error } = await brain('/tmp/sync-ping', {
-          method: 'POST',
-          body: { model: 'SlackThread', count: records.length },
-        });
-        await nango.log(
-          `sync ping: ${error ? `error ${error.value}` : `received=${data?.received}`}`,
-        );
-      },
     });
 
     const ctx: ChannelProcessingContext = {
