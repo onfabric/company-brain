@@ -29,7 +29,6 @@ services:
       # PG 18+ expects the parent dir mounted; data lives under /var/lib/postgresql/18/...
       - postgres-data:/var/lib/postgresql
       - ./db/entrypoint.sh:/usr/local/bin/db-entrypoint.sh:ro
-      - ./db/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
     ports:
       - "127.0.0.1:5432:5432"
     healthcheck:
