@@ -1,0 +1,7 @@
+{
+  "nango": {
+    "getMetadata": {
+      "webhookSecret": "shared-secret"
+    }
+  }
+}
