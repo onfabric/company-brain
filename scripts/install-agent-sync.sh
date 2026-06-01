@@ -66,13 +66,14 @@ fi
 exec 3< /dev/tty
 
 echo "Configuring agent-sync..."
-configure_args=()
 case "${COMPANY_BRAIN_AGENT_SYNC_CONFIGURE_MISSING_ONLY:-}" in
   1 | true | yes)
-    configure_args+=(--missing-only)
+    "$INSTALL_DIR/$BIN_NAME" configure --missing-only <&3
+    ;;
+  *)
+    "$INSTALL_DIR/$BIN_NAME" configure <&3
     ;;
 esac
-"$INSTALL_DIR/$BIN_NAME" configure "${configure_args[@]}" <&3
 
 case "${COMPANY_BRAIN_AGENT_SYNC_SKIP_DAEMON:-}" in
   1 | true | yes)
