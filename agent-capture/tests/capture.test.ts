@@ -115,8 +115,13 @@ describe('agent capture', () => {
     ]);
     expect(conversation.tools_used).toEqual(['Edit']);
     expect(conversation.files_touched).toContain(path.join(tempDir, 'sync.ts'));
+    expect(conversation.body.startsWith('# Claude Code conversation')).toBe(true);
     expect(conversation.body).toContain('Fix the sync and rerun the tests');
     expect(conversation.body).toContain('The sync is fixed and tests pass.');
+    expect(conversation.body).not.toContain('## Tool trajectory');
+    expect(conversation.body).not.toContain('Edit');
+    expect(conversation.body).not.toContain('Files touched');
+    expect(conversation.body).not.toContain(path.join(tempDir, 'sync.ts'));
   });
 
   it('parses Codex response items without storing developer instructions', async () => {

@@ -1,8 +1,8 @@
-import type { AgentConversation, AgentMessage } from './types.js';
+import type { AgentConversation, AgentMessage } from './model.js';
 
 const EMPTY_LINE = '';
 
-export function renderConversationBody(conversation: Omit<AgentConversation, 'body'>): string {
+export function renderConversationBody(conversation: AgentConversation): string {
   const lines = [`# ${renderSourceName(conversation.source)} conversation`, EMPTY_LINE];
 
   lines.push(`- Session: ${conversation.session_id}`);

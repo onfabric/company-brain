@@ -2,44 +2,11 @@ import { createSync } from 'nango';
 import { z } from 'zod';
 
 import { BatchWriter } from '../../syncs/batch-writer.js';
-import { defineCompanyBrainRecord } from '../../syncs/company-brain-record.js';
+import { type AgentConversation, AgentConversationSchema } from './model.js';
+import { renderConversationBody } from './render.js';
 
 const BATCH_SIZE = 50;
 const WEBHOOK_TYPE = 'agent.conversation.upsert';
-
-const AgentMessageSchema = z.object({
-  role: z.enum(['user', 'assistant', 'system', 'tool']),
-  text: z.string(),
-  created_at: z.string().optional(),
-  tool_name: z.string().optional(),
-  files: z.array(z.string()).optional(),
-});
-
-const AgentToolEventSchema = z.object({
-  name: z.string(),
-  created_at: z.string().optional(),
-  input: z.string().optional(),
-  output: z.string().optional(),
-  status: z.enum(['started', 'completed', 'failed']).optional(),
-  files: z.array(z.string()).optional(),
-});
-
-const AgentConversationSchema = defineCompanyBrainRecord({
-  source: z.enum(['claude-code', 'codex']),
-  session_id: z.string(),
-  user_identifier: z.string().optional(),
-  workspace: z.string().optional(),
-  repo: z.string().optional(),
-  cwd: z.string().optional(),
-  title: z.string().optional(),
-  started_at: z.string(),
-  updated_at: z.string(),
-  ended_at: z.string().optional(),
-  messages: z.array(AgentMessageSchema),
-  tools_used: z.array(z.string()).optional(),
-  files_touched: z.array(z.string()).optional(),
-  tool_events: z.array(AgentToolEventSchema).optional(),
-});
 
 const MetadataSchema = z.object({
   webhookSecret: z
@@ -61,7 +28,6 @@ const WebhookPayloadSchema = z
     message: 'Expected record or records',
   });
 
-type AgentConversation = z.infer<typeof AgentConversationSchema>;
 type Metadata = z.infer<typeof MetadataSchema>;
 type WebhookPayload = z.infer<typeof WebhookPayloadSchema>;
 
@@ -90,7 +56,9 @@ const sync = createSync({
       throw new Error('Invalid agent conversation webhook secret');
     }
 
-    const records = recordsFromWebhookPayload(payload).sort(compareByUpdatedAt);
+    const records = recordsFromWebhookPayload(payload)
+      .map(withRenderedBody)
+      .sort(compareByUpdatedAt);
     const writer = new BatchWriter<AgentConversation>({
       nango,
       model: 'AgentConversation',
@@ -110,6 +78,13 @@ function compareByUpdatedAt(left: AgentConversation, right: AgentConversation): 
 
 function recordsFromWebhookPayload(payload: WebhookPayload): AgentConversation[] {
   return payload.records ?? (payload.record ? [payload.record] : []);
+}
+
+function withRenderedBody(record: AgentConversation): AgentConversation {
+  return {
+    ...record,
+    body: renderConversationBody(record),
+  };
 }
 
 function parseMetadata(value: unknown): Metadata {
