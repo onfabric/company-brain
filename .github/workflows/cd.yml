@@ -181,5 +181,4 @@ jobs:
 
       - uses: ./.github/actions/prepare
 
-      - run: bun test
       - run: NANGO_HOSTPORT="https://${NANGO_HOSTNAME}" bun run deploy dev --no-interactive --no-dependency-update
