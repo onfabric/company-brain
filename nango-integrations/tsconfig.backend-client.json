@@ -1,5 +1,4 @@
 {
-  "$comment": "Compiles only backend-client/, which the main tsconfig.json excludes. allowImportingTsExtensions + the paths mapping let the dts bundler resolve the @company-brain/backend types as source (so it inlines them) while following the backend's .ts files.",
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "allowImportingTsExtensions": true,
