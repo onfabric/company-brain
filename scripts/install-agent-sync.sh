@@ -55,11 +55,19 @@ mkdir -p "$HOME/.local/bin"
 ln -sfn "$INSTALL_DIR/$BIN_NAME" "$HOME/.local/bin/$BIN_NAME"
 
 echo "Installed $BIN_NAME to $INSTALL_DIR/$BIN_NAME"
+
+if ! ( : <> /dev/tty ) 2>/dev/null; then
+  echo "agent-sync install requires an interactive terminal for configuration." >&2
+  echo "Run '$INSTALL_DIR/$BIN_NAME configure' from a terminal, then run '$INSTALL_DIR/$BIN_NAME install-daemon'." >&2
+  exit 1
+fi
+exec 3<> /dev/tty
+
 echo "Configuring agent-sync..."
-"$INSTALL_DIR/$BIN_NAME" configure
+"$INSTALL_DIR/$BIN_NAME" configure <&3 >&3
 
 echo "Installing macOS LaunchAgent..."
-"$INSTALL_DIR/$BIN_NAME" install-daemon
+"$INSTALL_DIR/$BIN_NAME" install-daemon <&3 >&3
 
 echo "agent-sync is installed."
 echo "Run '$INSTALL_DIR/$BIN_NAME status' to check it."

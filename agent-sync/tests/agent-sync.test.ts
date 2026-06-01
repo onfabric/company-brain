@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, mock } from 'bun:test';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { captureTranscriptFile } from '../src/capture.js';
 import { loadConfig, writeConfigFile } from '../src/config.js';
@@ -13,6 +14,8 @@ import { AgentSyncStore } from '../src/store.js';
 import { parseTranscriptFile } from '../src/transcript-parser.js';
 
 const TEMP_PREFIX = 'company-brain-agent-sync-';
+const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
+const INSTALL_SCRIPT_PATH = path.resolve(TEST_DIR, '../../scripts/install-agent-sync.sh');
 const CODEX_SESSION_DIR_ENV = 'COMPANY_BRAIN_CODEX_SESSION_DIR';
 const CLAUDE_CODE_PROJECTS_DIR_ENV = 'COMPANY_BRAIN_CLAUDE_CODE_PROJECTS_DIR';
 const NANGO_WEBHOOK_URL_ENV = 'COMPANY_BRAIN_NANGO_WEBHOOK_URL';
@@ -270,6 +273,14 @@ describe('agent sync', () => {
     expect(plist).toContain('<key>KeepAlive</key>');
     expect(plist).toContain('<string>daemon</string>');
     expect(plist).toContain('daemon.out.log');
+  });
+
+  it('keeps installer prompts attached to the terminal', async () => {
+    const script = await fs.promises.readFile(INSTALL_SCRIPT_PATH, 'utf8');
+
+    expect(script).toContain('exec 3<> /dev/tty');
+    expect(script).toContain('"$INSTALL_DIR/$BIN_NAME" configure <&3 >&3');
+    expect(script).toContain('"$INSTALL_DIR/$BIN_NAME" install-daemon <&3 >&3');
   });
 });
 
