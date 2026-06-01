@@ -35,5 +35,3 @@ export function createLogger(prefix = '') {
     },
   };
 }
-
-export const defaultLogger = createLogger();

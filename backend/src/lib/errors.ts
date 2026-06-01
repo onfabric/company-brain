@@ -1,5 +1,7 @@
 import { type ErrorHandler, StatusMap } from 'elysia';
-import { defaultLogger } from '#lib/logger.ts';
+import { createLogger } from '#lib/logger.ts';
+
+const errorLogger = createLogger();
 
 export class AppError extends Error {
   readonly statusCode: number;
@@ -40,7 +42,7 @@ export function elysiaErrorHandler({
   code,
   status,
 }: ErrorHandlerOptions): ErrorHandlerResult {
-  defaultLogger.error(error);
+  errorLogger.error(error);
   if (error instanceof AppError) {
     return status(error.statusCode, { error: error.message });
   }
