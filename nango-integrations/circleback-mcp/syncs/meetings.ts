@@ -1,6 +1,8 @@
 import { createSync } from 'nango';
 import { z } from 'zod';
 
+import { BatchWriter } from '../../syncs/batch-writer.js';
+import { defineCompanyBrainRecord } from '../../syncs/company-brain-record.js';
 import { CirclebackMcpClient } from '../mcp/client.js';
 
 const DEFAULT_LOOKBACK_DAYS = 30;
@@ -27,9 +29,7 @@ const CirclebackTranscriptSegmentSchema = z.object({
   offset_seconds: z.number().optional(),
 });
 
-const CirclebackMeetingSchema = z.object({
-  id: z.string(),
-  body: z.string(),
+const CirclebackMeetingSchema = defineCompanyBrainRecord({
   title: z.string(),
   url: z.string().optional(),
   created_at: z.string(),
@@ -115,6 +115,12 @@ const sync = createSync({
     const mcp = new CirclebackMcpClient(nango);
     await mcp.initialize();
 
+    const writer = new BatchWriter<CirclebackMeeting>({
+      nango,
+      model: 'CirclebackMeeting',
+      batchSize: MEETING_CHUNK_SIZE,
+      schema: CirclebackMeetingSchema,
+    });
     const since = resolveSince(checkpoint, metadata);
     const summaries = await searchMeetings(mcp, metadata, since);
     // Oldest first so the per-chunk checkpoint only ever advances past meetings
@@ -141,9 +147,8 @@ const sync = createSync({
         ),
       );
 
-      if (records.length > 0) {
-        await nango.batchSave(records, 'CirclebackMeeting');
-      }
+      await writer.saveMany(records);
+      await writer.flush();
 
       for (const record of records) {
         latestCreatedAt = laterIso(latestCreatedAt, record.created_at);

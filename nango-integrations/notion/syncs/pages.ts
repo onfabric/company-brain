@@ -1,5 +1,6 @@
 import { createSync } from 'nango';
 
+import { BatchWriter } from '../../syncs/batch-writer.js';
 import {
   enqueueDatabaseDataSources,
   enqueueDataSourcePages,
@@ -39,7 +40,12 @@ const sync = createSync({
     const pageQueue = new WorkQueue();
     const databaseQueue = new WorkQueue();
     const dataSourceQueue = new WorkQueue();
-    const records: NotionPage[] = [];
+    const writer = new BatchWriter<NotionPage>({
+      nango: ctx.nango,
+      model: 'NotionPage',
+      batchSize: batchSize(metadata),
+      schema: NotionPageSchema,
+    });
     let processedPages = 0;
 
     await enqueueSearchResults(ctx, pageQueue, dataSourceQueue);
@@ -70,19 +76,15 @@ const sync = createSync({
       }
 
       const result = await buildPageRecord(ctx, page);
-      records.push(result.record);
+      await writer.save(result.record);
       processedPages += 1;
 
       pageQueue.addMany(result.pageIds);
       databaseQueue.addMany(result.databaseIds);
       dataSourceQueue.addMany(result.dataSourceIds);
-
-      if (records.length >= batchSize(metadata)) {
-        await flushRecords(ctx, records);
-      }
     }
 
-    await flushRecords(ctx, records);
+    await writer.flush();
   },
 });
 
@@ -91,14 +93,6 @@ function shouldSkipPage(
   metadata: SyncMetadata | undefined,
 ): boolean {
   return !metadata?.includeTrashed && Boolean(page.in_trash ?? page.archived);
-}
-
-async function flushRecords(ctx: SyncContext, records: NotionPage[]): Promise<void> {
-  if (records.length === 0) {
-    return;
-  }
-
-  await Promise.resolve(ctx.nango.batchSave(records.splice(0, records.length), 'NotionPage'));
 }
 
 export type NangoSyncLocal = Parameters<(typeof sync)['exec']>[0];

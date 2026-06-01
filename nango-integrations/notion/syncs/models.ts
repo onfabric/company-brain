@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { defineCompanyBrainRecord } from '../../syncs/company-brain-record.js';
+
 export const NotionReferenceSchema = z.object({
   title: z.string(),
   url: z.string().optional(),
@@ -32,9 +34,7 @@ export const NotionLinkSchema = z.object({
   text: z.string().optional(),
 });
 
-export const NotionPageSchema = z.object({
-  id: z.string(),
-  body: z.string(),
+export const NotionPageSchema = defineCompanyBrainRecord({
   title: z.string(),
   url: z.string(),
   public_url: z.string().optional(),

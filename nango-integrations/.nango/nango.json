@@ -35,10 +35,12 @@
               "type": "object",
               "properties": {
                 "id": {
-                  "type": "string"
+                  "type": "string",
+                  "minLength": 1
                 },
                 "body": {
-                  "type": "string"
+                  "type": "string",
+                  "minLength": 1
                 },
                 "title": {
                   "type": "string"
@@ -339,10 +341,12 @@
               "type": "object",
               "properties": {
                 "id": {
-                  "type": "string"
+                  "type": "string",
+                  "minLength": 1
                 },
                 "body": {
-                  "type": "string"
+                  "type": "string",
+                  "minLength": 1
                 },
                 "channel": {
                   "type": "string"
@@ -581,10 +585,12 @@
               "type": "object",
               "properties": {
                 "id": {
-                  "type": "string"
+                  "type": "string",
+                  "minLength": 1
                 },
                 "body": {
-                  "type": "string"
+                  "type": "string",
+                  "minLength": 1
                 },
                 "repository": {
                   "type": "string"
@@ -927,10 +933,12 @@
               "type": "object",
               "properties": {
                 "id": {
-                  "type": "string"
+                  "type": "string",
+                  "minLength": 1
                 },
                 "body": {
-                  "type": "string"
+                  "type": "string",
+                  "minLength": 1
                 },
                 "title": {
                   "type": "string"

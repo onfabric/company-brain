@@ -1,6 +1,9 @@
 import { createSync, type ProxyConfiguration } from 'nango';
 import { z } from 'zod';
 
+import { BatchWriter } from '../../syncs/batch-writer.js';
+import { defineCompanyBrainRecord } from '../../syncs/company-brain-record.js';
+
 const PAGE_SIZE = 100;
 const PROXY_RETRIES = 3;
 const CHECKPOINT_OVERLAP_MS = 1000;
@@ -42,9 +45,7 @@ const GitHubCommentSchema = z.object({
   url: z.string().optional(),
 });
 
-const GitHubPullRequestSchema = z.object({
-  id: z.string(),
-  body: z.string(),
+const GitHubPullRequestSchema = defineCompanyBrainRecord({
   repository: z.string(),
   number: z.number(),
   title: z.string(),
@@ -72,6 +73,8 @@ const GitHubPullRequestSchema = z.object({
   reviews: z.array(GitHubReviewSchema),
   comments: z.array(GitHubCommentSchema),
 });
+
+const GitHubPullRequestDraftSchema = GitHubPullRequestSchema.omit({ body: true });
 
 const MetadataSchema = z.object({
   repos: z
@@ -199,6 +202,7 @@ type GitHubActorRef = z.infer<typeof GitHubActorRefSchema>;
 type GitHubComment = z.infer<typeof GitHubCommentSchema>;
 type GitHubCommit = z.infer<typeof GitHubCommitSchema>;
 type GitHubPullRequest = z.infer<typeof GitHubPullRequestSchema>;
+type GitHubPullRequestDraft = z.infer<typeof GitHubPullRequestDraftSchema>;
 type GitHubReview = z.infer<typeof GitHubReviewSchema>;
 type Metadata = z.infer<typeof MetadataSchema>;
 type RawGitHubTeam = z.infer<typeof RawGitHubTeamSchema>;
@@ -228,6 +232,12 @@ const sync = createSync({
     );
     const updatedRepositoriesLastSyncDate = { ...repositoriesLastSyncDate };
     const repositories = await getRepositoriesInScope(nango, metadata);
+    const writer = new BatchWriter<GitHubPullRequest>({
+      nango,
+      model: 'GitHubPullRequest',
+      batchSize: PAGE_SIZE,
+      schema: GitHubPullRequestSchema,
+    });
 
     if (repositories.length === 0) {
       await nango.log(
@@ -240,6 +250,7 @@ const sync = createSync({
       const updatedAfter = repositoriesLastSyncDate[repoFullName];
       const nextCheckpoint = await processRepository(
         nango,
+        writer,
         repoFullName,
         metadata?.state ?? 'all',
         updatedAfter,
@@ -309,6 +320,7 @@ async function getRepositoriesInScope(
 
 async function processRepository(
   nango: NangoSyncLocal,
+  writer: BatchWriter<GitHubPullRequest>,
   repoFullName: string,
   state: 'open' | 'closed' | 'all',
   updatedAfter: string | undefined,
@@ -344,9 +356,8 @@ async function processRepository(
       pullRequests.push(await buildPullRequest(nango, repoFullName, owner, repo, pullRequest));
     }
 
-    if (pullRequests.length > 0) {
-      await nango.batchSave(pullRequests, 'GitHubPullRequest');
-    }
+    await writer.saveMany(pullRequests);
+    await writer.flush();
 
     if (reachedCheckpointWindow) {
       break;
@@ -388,10 +399,9 @@ async function buildPullRequest(
     ...reviews.map((review) => review.submitted_at),
     ...commits.map((commit) => commit.authored_at),
   ]);
-  const record = GitHubPullRequestSchema.parse(
+  const record = GitHubPullRequestDraftSchema.parse(
     withoutUndefined({
       id: `${repoFullName}#${details.number}`,
-      body: '',
       repository: repoFullName,
       number: details.number,
       title: details.title,
@@ -612,7 +622,7 @@ async function fetchPaginated<T>(
   return values;
 }
 
-function renderPullRequestBody(pullRequest: GitHubPullRequest): string {
+function renderPullRequestBody(pullRequest: GitHubPullRequestDraft): string {
   const lines = [
     `# Pull request ${pullRequest.repository}#${pullRequest.number}: ${pullRequest.title}`,
     '',
@@ -683,7 +693,7 @@ function renderPullRequestBody(pullRequest: GitHubPullRequest): string {
   return lines.join('\n').trim();
 }
 
-function pullRequestTimeline(pullRequest: GitHubPullRequest): TimelineEvent[] {
+function pullRequestTimeline(pullRequest: GitHubPullRequestDraft): TimelineEvent[] {
   return [
     ...pullRequest.reviews
       .filter((review) => review.submitted_at)
@@ -769,7 +779,7 @@ function unknownActor(): GitHubActorRef {
   return { username: 'unknown' };
 }
 
-function renderStatus(pullRequest: GitHubPullRequest): string {
+function renderStatus(pullRequest: Pick<GitHubPullRequestDraft, 'draft' | 'status'>): string {
   const parts: string[] = [pullRequest.status];
   if (pullRequest.draft) {
     parts.push('draft');
