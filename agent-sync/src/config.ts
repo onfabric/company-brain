@@ -30,7 +30,13 @@ export interface AgentSyncConfig {
   claudeCodeProjectsDir: string;
 }
 
-export type RequiredConfigKey = 'nangoWebhookUrl' | 'nangoConnectionId' | 'nangoWebhookSecret';
+export const REQUIRED_CONFIG_KEYS = [
+  'nangoWebhookUrl',
+  'nangoConnectionId',
+  'nangoWebhookSecret',
+] as const;
+
+export type RequiredConfigKey = (typeof REQUIRED_CONFIG_KEYS)[number];
 
 export function getDataDir(): string {
   return path.resolve(
@@ -116,17 +122,7 @@ export async function writeConfigFile(
 }
 
 export function missingRequiredConfig(config: AgentSyncConfig): RequiredConfigKey[] {
-  const missing: RequiredConfigKey[] = [];
-  if (!config.nangoWebhookUrl) {
-    missing.push('nangoWebhookUrl');
-  }
-  if (!config.nangoConnectionId) {
-    missing.push('nangoConnectionId');
-  }
-  if (!config.nangoWebhookSecret) {
-    missing.push('nangoWebhookSecret');
-  }
-  return missing;
+  return REQUIRED_CONFIG_KEYS.filter((key) => !config[key]);
 }
 
 export function requiredConfigLabel(key: RequiredConfigKey): string {
