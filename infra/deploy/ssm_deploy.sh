@@ -5,7 +5,7 @@
 # AWS credentials come from the environment (configure-aws-credentials).
 set -euo pipefail
 
-: "${BUNDLE_URL:?}" "${DEPLOY_GROUP:?}" "${IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}"
+: "${BUNDLE_URL:?}" "${DEPLOY_GROUP:?}" "${NANGO_IMAGE_URI:?}" "${BRAIN_IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}"
 : "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_REGION:?}"
 
 instance_id=$(aws ec2 describe-instances \
@@ -38,9 +38,9 @@ fi
 # file to ship); secrets are read from SSM by the box itself. The export line is
 # built with jq @sh so the values are safely shell-quoted.
 exports=$(jq -rn \
-  --arg image "$IMAGE_URI" --arg prefix "$SSM_SECRET_PREFIX" --arg host "$NANGO_HOSTNAME" \
+  --arg image "$NANGO_IMAGE_URI" --arg brain_image "$BRAIN_IMAGE_URI" --arg prefix "$SSM_SECRET_PREFIX" --arg host "$NANGO_HOSTNAME" \
   --arg connect_host "$NANGO_CONNECT_HOSTNAME" --arg dozzle_host "$DOZZLE_HOSTNAME" --arg acme "$ACME_EMAIL" --arg region "$AWS_REGION" \
-  '"export IMAGE_URI=\($image|@sh) SSM_SECRET_PREFIX=\($prefix|@sh) NANGO_HOSTNAME=\($host|@sh) NANGO_CONNECT_HOSTNAME=\($connect_host|@sh) DOZZLE_HOSTNAME=\($dozzle_host|@sh) ACME_EMAIL=\($acme|@sh) AWS_DEFAULT_REGION=\($region|@sh)"')
+  '"export NANGO_IMAGE_URI=\($image|@sh) BRAIN_IMAGE_URI=\($brain_image|@sh) SSM_SECRET_PREFIX=\($prefix|@sh) NANGO_HOSTNAME=\($host|@sh) NANGO_CONNECT_HOSTNAME=\($connect_host|@sh) DOZZLE_HOSTNAME=\($dozzle_host|@sh) ACME_EMAIL=\($acme|@sh) AWS_DEFAULT_REGION=\($region|@sh)"')
 
 remote_script=$(cat <<REMOTE
 set -euo pipefail

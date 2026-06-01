@@ -51,7 +51,7 @@ data "aws_iam_policy_document" "github_deploy" {
       "ecr:BatchGetImage",
       "ecr:GetDownloadUrlForLayer",
     ]
-    resources = [aws_ecr_repository.nango.arn]
+    resources = [aws_ecr_repository.nango.arn, aws_ecr_repository.brain.arn]
   }
 
   # Upload the runtime bundle.

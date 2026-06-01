@@ -12,9 +12,14 @@ output "hostname" {
   value = var.hostname
 }
 
-output "ecr_repository_url" {
-  description = "Set as the IMAGE repo in the deploy workflow."
+output "nango_ecr_repository_url" {
+  description = "ECR repo for the Nango image."
   value       = aws_ecr_repository.nango.repository_url
+}
+
+output "brain_ecr_repository_url" {
+  description = "ECR repo for the brain (Data Transformation Service) image."
+  value       = aws_ecr_repository.brain.repository_url
 }
 
 output "artifacts_bucket" {
