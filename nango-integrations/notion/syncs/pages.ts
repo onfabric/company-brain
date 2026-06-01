@@ -1,6 +1,6 @@
 import { createSync } from 'nango';
-
 import { BatchWriter } from '../../syncs/batch-writer.js';
+import { createBackendClient } from '../../syncs/brain-backend/client.js';
 import {
   enqueueDatabaseDataSources,
   enqueueDataSourcePages,
@@ -26,6 +26,7 @@ const sync = createSync({
   },
 
   exec: async (nango) => {
+    const brain = createBackendClient(nango);
     const metadata = parseOptional(MetadataSchema, await nango.getMetadata());
     const ctx: SyncContext = {
       nango: nango as unknown as NangoLike,
@@ -45,6 +46,12 @@ const sync = createSync({
       model: 'NotionPage',
       batchSize: batchSize(metadata),
       schema: NotionPageSchema,
+      afterSave: async () => {
+        const { data } = await brain('/health', {});
+        await nango.log(
+          `brain health: ${data?.status ?? 'unreachable'} (uptime ${data?.uptime ?? 0}s)`,
+        );
+      },
     });
     let processedPages = 0;
 

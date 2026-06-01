@@ -5,6 +5,9 @@
   "imports": {
     "#*": "./src/*"
   },
+  "exports": {
+    "./types": "./src/types.ts"
+  },
   "scripts": {
     "start": "bun run src/index.ts",
     "build": "bun run build.ts",

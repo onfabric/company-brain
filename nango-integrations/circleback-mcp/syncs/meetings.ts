@@ -1,7 +1,7 @@
 import { createSync } from 'nango';
 import { z } from 'zod';
-
 import { BatchWriter } from '../../syncs/batch-writer.js';
+import { createBackendClient } from '../../syncs/brain-backend/client.js';
 import { defineCompanyBrainRecord } from '../../syncs/company-brain-record.js';
 import { CirclebackMcpClient } from '../mcp/client.js';
 
@@ -109,6 +109,7 @@ const sync = createSync({
   },
 
   exec: async (nango) => {
+    const brain = createBackendClient(nango);
     const metadata = parseOptional(MetadataSchema, await nango.getMetadata());
     const checkpoint = parseOptional(CheckpointSchema, await nango.getCheckpoint());
 
@@ -120,6 +121,12 @@ const sync = createSync({
       model: 'CirclebackMeeting',
       batchSize: MEETING_CHUNK_SIZE,
       schema: CirclebackMeetingSchema,
+      afterSave: async () => {
+        const { data } = await brain('/health', {});
+        await nango.log(
+          `brain health: ${data?.status ?? 'unreachable'} (uptime ${data?.uptime ?? 0}s)`,
+        );
+      },
     });
     const since = resolveSince(checkpoint, metadata);
     const summaries = await searchMeetings(mcp, metadata, since);
