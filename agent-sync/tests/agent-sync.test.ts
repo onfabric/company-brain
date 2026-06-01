@@ -279,9 +279,8 @@ describe('agent sync', () => {
     const script = await fs.promises.readFile(INSTALL_SCRIPT_PATH, 'utf8');
 
     expect(script).toContain('exec 3< /dev/tty');
-    expect(script).toContain(
-      '"$INSTALL_DIR/$BIN_NAME" configure "' + '$' + '{configure_args[@]}" <&3',
-    );
+    expect(script).toContain('"$INSTALL_DIR/$BIN_NAME" configure <&3');
+    expect(script).toContain('"$INSTALL_DIR/$BIN_NAME" configure --missing-only <&3');
     expect(script).toContain('"$INSTALL_DIR/$BIN_NAME" install-daemon');
     expect(script).toContain('COMPANY_BRAIN_AGENT_SYNC_RELEASE_URL');
     expect(script).toContain('COMPANY_BRAIN_AGENT_SYNC_CONFIGURE_MISSING_ONLY');
