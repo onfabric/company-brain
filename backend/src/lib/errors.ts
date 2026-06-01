@@ -42,12 +42,15 @@ export function elysiaErrorHandler({
   code,
   status,
 }: ErrorHandlerOptions): ErrorHandlerResult {
-  errorLogger.error(error);
+  errorLogger.error(code, error);
   if (error instanceof AppError) {
     return status(error.statusCode, { error: error.message });
   }
   if (code === 'VALIDATION') {
     return status(StatusMap['Bad Request'], { error: 'Validation error', details: error.message });
+  }
+  if (code === 'NOT_FOUND') {
+    return status(StatusMap['Not Found'], { error: 'Not Found' });
   }
   return status(StatusMap['Internal Server Error'], { error: 'Internal server error' });
 }
