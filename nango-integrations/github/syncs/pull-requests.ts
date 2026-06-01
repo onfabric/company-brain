@@ -1,6 +1,7 @@
 import { createSync, type ProxyConfiguration } from 'nango';
 import { z } from 'zod';
 import { BatchWriter } from '../../syncs/batch-writer.js';
+import { createBrainSink } from '../../syncs/brain-sink.js';
 import { defineCompanyBrainRecord } from '../../syncs/company-brain-record.js';
 
 const PAGE_SIZE = 100;
@@ -61,8 +62,6 @@ const GitHubPullRequestSchema = defineCompanyBrainRecord({
   milestone: z.string().optional(),
   source_branch: z.string(),
   target_branch: z.string(),
-  created_at: z.string(),
-  updated_at: z.string(),
   closed_at: z.string().optional(),
   merged_at: z.string().optional(),
   additions: z.number().optional(),
@@ -236,6 +235,7 @@ const sync = createSync({
       model: 'GitHubPullRequest',
       batchSize: PAGE_SIZE,
       schema: GitHubPullRequestSchema,
+      afterSave: createBrainSink(nango),
     });
 
     if (repositories.length === 0) {

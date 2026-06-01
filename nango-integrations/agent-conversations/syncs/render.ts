@@ -9,7 +9,7 @@ export function renderConversationBody(conversation: AgentConversation): string 
   pushOptionalLine(lines, 'User', conversation.user_identifier);
   pushOptionalLine(lines, 'Workspace', conversation.workspace);
   pushOptionalLine(lines, 'Repository', conversation.repo);
-  lines.push(`- Started: ${conversation.started_at}`);
+  lines.push(`- Started: ${conversation.created_at}`);
   lines.push(`- Updated: ${conversation.updated_at}`);
   pushOptionalLine(lines, 'Ended', conversation.ended_at);
   lines.push(EMPTY_LINE);

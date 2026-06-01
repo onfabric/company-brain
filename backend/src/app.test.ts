@@ -19,6 +19,13 @@ describe('migrations', () => {
     const ddl = readFileSync(join(migrationsDir, '0001_create_brain_schema.sql'), 'utf8');
     expect(ddl).toContain('CREATE SCHEMA IF NOT EXISTS brain');
   });
+
+  it('creates brain.records with its upsert key and bm25 index', () => {
+    const ddl = readFileSync(join(migrationsDir, '0002_create_brain_records.sql'), 'utf8');
+    expect(ddl).toContain('CREATE TABLE brain.records');
+    expect(ddl).toContain('UNIQUE (nango_connection_id, nango_model, nango_id)');
+    expect(ddl).toContain('USING bm25');
+  });
 });
 
 describe('app', () => {

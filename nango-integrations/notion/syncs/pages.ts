@@ -1,5 +1,6 @@
 import { createSync } from 'nango';
 import { BatchWriter } from '../../syncs/batch-writer.js';
+import { createBrainSink } from '../../syncs/brain-sink.js';
 import {
   enqueueDatabaseDataSources,
   enqueueDataSourcePages,
@@ -44,6 +45,7 @@ const sync = createSync({
       model: 'NotionPage',
       batchSize: batchSize(metadata),
       schema: NotionPageSchema,
+      afterSave: createBrainSink(nango),
     });
     let processedPages = 0;
 

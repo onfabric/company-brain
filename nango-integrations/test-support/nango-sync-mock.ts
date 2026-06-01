@@ -39,12 +39,26 @@ interface Fixture {
 }
 
 export class NangoSyncMock {
+  readonly providerConfigKey = 'test-provider';
+  readonly nangoConnectionId = 1;
+
   private readonly fixture: Fixture;
   private readonly apiIndexes = new Map<string, number>();
 
   constructor({ dirname, name }: MockOptions) {
     const filePath = path.resolve(dirname, `${name}.test.json`);
     this.fixture = JSON.parse(fs.readFileSync(filePath, 'utf8')) as Fixture;
+  }
+
+  // The brain sink (`afterSave`) posts saved record ids to the backend through
+  // uncontrolledFetch; in tests we acknowledge the call without a real backend.
+  uncontrolledFetch(_options: unknown): Promise<Response> {
+    return Promise.resolve(
+      new Response(JSON.stringify({ ingested: 0 }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
   }
 
   getMetadata(): Promise<unknown> {

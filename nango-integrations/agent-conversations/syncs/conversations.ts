@@ -2,6 +2,7 @@ import { createSync } from 'nango';
 import { z } from 'zod';
 
 import { BatchWriter } from '../../syncs/batch-writer.js';
+import { createBrainSink } from '../../syncs/brain-sink.js';
 import { type AgentConversation, AgentConversationSchema } from './model.js';
 import { renderConversationBody } from './render.js';
 
@@ -51,7 +52,7 @@ const sync = createSync({
 
   onWebhook: async (nango, rawPayload) => {
     const metadata = parseMetadata(await nango.getMetadata());
-    const payload = WebhookPayloadSchema.parse(rawPayload);
+    const payload = WebhookPayloadSchema.parse(normalizeRawPayload(rawPayload));
     if (metadata.webhookSecret && payload.secret !== metadata.webhookSecret) {
       throw new Error('Invalid agent conversation webhook secret');
     }
@@ -64,6 +65,7 @@ const sync = createSync({
       model: 'AgentConversation',
       batchSize: BATCH_SIZE,
       schema: AgentConversationSchema,
+      afterSave: createBrainSink(nango),
     });
     await writer.saveMany(records);
     await writer.flush();
@@ -78,6 +80,35 @@ function compareByUpdatedAt(left: AgentConversation, right: AgentConversation): 
 
 function recordsFromWebhookPayload(payload: WebhookPayload): AgentConversation[] {
   return payload.records ?? (payload.record ? [payload.record] : []);
+}
+
+// The collector emits a conversation's start time as `started_at`; the Company
+// Brain record contract names that canonical timestamp `created_at`. Map it at the
+// webhook boundary so the saved record matches the shared contract.
+function normalizeRawPayload(rawPayload: unknown): unknown {
+  if (!rawPayload || typeof rawPayload !== 'object') {
+    return rawPayload;
+  }
+
+  const { record, records, ...rest } = rawPayload as {
+    record?: unknown;
+    records?: unknown;
+    [key: string]: unknown;
+  };
+  return {
+    ...rest,
+    ...(record !== undefined ? { record: normalizeRecord(record) } : {}),
+    ...(Array.isArray(records) ? { records: records.map(normalizeRecord) } : {}),
+  };
+}
+
+function normalizeRecord(record: unknown): unknown {
+  if (!record || typeof record !== 'object' || !('started_at' in record)) {
+    return record;
+  }
+
+  const { started_at, ...rest } = record as Record<string, unknown>;
+  return { created_at: started_at, ...rest };
 }
 
 function withRenderedBody(record: AgentConversation): AgentConversation {
