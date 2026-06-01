@@ -6,6 +6,7 @@ import {
   configPath,
   loadConfig,
   missingRequiredConfig,
+  REQUIRED_CONFIG_KEYS,
   type RequiredConfigKey,
   readConfigFile,
   requiredConfigLabel,
@@ -21,25 +22,36 @@ export interface ConfigureResult {
 export async function configureAgentSync(options: {
   dataDir?: string;
   missingOnly?: boolean;
+  persistResolvedRequiredConfig?: boolean;
 }): Promise<ConfigureResult> {
   const dataDir = options.dataDir;
   const current = await loadConfig(dataDir ? { dataDir } : {});
   const fileConfig = await readConfigFile(current.dataDir);
   const missing = missingRequiredConfig(current);
-  if (options.missingOnly && missing.length === 0) {
-    return { configPath: current.configPath, changed: false, missing: [] };
+  const next: AgentSyncConfigFile = { ...fileConfig };
+  let changed = false;
+
+  if (options.persistResolvedRequiredConfig) {
+    for (const key of REQUIRED_CONFIG_KEYS) {
+      const resolved = stringValue(current[key]);
+      if (resolved && next[key] !== resolved) {
+        next[key] = resolved;
+        changed = true;
+      }
+    }
   }
 
-  const prompts = options.missingOnly
-    ? missing
-    : (['nangoWebhookUrl', 'nangoConnectionId', 'nangoWebhookSecret'] as const);
+  const prompts = options.missingOnly ? missing : REQUIRED_CONFIG_KEYS;
   if (prompts.length === 0) {
-    return { configPath: current.configPath, changed: false, missing: [] };
+    if (changed) {
+      await writeConfigFile(next, current.dataDir);
+    }
+    const updated = await loadConfig({ dataDir: current.dataDir });
+    return { configPath: current.configPath, changed, missing: missingRequiredConfig(updated) };
   }
 
   const rl = createInterface({ input, output });
   try {
-    const next: AgentSyncConfigFile = { ...fileConfig };
     for (const key of prompts) {
       const existing = stringValue(next[key]) ?? stringValue(current[key]);
       const suffix = existing ? ` [${existing}]` : '';

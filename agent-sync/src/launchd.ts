@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { configureAgentSync } from './configure.js';
+import { REQUIRED_CONFIG_KEYS, readConfigFile } from './config.js';
 
 const LABEL = 'dev.company-brain.agent-sync';
 
@@ -53,7 +53,14 @@ ${args}
 }
 
 export async function installLaunchAgent(dataDir: string): Promise<LaunchAgentConfig> {
-  await configureAgentSync({ dataDir, missingOnly: true });
+  const fileConfig = await readConfigFile(dataDir);
+  const missing = REQUIRED_CONFIG_KEYS.filter((key) => !fileConfig[key]);
+  if (missing.length > 0) {
+    throw new Error(
+      `agent-sync setup needed before installing LaunchAgent. Run: company-brain-agent-sync init (${missing.join(', ')})`,
+    );
+  }
+
   const config = launchAgentConfig(dataDir);
   await fs.promises.mkdir(path.dirname(config.plistPath), { recursive: true });
   await fs.promises.mkdir(config.logDirectory, { recursive: true });

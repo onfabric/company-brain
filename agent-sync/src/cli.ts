@@ -4,6 +4,7 @@ import { configureAgentSync } from './configure.js';
 import { runDaemon } from './daemon.js';
 import { discoverConversations, formatDiscovery } from './discovery.js';
 import { ensureIdentity, readIdentity } from './identity.js';
+import { type InitializeAgentSyncResult, initializeAgentSync } from './init.js';
 import { installLaunchAgent, uninstallLaunchAgent } from './launchd.js';
 import { scanLocalSessions } from './session-scanner.js';
 import { readStatus, writeStatus } from './status.js';
@@ -11,6 +12,7 @@ import { AgentSyncStore } from './store.js';
 import { nowIso } from './utils.js';
 
 const HELP_TEXT = `Usage:
+  company-brain-agent-sync init [--missing-only] [--skip-daemon] [--json]
   company-brain-agent-sync configure [--missing-only]
   company-brain-agent-sync daemon
   company-brain-agent-sync discover [--json]
@@ -22,6 +24,18 @@ const HELP_TEXT = `Usage:
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
+
+  if (command === 'init') {
+    const result = await initializeAgentSync({
+      missingOnly: args.includes('--missing-only'),
+      skipDaemon: args.includes('--skip-daemon'),
+    });
+    writeOutput(result, args.includes('--json'), formatInitResult(result));
+    if (result.missing.length > 0) {
+      process.exitCode = 1;
+    }
+    return;
+  }
 
   if (command === 'configure') {
     const result = await configureAgentSync({ missingOnly: args.includes('--missing-only') });
@@ -99,4 +113,26 @@ function writeOutput(value: unknown, json: boolean, text: string): void {
   console.log(json ? JSON.stringify(value, null, 2) : text);
 }
 
-await main();
+function formatInitResult(result: InitializeAgentSyncResult): string {
+  const lines = [`Config: ${result.configPath}`];
+  if (result.missing.length > 0) {
+    lines.push(`Missing required config: ${result.missing.join(', ')}`);
+    lines.push('LaunchAgent was not installed.');
+    return lines.join('\n');
+  }
+
+  if (result.launchAgentInstalled) {
+    lines.push(`Installed ${result.launchAgent.label} at ${result.launchAgent.plistPath}`);
+  } else {
+    lines.push('Skipped macOS LaunchAgent install.');
+  }
+  lines.push(`Logs: ${result.launchAgent.logDirectory}`);
+  return lines.join('\n');
+}
+
+try {
+  await main();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+}

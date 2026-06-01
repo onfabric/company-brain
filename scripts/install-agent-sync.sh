@@ -58,33 +58,7 @@ ln -sfn "$INSTALL_DIR/$BIN_NAME" "$HOME/.local/bin/$BIN_NAME"
 
 echo "Installed $BIN_NAME to $INSTALL_DIR/$BIN_NAME"
 
-if ! ( : < /dev/tty ) 2>/dev/null; then
-  echo "agent-sync install requires an interactive terminal for configuration." >&2
-  echo "Run '$INSTALL_DIR/$BIN_NAME configure' from a terminal, then run '$INSTALL_DIR/$BIN_NAME install-daemon'." >&2
-  exit 1
-fi
-exec 3< /dev/tty
-
-echo "Configuring agent-sync..."
-case "${COMPANY_BRAIN_AGENT_SYNC_CONFIGURE_MISSING_ONLY:-}" in
-  1 | true | yes)
-    "$INSTALL_DIR/$BIN_NAME" configure --missing-only <&3
-    ;;
-  *)
-    "$INSTALL_DIR/$BIN_NAME" configure <&3
-    ;;
-esac
-
-case "${COMPANY_BRAIN_AGENT_SYNC_SKIP_DAEMON:-}" in
-  1 | true | yes)
-    echo "Skipping macOS LaunchAgent install."
-    ;;
-  *)
-    echo "Installing macOS LaunchAgent..."
-    "$INSTALL_DIR/$BIN_NAME" install-daemon
-    ;;
-esac
-
-echo "agent-sync is installed."
-echo "Run '$INSTALL_DIR/$BIN_NAME status' to check it."
+echo "agent-sync CLI is installed."
+echo "Run '$HOME/.local/bin/$BIN_NAME init' to configure it and install the macOS LaunchAgent."
+echo "If ~/.local/bin is not on PATH, run '$INSTALL_DIR/$BIN_NAME init'."
 echo "Logs: $HOME/.company-brain/agent-sync/logs"
