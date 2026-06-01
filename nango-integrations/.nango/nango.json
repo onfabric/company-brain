@@ -1065,7 +1065,7 @@
     "syncs": [
       {
         "type": "sync",
-        "description": "Sync Claude Code and Codex conversations captured by the local agent-capture collector as one record per session",
+        "description": "Sync Claude Code and Codex conversations pushed by the local agent-sync daemon as one record per session",
         "auto_start": false,
         "endpoints": [
           {
@@ -1245,7 +1245,7 @@
               "type": "object",
               "properties": {
                 "webhookSecret": {
-                  "description": "Optional shared secret expected in collector webhook payloads",
+                  "description": "Optional shared secret expected in agent-sync webhook payloads",
                   "type": "string"
                 }
               },

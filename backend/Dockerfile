@@ -11,7 +11,7 @@ WORKDIR /monorepo
 FROM base AS install
 WORKDIR /temp/deps
 COPY package.json bun.lock ./
-COPY --parents agent-capture/package.json backend/package.json nango-integrations/package.json ./
+COPY --parents agent-sync/package.json backend/package.json nango-integrations/package.json ./
 RUN bun install --frozen-lockfile
 
 FROM base AS build

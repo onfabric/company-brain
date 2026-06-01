@@ -13,7 +13,7 @@ const MetadataSchema = z.object({
   webhookSecret: z
     .string()
     .optional()
-    .describe('Optional shared secret expected in collector webhook payloads'),
+    .describe('Optional shared secret expected in agent-sync webhook payloads'),
 });
 
 const WebhookPayloadSchema = z
@@ -34,7 +34,7 @@ type WebhookPayload = z.infer<typeof WebhookPayloadSchema>;
 
 const sync = createSync({
   description:
-    'Sync Claude Code and Codex conversations captured by the local agent-capture collector as one record per session',
+    'Sync Claude Code and Codex conversations pushed by the local agent-sync daemon as one record per session',
   version: '1.1.0',
   endpoints: [{ method: 'POST', path: '/syncs/agent-conversations', group: 'Agent Conversations' }],
   frequency: 'every hour',
@@ -47,7 +47,9 @@ const sync = createSync({
   },
 
   exec: async (nango) => {
-    await nango.log('Agent conversation sync is webhook-only; the local collector pushes records.');
+    await nango.log(
+      'Agent conversation sync is webhook-only; the local agent-sync daemon pushes records.',
+    );
   },
 
   onWebhook: async (nango, rawPayload) => {
