@@ -6,6 +6,7 @@ Monorepo for the Company Brain experiment.
 
 - `nango/` — git submodule of [onfabric/nango](https://github.com/onfabric/nango), tracking its `master` branch. This is upstream Nango with encryption made optional: leaving `NANGO_ENCRYPTION_KEY` empty disables encryption and stores credentials/records as plaintext (upstream hard-requires the key). You can make edits inside this folder directly and push them. Before starting any work, run `git submodule update --remote --merge nango` to pull the latest `master`, and commit the updated submodule pointer if it moved.
 - `nango-integrations/` — Nango function implementations. Before creating or changing a sync, read [Nango Sync Guidelines](nango-integrations/SYNC_GUIDELINES.md); record schemas should stay simple, embedding-friendly, and free of unnecessary provider details.
+- `backend/` — Bun + Elysia service (the "Data Transformation Service", aka `brain`). Owns the `brain` Postgres schema in Nango's database, runs `src/db/migrations/*.sql` on startup via `Bun.sql`, and follows the service/repository pattern. Dockerized into the same compose stack.
 
 ## Code Style
 

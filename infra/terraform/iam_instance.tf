@@ -33,7 +33,7 @@ data "aws_iam_policy_document" "instance" {
       "ecr:GetDownloadUrlForLayer",
       "ecr:BatchCheckLayerAvailability",
     ]
-    resources = [aws_ecr_repository.nango.arn]
+    resources = [aws_ecr_repository.nango.arn, aws_ecr_repository.brain.arn]
   }
 
   # Download the runtime bundle.

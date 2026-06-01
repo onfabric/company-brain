@@ -11,6 +11,11 @@ resource "random_password" "db" {
   special = false # used inside a postgres:// URL, keep it URL-safe
 }
 
+resource "random_password" "brain_db" {
+  length  = 32
+  special = false # used inside a postgres:// URL, keep it URL-safe
+}
+
 resource "random_password" "dashboard" {
   length  = 24
   special = false
@@ -26,6 +31,12 @@ resource "aws_ssm_parameter" "db_password" {
   name  = "${var.ssm_secret_prefix}/nango_db_password"
   type  = "SecureString"
   value = random_password.db.result
+}
+
+resource "aws_ssm_parameter" "brain_db_password" {
+  name  = "${var.ssm_secret_prefix}/brain_db_password"
+  type  = "SecureString"
+  value = random_password.brain_db.result
 }
 
 resource "aws_ssm_parameter" "dashboard_username" {

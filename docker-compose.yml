@@ -1,5 +1,9 @@
 # The nango services are inspired by the Nango Docker compose file in the ./nango submodule.
 
+# Postgres image, shared by the database and the one-shot brain DB bootstrap (so
+# the bootstrap's psql client always matches the server).
+x-db-image: &db-image paradedb/paradedb:0.23.5-pg18
+
 # Shared base for every Nango container: one image, built once from the
 # submodule's Dockerfile, reused by server / orchestrator / persist / jobs.
 x-nango-base: &nango-base
@@ -13,7 +17,7 @@ x-nango-base: &nango-base
 
 services:
   nango-db:
-    image: paradedb/paradedb:0.23.5-pg18
+    image: *db-image
     container_name: nango-db
     entrypoint: ["/usr/local/bin/db-entrypoint.sh"]
     environment:
@@ -51,6 +55,7 @@ services:
       - NANGO_DB_SCHEMA
       - NANGO_DB_SSL=false
       - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+      - RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
       - SERVER_PORT=3003
       - CSP_REPORT_ONLY=true
       - NANGO_SERVER_URL
@@ -101,6 +106,7 @@ services:
       - NANGO_DB_SCHEMA
       - NANGO_DB_SSL=false
       - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+      - RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
       - NANGO_ORCHESTRATOR_PORT=3008
       - NANGO_REDIS_URL=redis://nango-redis:6379
       - NANGO_LOGS_ENABLED=true
@@ -133,6 +139,7 @@ services:
       - NANGO_DB_SCHEMA
       - NANGO_DB_SSL=false
       - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+      - RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
       - NANGO_PERSIST_PORT=3007
       - NANGO_REDIS_URL=redis://nango-redis:6379
       - NANGO_LOGS_ENABLED=true
@@ -165,6 +172,7 @@ services:
       - NANGO_DB_SCHEMA
       - NANGO_DB_SSL=false
       - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+      - RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
       - NANGO_JOBS_PORT=3005
       - ORCHESTRATOR_SERVICE_URL=http://nango-orchestrator:3008
       - PERSIST_SERVICE_URL=http://nango-persist:3007
@@ -232,6 +240,54 @@ services:
       retries: 12
       start_period: 60s
     restart: always
+    networks:
+      - nango
+
+  # Idempotent DB bootstrap: runs the numbered scripts in db/prepare in order, as
+  # the Postgres superuser, before dependents start. Unlike the initdb scripts
+  # (which only run on a brand-new data dir), this runs on every up, so it also
+  # provisions the already-initialized Nango database. Add more scripts as needed.
+  db-prepare:
+    image: *db-image
+    container_name: db-prepare
+    entrypoint: ["sh", "/db-prepare/entrypoint.sh"]
+    environment:
+      - PGHOST=nango-db
+      - PGUSER=${NANGO_DB_USER}
+      - PGPASSWORD=${NANGO_DB_PASSWORD}
+      - PGDATABASE=${NANGO_DB_NAME}
+      - BRAIN_DB_USER=${BRAIN_DB_USER}
+      - BRAIN_DB_PASSWORD=${BRAIN_DB_PASSWORD}
+      - NANGO_RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
+    volumes:
+      - ./db/prepare:/db-prepare:ro
+    depends_on:
+      nango-db:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - nango
+
+  brain:
+    image: company-brain/brain:local
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: brain
+    environment:
+      - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+    ports:
+      - "127.0.0.1:${BRAIN_SERVER_PORT}:3010"
+    healthcheck:
+      test: ["CMD", "/busybox/wget", "-q", "--spider", "http://localhost:3010/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: always
+    depends_on:
+      db-prepare:
+        condition: service_completed_successfully
     networks:
       - nango
 

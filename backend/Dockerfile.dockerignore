@@ -1,0 +1,16 @@
+.git
+.github
+.vscode
+.zed
+.claude
+**/node_modules
+**/dist
+nango
+infra
+dozzle
+db
+**/.env*
+**/*.dockerignore
+**/README.md
+docker-compose*.yml
+Caddyfile
