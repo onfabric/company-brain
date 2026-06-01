@@ -3,7 +3,7 @@ import { GetHealthResponseSchema } from '#routes/health/model.ts';
 import { HealthServicePlugin, loggerPlugin } from '#services/plugins.ts';
 
 export const healthController = new Elysia()
-  .use(loggerPlugin('health'))
+  .use(loggerPlugin('healthController'))
   .use(HealthServicePlugin)
   .get(
     '/health',
