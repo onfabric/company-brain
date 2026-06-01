@@ -1038,5 +1038,204 @@
       "pre-connection-deletion": [],
       "validate-connection": []
     }
+  },
+  {
+    "providerConfigKey": "agent-conversations",
+    "actions": [],
+    "syncs": [
+      {
+        "type": "sync",
+        "description": "Sync Claude Code and Codex conversations captured by the local agent-capture collector as one record per session",
+        "auto_start": false,
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/syncs/agent-conversations",
+            "group": "Agent Conversations"
+          }
+        ],
+        "input": "SyncMetadata_agent_conversations_conversations",
+        "name": "conversations",
+        "output": [
+          "AgentConversation"
+        ],
+        "runs": "every hour",
+        "scopes": [],
+        "sync_type": "full",
+        "track_deletes": false,
+        "usedModels": [
+          "AgentConversation",
+          "SyncMetadata_agent_conversations_conversations"
+        ],
+        "version": "1.1.0",
+        "webhookSubscriptions": [
+          "agent.conversation.upsert"
+        ],
+        "json_schema": {
+          "definitions": {
+            "AgentConversation": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "body": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "claude-code",
+                    "codex"
+                  ]
+                },
+                "session_id": {
+                  "type": "string"
+                },
+                "user_identifier": {
+                  "type": "string"
+                },
+                "workspace": {
+                  "type": "string"
+                },
+                "repo": {
+                  "type": "string"
+                },
+                "cwd": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "started_at": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "type": "string"
+                },
+                "ended_at": {
+                  "type": "string"
+                },
+                "messages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "user",
+                          "assistant",
+                          "system",
+                          "tool"
+                        ]
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "tool_name": {
+                        "type": "string"
+                      },
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "tools_used": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "files_touched": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "tool_events": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "input": {
+                        "type": "string"
+                      },
+                      "output": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "started",
+                          "completed",
+                          "failed"
+                        ]
+                      },
+                      "files": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "body",
+                "source",
+                "session_id",
+                "started_at",
+                "updated_at",
+                "messages"
+              ],
+              "additionalProperties": false
+            },
+            "SyncMetadata_agent_conversations_conversations": {
+              "type": "object",
+              "properties": {
+                "webhookSecret": {
+                  "description": "Optional shared secret expected in collector webhook payloads",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "features": []
+      }
+    ],
+    "onEventScripts": {
+      "post-connection-creation": [],
+      "pre-connection-deletion": [],
+      "validate-connection": []
+    }
   }
 ]

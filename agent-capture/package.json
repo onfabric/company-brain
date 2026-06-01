@@ -1,0 +1,21 @@
+{
+  "name": "agent-capture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "company-brain-agent-capture": "./src/cli.ts"
+  },
+  "scripts": {
+    "serve": "bun src/cli.ts serve",
+    "install-hooks": "bun src/cli.ts install-hooks",
+    "scan": "bun src/cli.ts scan",
+    "push": "bun src/cli.ts push",
+    "test": "bun test",
+    "check:types": "bun run --bun tsc"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.14",
+    "typescript": "^5"
+  }
+}

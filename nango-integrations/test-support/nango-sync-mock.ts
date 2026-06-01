@@ -59,7 +59,7 @@ export class NangoSyncMock {
     return Promise.resolve(this.fixture.nango?.getConnection);
   }
 
-  async saveCheckpoint(): Promise<void> {}
+  async saveCheckpoint(_checkpoint?: unknown): Promise<void> {}
 
   async trackDeletesStart(): Promise<void> {}
 
