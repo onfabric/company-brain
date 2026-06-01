@@ -39,8 +39,6 @@ export const NotionPageSchema = defineCompanyBrainRecord({
   url: z.string(),
   public_url: z.string().optional(),
   parent: NotionParentSchema,
-  created_at: z.string(),
-  updated_at: z.string(),
   created_by: NotionPersonSchema.optional(),
   updated_by: NotionPersonSchema.optional(),
   people: z.array(NotionPersonSchema).optional(),

@@ -1,6 +1,7 @@
 import { createSync, type ProxyConfiguration } from 'nango';
 import { z } from 'zod';
 import { BatchWriter } from '../../syncs/batch-writer.js';
+import { createBrainSink } from '../../syncs/brain-sink.js';
 import { defineCompanyBrainRecord } from '../../syncs/company-brain-record.js';
 
 // Slack timestamps are Unix seconds, while JS Date works in milliseconds.
@@ -70,8 +71,6 @@ const SlackThreadMessageSchema = z.object({
 
 const SlackThreadSchema = defineCompanyBrainRecord({
   channel: SlackChannelSchema,
-  created_at: z.string(),
-  updated_at: z.string(),
   messages: z.array(SlackThreadMessageSchema),
 });
 
@@ -254,6 +253,7 @@ const sync = createSync({
       model: 'SlackThread',
       batchSize: HISTORY_PAGE_SIZE,
       schema: SlackThreadSchema,
+      afterSave: createBrainSink(nango),
     });
 
     const ctx: ChannelProcessingContext = {

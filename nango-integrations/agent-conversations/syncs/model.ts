@@ -27,8 +27,6 @@ export const AgentConversationSchema = defineCompanyBrainRecord({
   repo: z.string().optional(),
   cwd: z.string().optional(),
   title: z.string().optional(),
-  started_at: z.string(),
-  updated_at: z.string(),
   ended_at: z.string().optional(),
   messages: z.array(AgentMessageSchema),
   tools_used: z.array(z.string()).optional(),

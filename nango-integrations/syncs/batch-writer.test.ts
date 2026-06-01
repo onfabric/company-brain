@@ -47,8 +47,20 @@ describe('BatchWriter', () => {
       },
     });
 
-    await writer.save({ id: 'record-1', body: 'Body 1', title: 'One' });
-    await writer.save({ id: 'record-2', body: 'Body 2', title: 'Two' });
+    await writer.save({
+      id: 'record-1',
+      body: 'Body 1',
+      title: 'One',
+      created_at: '2026-06-01T09:10:00.000Z',
+      updated_at: '2026-06-01T09:10:00.000Z',
+    });
+    await writer.save({
+      id: 'record-2',
+      body: 'Body 2',
+      title: 'Two',
+      created_at: '2026-06-01T09:11:00.000Z',
+      updated_at: '2026-06-01T09:11:00.000Z',
+    });
 
     expect(calls).toEqual(['save:2', 'after:2']);
   });
@@ -58,6 +70,8 @@ describe('BatchWriter', () => {
       id: 'record-1',
       body: 'Readable Markdown body',
       title: 'One',
+      created_at: '2026-06-01T09:10:00.000Z',
+      updated_at: '2026-06-01T09:10:00.000Z',
     });
 
     expect(record.body).toBe('Readable Markdown body');

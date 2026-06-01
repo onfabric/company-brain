@@ -1,6 +1,7 @@
 import { createSync } from 'nango';
 import { z } from 'zod';
 import { BatchWriter } from '../../syncs/batch-writer.js';
+import { createBrainSink } from '../../syncs/brain-sink.js';
 import { defineCompanyBrainRecord } from '../../syncs/company-brain-record.js';
 import { CirclebackMcpClient } from '../mcp/client.js';
 
@@ -31,7 +32,6 @@ const CirclebackTranscriptSegmentSchema = z.object({
 const CirclebackMeetingSchema = defineCompanyBrainRecord({
   title: z.string(),
   url: z.string().optional(),
-  created_at: z.string(),
   duration_seconds: z.number().optional(),
   attendees: z.array(CirclebackAttendeeSchema).optional(),
   tags: z.array(z.string()).optional(),
@@ -119,6 +119,7 @@ const sync = createSync({
       model: 'CirclebackMeeting',
       batchSize: MEETING_CHUNK_SIZE,
       schema: CirclebackMeetingSchema,
+      afterSave: createBrainSink(nango),
     });
     const since = resolveSince(checkpoint, metadata);
     const summaries = await searchMeetings(mcp, metadata, since);
@@ -239,6 +240,7 @@ function buildMeeting(
       title,
       url: merged.url ?? undefined,
       created_at: createdAt,
+      updated_at: createdAt,
       duration_seconds:
         typeof merged.duration === 'number' ? Math.round(merged.duration) : undefined,
       attendees: attendees.length > 0 ? attendees : undefined,

@@ -13,7 +13,7 @@ type BatchWriterOptions<TRecord extends CompanyBrainRecord> = {
   model: string;
   batchSize: number;
   schema: z.ZodType<TRecord>;
-  afterSave?: (records: readonly TRecord[]) => MaybePromise<void>;
+  afterSave?: (records: readonly TRecord[], model: string) => MaybePromise<void>;
 };
 
 export class BatchWriter<TRecord extends CompanyBrainRecord> {
@@ -43,7 +43,7 @@ export class BatchWriter<TRecord extends CompanyBrainRecord> {
     const records = this.pending.splice(0, this.pending.length);
     await Promise.resolve(this.options.nango.batchSave(records, this.options.model));
     if (this.options.afterSave) {
-      await Promise.resolve(this.options.afterSave(records));
+      await Promise.resolve(this.options.afterSave(records, this.options.model));
     }
   }
 }
