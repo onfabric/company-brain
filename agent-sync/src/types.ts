@@ -40,12 +40,6 @@ export interface AgentConversation {
   tool_events?: AgentToolEvent[] | undefined;
 }
 
-export interface HookEventEnvelope {
-  source: AgentSource;
-  received_at: string;
-  event: Record<string, unknown>;
-}
-
 export interface TranscriptParseResult {
   session_id?: string | undefined;
   cwd?: string | undefined;

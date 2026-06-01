@@ -10,11 +10,11 @@
         "typescript": "catalog:",
       },
     },
-    "agent-capture": {
-      "name": "agent-capture",
+    "agent-sync": {
+      "name": "agent-sync",
       "version": "1.0.0",
       "bin": {
-        "company-brain-agent-capture": "./src/cli.ts",
+        "company-brain-agent-sync": "./src/cli.ts",
       },
       "devDependencies": {
         "typescript": "catalog:",
@@ -397,7 +397,7 @@
 
     "acorn-walk": ["acorn-walk@8.3.5", "", { "dependencies": { "acorn": "^8.11.0" } }, "sha512-HEHNfbars9v4pgpW6SO1KSPkfoS0xVOM/9UzkJltjlsHZmJasxg8aXkuZa7SMf8vKGIBhpUsPluQSqhJFCqebw=="],
 
-    "agent-capture": ["agent-capture@workspace:agent-capture"],
+    "agent-sync": ["agent-sync@workspace:agent-sync"],
 
     "ajv": ["ajv@8.18.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-PlXPeEWMXMZ7sPYOHqmDyCJzcfNrUr3fGNKtezX14ykXOEIvyK81d+qydx89KY5O71FKMPaQ2vBfBFI5NHR63A=="],
 

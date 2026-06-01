@@ -11,7 +11,7 @@
   },
   "workspaces": {
     "packages": [
-      "agent-capture/",
+      "agent-sync/",
       "nango-integrations/",
       "backend/"
     ],

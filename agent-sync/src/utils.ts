@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -104,6 +105,26 @@ export function repoNameFromCwd(cwd: string | undefined): string | undefined {
 
 export function safeSegment(value: string): string {
   return encodeURIComponent(value).replaceAll('%', '_');
+}
+
+export function stableHash(value: unknown): string {
+  return createHash('sha256').update(stableStringify(value)).digest('hex');
+}
+
+export function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value)
+      .filter((entry) => entry[1] !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entryValue]) => `${JSON.stringify(key)}:${stableStringify(entryValue)}`)
+      .join(',')}}`;
+  }
+
+  return JSON.stringify(value) ?? 'null';
 }
 
 export function dateOnly(value: string): string {
