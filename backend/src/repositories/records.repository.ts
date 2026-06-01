@@ -45,13 +45,13 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
         body
       )
       SELECT
-        (data->>'created_at')::timestamptz,
-        COALESCE((data->>'updated_at')::timestamptz, (data->>'created_at')::timestamptz),
-        ${batch.dataSourceId},
-        connection_id,
-        model,
-        id,
-        data->>'body'
+        (data->>'created_at')::timestamptz AS created_at,
+        COALESCE((data->>'updated_at')::timestamptz, (data->>'created_at')::timestamptz) AS updated_at,
+        ${batch.dataSourceId} AS data_source_id,
+        connection_id AS nango_connection_id,
+        model AS nango_model,
+        id AS nango_id,
+        data->>'body' AS body
       FROM source
       WHERE data ? 'body'
         AND data ? 'created_at'
