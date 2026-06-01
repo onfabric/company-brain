@@ -1,9 +1,5 @@
 # Secrets the instance reads at deploy time. Generated once and kept in state
 # (S3 backend is encrypted + access-controlled).
-#
-# Nango encryption is intentionally left disabled (no NANGO_ENCRYPTION_KEY): the
-# brain service reads nango_records directly over SQL and cannot decrypt, so
-# records/credentials are stored as plaintext. See on_box_deploy.sh.
 
 resource "random_password" "db" {
   length  = 32
