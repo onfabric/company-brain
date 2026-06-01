@@ -1,0 +1,65 @@
+name: Build and push Docker image
+description: Authenticate to ECR and build + push a Docker image, tagged with the commit SHA and latest.
+
+inputs:
+  aws-region:
+    description: AWS region of the ECR registry.
+    required: true
+  deploy-role-arn:
+    description: IAM role to assume (OIDC) for ECR push.
+    required: true
+  ecr-repository-url:
+    description: Target ECR repository URL; images are tagged :$GITHUB_SHA and :latest.
+    required: true
+  context:
+    description: Docker build context.
+    required: true
+  dockerfile:
+    description: Path to the Dockerfile.
+    required: true
+  cache-scope:
+    description: GitHub Actions cache scope; keep distinct per image to avoid collisions.
+    required: true
+
+outputs:
+  image-tag:
+    description: The ':latest' image reference that was pushed.
+    value: ${{ steps.tags.outputs.latest }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v6
+      with:
+        role-to-assume: ${{ inputs.deploy-role-arn }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Login to ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Prepare tags
+      id: tags
+      shell: bash
+      env:
+        IMAGE_REPO: ${{ inputs.ecr-repository-url }}
+      run: |
+        echo "commit=$IMAGE_REPO:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+        echo "latest=$IMAGE_REPO:latest" >> "$GITHUB_OUTPUT"
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and push image
+      uses: docker/build-push-action@v6
+      with:
+        context: ${{ inputs.context }}
+        file: ${{ inputs.dockerfile }}
+        push: true
+        tags: |
+          ${{ steps.tags.outputs.commit }}
+          ${{ steps.tags.outputs.latest }}
+        labels: |
+          org.opencontainers.image.source=https://github.com/${{ github.repository }}
+        cache-from: type=gha,scope=${{ inputs.cache-scope }}
+        cache-to: type=gha,mode=max,scope=${{ inputs.cache-scope }}

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Runs ON the EC2 instance, invoked by the deploy workflow via SSM. Reads its
-# non-secret config from the environment (IMAGE_URI, SSM_SECRET_PREFIX,
+# non-secret config from the environment (NANGO_IMAGE_URI, BRAIN_IMAGE_URI, SSM_SECRET_PREFIX,
 # NANGO_HOSTNAME, NANGO_CONNECT_HOSTNAME, DOZZLE_HOSTNAME, ACME_EMAIL,
 # AWS_DEFAULT_REGION), exported by the SSM command.
 set -euo pipefail
@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 
 log() { echo "=== [on_box_deploy $(date -u +%H:%M:%S)] $* ==="; }
 
-: "${IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}" "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_DEFAULT_REGION:?}"
+: "${NANGO_IMAGE_URI:?}" "${BRAIN_IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}" "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_DEFAULT_REGION:?}"
 
 secret() {
   aws ssm get-parameter --name "${SSM_SECRET_PREFIX}/$1" --with-decryption \
@@ -18,6 +18,7 @@ secret() {
 
 NANGO_ENCRYPTION_KEY="$(secret nango_encryption_key)"
 NANGO_DB_PASSWORD="$(secret nango_db_password)"
+BRAIN_DB_PASSWORD="$(secret brain_db_password)"
 NANGO_DASHBOARD_USERNAME="$(secret nango_dashboard_username)"
 NANGO_DASHBOARD_PASSWORD="$(secret nango_dashboard_password)"
 
@@ -35,6 +36,9 @@ NANGO_DB_USER=nango
 NANGO_DB_PASSWORD=${NANGO_DB_PASSWORD}
 NANGO_DB_NAME=nango
 NANGO_DB_SCHEMA=nango
+NANGO_RECORDS_DATABASE_SCHEMA=nango_records
+BRAIN_DB_USER=brain
+BRAIN_DB_PASSWORD=${BRAIN_DB_PASSWORD}
 NANGO_SERVER_PORT=3003
 NANGO_CONNECT_UI_PORT=3009
 NANGO_SERVER_URL=https://${NANGO_HOSTNAME}
@@ -43,19 +47,22 @@ NANGO_PUBLIC_CONNECT_URL=https://${NANGO_CONNECT_HOSTNAME}
 REDIS_PORT=6379
 ELASTICSEARCH_PORT=9200
 DOZZLE_PORT=8080
+BRAIN_SERVER_PORT=3010
 FLAG_AUTH_ENABLED=true
 NANGO_DASHBOARD_USERNAME=${NANGO_DASHBOARD_USERNAME}
 NANGO_DASHBOARD_PASSWORD=${NANGO_DASHBOARD_PASSWORD}
 LOG_LEVEL=info
-IMAGE_URI=${IMAGE_URI}
+NANGO_IMAGE_URI=${NANGO_IMAGE_URI}
+BRAIN_IMAGE_URI=${BRAIN_IMAGE_URI}
 NANGO_HOSTNAME=${NANGO_HOSTNAME}
 NANGO_CONNECT_HOSTNAME=${NANGO_CONNECT_HOSTNAME}
 DOZZLE_HOSTNAME=${DOZZLE_HOSTNAME}
 ACME_EMAIL=${ACME_EMAIL}
 EOF
 
-# Authenticate Docker to ECR.
-registry="${IMAGE_URI%%/*}"
+# Authenticate Docker to ECR. Both images share one registry host, so a single
+# login covers them.
+registry="${NANGO_IMAGE_URI%%/*}"
 log "Authenticating Docker to ECR (${registry})"
 aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
 

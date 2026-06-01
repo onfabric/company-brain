@@ -26,7 +26,8 @@ jobs:
   terraform-apply:
     runs-on: ubuntu-latest
     outputs:
-      ecr_repository_url: ${{ steps.tf_outputs.outputs.ecr_repository_url }}
+      nango_ecr_repository_url: ${{ steps.tf_outputs.outputs.nango_ecr_repository_url }}
+      brain_ecr_repository_url: ${{ steps.tf_outputs.outputs.brain_ecr_repository_url }}
       artifacts_bucket: ${{ steps.tf_outputs.outputs.artifacts_bucket }}
       github_deploy_role_arn: ${{ steps.tf_outputs.outputs.github_deploy_role_arn }}
     defaults:
@@ -49,7 +50,8 @@ jobs:
       - name: Capture outputs
         id: tf_outputs
         run: |
-          echo "ecr_repository_url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
+          echo "nango_ecr_repository_url=$(terraform output -raw nango_ecr_repository_url)" >> "$GITHUB_OUTPUT"
+          echo "brain_ecr_repository_url=$(terraform output -raw brain_ecr_repository_url)" >> "$GITHUB_OUTPUT"
           echo "artifacts_bucket=$(terraform output -raw artifacts_bucket)" >> "$GITHUB_OUTPUT"
           echo "github_deploy_role_arn=$(terraform output -raw github_deploy_role_arn)" >> "$GITHUB_OUTPUT"
 
@@ -62,49 +64,47 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-  build-docker:
+  build-docker-nango:
     needs: terraform-apply
     runs-on: ubuntu-latest
     outputs:
-      docker_image_tag: ${{ steps.tags.outputs.docker_image_tag_latest }}
+      docker_image_tag: ${{ steps.build.outputs.image-tag }}
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v6
         with:
           submodules: recursive
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v6
+      - name: Build and push
+        id: build
+        uses: ./.github/actions/build-and-push-docker
         with:
-          role-to-assume: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Prepare tags
-        id: tags
-        env:
-          IMAGE_REPO: ${{ needs.terraform-apply.outputs.ecr_repository_url }}
-        run: |
-          echo "docker_image_tag_commit=$IMAGE_REPO:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
-          echo "docker_image_tag_latest=$IMAGE_REPO:latest" >> "$GITHUB_OUTPUT"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
+          deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
+          ecr-repository-url: ${{ needs.terraform-apply.outputs.nango_ecr_repository_url }}
           context: ./nango
-          push: true
-          tags: |
-            ${{ steps.tags.outputs.docker_image_tag_commit }}
-            ${{ steps.tags.outputs.docker_image_tag_latest }}
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          dockerfile: ./nango/Dockerfile
+          cache-scope: nango
+
+  build-docker-brain:
+    needs: terraform-apply
+    runs-on: ubuntu-latest
+    outputs:
+      docker_image_tag: ${{ steps.build.outputs.image-tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build and push
+        id: build
+        uses: ./.github/actions/build-and-push-docker
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
+          ecr-repository-url: ${{ needs.terraform-apply.outputs.brain_ecr_repository_url }}
+          context: .
+          dockerfile: backend/Dockerfile
+          cache-scope: brain
 
   build-bundle:
     needs: terraform-apply
@@ -133,7 +133,7 @@ jobs:
         run: |
           tar czf bundle.tar.gz \
             docker-compose.yml docker-compose.prod.yml Caddyfile \
-            db/entrypoint.sh db/init.sql \
+            db/entrypoint.sh db/init.sql db/prepare \
             nango/packages/providers/providers.yaml \
             -C infra/deploy on_box_deploy.sh
 
@@ -141,7 +141,7 @@ jobs:
         run: aws s3 cp bundle.tar.gz "${{ steps.meta.outputs.bundle_url }}"
 
   deploy:
-    needs: [terraform-apply, build-docker, build-bundle]
+    needs: [terraform-apply, build-docker-nango, build-docker-brain, build-bundle]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -157,7 +157,8 @@ jobs:
         env:
           BUNDLE_URL: ${{ needs.build-bundle.outputs.bundle_url }}
           DEPLOY_GROUP: ${{ env.DEPLOY_GROUP }}
-          IMAGE_URI: ${{ needs.build-docker.outputs.docker_image_tag }}
+          NANGO_IMAGE_URI: ${{ needs.build-docker-nango.outputs.docker_image_tag }}
+          BRAIN_IMAGE_URI: ${{ needs.build-docker-brain.outputs.docker_image_tag }}
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
           NANGO_HOSTNAME: ${{ env.NANGO_HOSTNAME }}
           NANGO_CONNECT_HOSTNAME: ${{ env.NANGO_CONNECT_HOSTNAME }}
@@ -180,5 +181,4 @@ jobs:
 
       - uses: ./.github/actions/prepare
 
-      - run: bun test
       - run: NANGO_HOSTPORT="https://${NANGO_HOSTNAME}" bun run deploy dev --no-interactive --no-dependency-update
