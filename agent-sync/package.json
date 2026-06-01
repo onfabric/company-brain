@@ -1,0 +1,19 @@
+{
+  "name": "agent-sync",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "company-brain-agent-sync": "./src/cli.ts"
+  },
+  "scripts": {
+    "daemon": "bun src/cli.ts daemon",
+    "discover": "bun src/cli.ts discover",
+    "sync-now": "bun src/cli.ts sync-now",
+    "test": "bun test",
+    "check:types": "bun run --bun tsc"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}
