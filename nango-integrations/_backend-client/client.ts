@@ -33,13 +33,18 @@ export function createBackendClient(
       url.searchParams.set(key, value);
     }
 
+    const hasBody = options?.body !== undefined;
     let response: Response;
     try {
       response = await nango.uncontrolledFetch({
         url,
         method: options?.method ?? 'GET',
-        headers: options?.headers,
-        body: options?.body === undefined ? null : JSON.stringify(options.body),
+        // Set the JSON content type when sending a body, otherwise Elysia leaves
+        // the parsed body empty and rejects it with a 422.
+        headers: hasBody
+          ? { 'content-type': 'application/json', ...options?.headers }
+          : options?.headers,
+        body: hasBody ? JSON.stringify(options.body) : null,
       });
     } catch (error) {
       return {
