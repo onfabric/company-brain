@@ -256,10 +256,13 @@ const sync = createSync({
       model: 'SlackThread',
       batchSize: HISTORY_PAGE_SIZE,
       schema: SlackThreadSchema,
-      afterSave: async () => {
-        const { data } = await brain('/health', {});
+      afterSave: async (records) => {
+        const { data, error } = await brain('/tmp/sync-ping', {
+          method: 'POST',
+          body: { model: 'SlackThread', count: records.length },
+        });
         await nango.log(
-          `brain health: ${data?.status ?? 'unreachable'} (uptime ${data?.uptime ?? 0}s)`,
+          `sync ping: ${error ? `error ${error.value}` : `received=${data?.received}`}`,
         );
       },
     });
