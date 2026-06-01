@@ -9,11 +9,17 @@
   "scripts": {
     "daemon": "bun src/cli.ts daemon",
     "discover": "bun src/cli.ts discover",
+    "generate:commands": "parsh-codegen generate --commands src/commands --out src/command-tree.gen.ts",
     "sync-now": "bun src/cli.ts sync-now",
     "test": "bun test",
     "check:types": "bun run --bun tsc"
   },
   "devDependencies": {
+    "@parshjs/codegen": "^0.0.5",
     "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@parshjs/core": "^0.0.10",
+    "zod": "^4.4.3"
   }
 }
