@@ -37,11 +37,19 @@ services:
     container_name: caddy
     restart: always
     depends_on:
-      - nango-server
-      - dozzle
+      nango-server:
+        condition: service_healthy
+      dozzle:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     environment:
       - NANGO_HOSTNAME
       - NANGO_CONNECT_HOSTNAME
