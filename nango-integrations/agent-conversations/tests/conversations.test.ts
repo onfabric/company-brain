@@ -16,7 +16,7 @@ describe('agent conversations sync tests', () => {
 
     await createSync.onWebhook?.(asNango(nangoMock), {
       type: 'agent.conversation.upsert',
-      connectionId: 'local-agent-capture',
+      connectionId: 'local-agent-sync',
       sentAt: '2026-06-01T09:31:00.000Z',
       secret: 'shared-secret',
       records: [
