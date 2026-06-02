@@ -22,6 +22,7 @@ Write the PR body so someone uninvolved can quickly understand what changed, why
 - Include key decisions, tradeoffs, risks, or follow-up context only when they help a reviewer.
 - Avoid formulaic three-bullet summaries. Use bullets only when they make the change easier to scan.
 - Keep the body as short as the change allows. Do not pad it with implementation trivia, command output, or generic checklist text.
+- Do not include routine local validation command lists, such as a "Validation run locally" section. Mention validation only when there is an unusual caveat, failed command, skipped check, or other reviewer-relevant context.
 
 ## Mandatory Shepherding
 

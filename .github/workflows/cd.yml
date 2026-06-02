@@ -213,22 +213,25 @@ jobs:
       GH_CONNECTION_ID: ${{ vars.GH_CONNECTION_ID }}
       CIRCLEBACK_MCP_CONNECTION_ID: ${{ vars.CIRCLEBACK_MCP_CONNECTION_ID }}
       AGENT_CONVERSATIONS_CONNECTION_ID: ${{ vars.AGENT_CONVERSATIONS_CONNECTION_ID }}
+      NANGO_SECRET_KEY_DEV: ${{ secrets.NANGO_SECRET_KEY_DEV }}
       NANGO_DEPLOY_AUTO_CONFIRM: "true"
       NANGO_CLI_DEPENDENCY_UPDATE: "false"
     steps:
       - uses: actions/checkout@v6
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Load Nango API key
+      - name: Require Nango API key
         run: |
-          nango_secret_key_dev="$(aws ssm get-parameter --name "${SSM_SECRET_PREFIX}/nango_secret_key_dev" --with-decryption --query Parameter.Value --output text)"
-          echo "::add-mask::${nango_secret_key_dev}"
-          echo "NANGO_SECRET_KEY_DEV=${nango_secret_key_dev}" >> "$GITHUB_ENV"
+          if [ -z "${NANGO_SECRET_KEY_DEV:-}" ]; then
+            {
+              echo "## Nango API key required"
+              echo
+              echo "Nango has been deployed, but the repository secret \`NANGO_SECRET_KEY_DEV\` is not set."
+              echo "Sign up in the Nango dashboard at https://${NANGO_HOSTNAME}, copy the generated dev API key, add it as the repository secret \`NANGO_SECRET_KEY_DEV\`, then rerun this workflow."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=Nango API key required::Set repository secret NANGO_SECRET_KEY_DEV from the dev API key generated in the Nango dashboard, then rerun the workflow."
+            exit 1
+          fi
+          echo "::add-mask::${NANGO_SECRET_KEY_DEV}"
 
       - name: Use deployed Nango host
         run: echo "NANGO_HOSTPORT=https://${NANGO_HOSTNAME}" >> "$GITHUB_ENV"
