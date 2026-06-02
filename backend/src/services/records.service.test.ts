@@ -57,6 +57,7 @@ describe('RecordsService', () => {
     const repo = new MockRecordsRepository(0, [
       {
         data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_key: 'slack',
         nango_model: 'SlackThread',
         count: 3,
         oldest_created_at: new Date('2026-01-01T00:00:00Z'),
@@ -65,6 +66,7 @@ describe('RecordsService', () => {
       },
       {
         data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_key: 'slack',
         nango_model: 'SlackMessage',
         count: 5,
         oldest_created_at: new Date('2026-01-03T00:00:00Z'),
@@ -73,6 +75,7 @@ describe('RecordsService', () => {
       },
       {
         data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+        data_source_key: 'github',
         nango_model: 'Issue',
         count: 2,
         oldest_created_at: new Date('2026-01-05T00:00:00Z'),
@@ -87,6 +90,7 @@ describe('RecordsService', () => {
     expect(sources).toEqual([
       {
         data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_key: 'slack',
         count: 8,
         models: [
           {
@@ -107,6 +111,7 @@ describe('RecordsService', () => {
       },
       {
         data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+        data_source_key: 'github',
         count: 2,
         models: [
           {

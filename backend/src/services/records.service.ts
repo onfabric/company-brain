@@ -16,6 +16,7 @@ type SourceModel = {
 
 type Source = {
   data_source_id: string;
+  data_source_key: string;
   count: number;
   models: SourceModel[];
 };
@@ -54,7 +55,12 @@ export class RecordsService extends Service {
     for (const row of rows) {
       let source = sources.get(row.data_source_id);
       if (!source) {
-        source = { data_source_id: row.data_source_id, count: 0, models: [] };
+        source = {
+          data_source_id: row.data_source_id,
+          data_source_key: row.data_source_key,
+          count: 0,
+          models: [],
+        };
         sources.set(row.data_source_id, source);
       }
       source.count += row.count;

@@ -1,4 +1,4 @@
-import type { Records } from '#db/tables.ts';
+import type { DataSources, Records } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
 
 export type IngestBatch = {
@@ -9,6 +9,7 @@ export type IngestBatch = {
 };
 
 export type SourceModelRow = Pick<Records, 'data_source_id' | 'nango_model'> & {
+  data_source_key: DataSources['nango_integration_id'];
   count: number;
   oldest_created_at: Date;
   newest_created_at: Date;
@@ -110,15 +111,17 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
   listSourceModels(): Promise<SourceModelRow[]> {
     return this.sql<SourceModelRow[]>`
       SELECT
-        data_source_id,
-        nango_model,
+        r.data_source_id,
+        ds.nango_integration_id AS data_source_key,
+        r.nango_model,
         COUNT(*)::int AS count,
-        MIN(created_at) AS oldest_created_at,
-        MAX(created_at) AS newest_created_at,
-        MAX(updated_at) AS newest_updated_at
-      FROM brain.records
-      GROUP BY data_source_id, nango_model
-      ORDER BY data_source_id, nango_model
+        MIN(r.created_at) AS oldest_created_at,
+        MAX(r.created_at) AS newest_created_at,
+        MAX(r.updated_at) AS newest_updated_at
+      FROM brain.records r
+      JOIN brain.data_sources ds ON ds.id = r.data_source_id
+      GROUP BY r.data_source_id, ds.nango_integration_id, r.nango_model
+      ORDER BY ds.nango_integration_id, r.nango_model
     `;
   }
 
