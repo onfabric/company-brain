@@ -11,7 +11,7 @@ bun install
 cp .env.example .env
 ```
 
-Bun resolves the local CLI from `node_modules/.bin`. The package scripts below invoke it with `bun run --bun nango <command>`. Fill `.env` with the Nango API keys for the target environment. When deploying to a self-hosted/local Nango server, set `NANGO_HOSTPORT` to that server URL.
+Bun resolves the local CLI from `node_modules/.bin`; do not install `nango` globally. The package scripts below invoke the pinned devDependency through `bun run nango <command>`, default `NANGO_HOSTPORT` to `http://localhost:3003`, ignore CLI self-upgrade prompts, and disable automatic package/dependency updates. Fill `.env` with the Nango API keys for the local environment.
 
 ## Commands
 

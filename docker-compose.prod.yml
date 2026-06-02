@@ -30,6 +30,10 @@ services:
     image: ${BRAIN_IMAGE_URI}
     build: !reset null
 
+  usage-dashboard:
+    image: ${USAGE_DASHBOARD_IMAGE_URI}
+    build: !reset null
+
   dozzle:
     environment:
       DOZZLE_AUTH_PROVIDER: simple
@@ -42,6 +46,8 @@ services:
     restart: always
     depends_on:
       nango-server:
+        condition: service_healthy
+      usage-dashboard:
         condition: service_healthy
       dozzle:
         condition: service_healthy
@@ -57,6 +63,7 @@ services:
     environment:
       - NANGO_HOSTNAME
       - NANGO_CONNECT_HOSTNAME
+      - USAGE_DASHBOARD_HOSTNAME
       - DOZZLE_HOSTNAME
       - ACME_EMAIL
     volumes:

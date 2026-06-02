@@ -32,6 +32,8 @@ describe('agent conversations sync tests', () => {
     expect(saved).toHaveLength(1);
     expectAgentConversationSchema(record);
     expect(record.body.startsWith('# Codex conversation')).toBe(true);
+    expect(record.body).toContain('Model: gpt-5-codex');
+    expect(record.body).toContain('Total tokens: 650');
     expect(record.body).toContain('Earlier context');
     expect(record.body).toContain('Latest answer');
     expect(record.body).not.toContain('## Tool trajectory');
@@ -54,8 +56,16 @@ function conversationRecord(id: string, sessionId: string, updatedAt: string): u
     repo: 'company-brain',
     cwd: '/Users/massimo/company-brain',
     title: 'Earlier context',
+    model: 'gpt-5-codex',
     started_at: '2026-06-01T09:10:00.000Z',
     updated_at: updatedAt,
+    usage: {
+      input_tokens: 400,
+      cache_read_input_tokens: 100,
+      output_tokens: 120,
+      reasoning_output_tokens: 30,
+      total_tokens: 650,
+    },
     messages: [
       {
         role: 'user',
@@ -66,6 +76,14 @@ function conversationRecord(id: string, sessionId: string, updatedAt: string): u
         role: 'assistant',
         text: 'Latest answer',
         created_at: '2026-06-01T09:11:00.000Z',
+        model: 'gpt-5-codex',
+        usage: {
+          input_tokens: 400,
+          cache_read_input_tokens: 100,
+          output_tokens: 120,
+          reasoning_output_tokens: 30,
+          total_tokens: 650,
+        },
       },
       {
         role: 'tool',
@@ -73,6 +91,19 @@ function conversationRecord(id: string, sessionId: string, updatedAt: string): u
         created_at: '2026-06-01T09:11:15.000Z',
         tool_name: 'functions.exec_command',
         files: ['/Users/massimo/company-brain/package.json'],
+      },
+    ],
+    usage_events: [
+      {
+        created_at: '2026-06-01T09:11:00.000Z',
+        model: 'gpt-5-codex',
+        usage: {
+          input_tokens: 400,
+          cache_read_input_tokens: 100,
+          output_tokens: 120,
+          reasoning_output_tokens: 30,
+          total_tokens: 650,
+        },
       },
     ],
     tools_used: ['functions.exec_command'],
