@@ -15,6 +15,7 @@ Use this skill to finish work by opening a pull request and shepherding it until
 - Use non-interactive git and GitHub CLI commands.
 - Never push directly to `main`.
 - Use Conventional Commit style for commit messages and PR titles.
+- Write PR descriptions for reviewers who did not see the implementation happen.
 - Keep PRs narrow. If post-merge CI fails, fix only the failure caused by the merged PR or the smallest clear compatibility issue exposed by it.
 
 ## Open The PR
@@ -26,8 +27,18 @@ Use this skill to finish work by opening a pull request and shepherding it until
 5. Stage only intended files.
 6. Commit with a Conventional Commit message unless the intended commit already exists.
 7. Push the branch and open a PR with `gh pr create`.
-8. Include a concise PR body with summary, validation results, and any important risks or follow-up context.
+8. Write the PR body using the description guidelines below.
 9. Capture the PR number, PR URL, branch name, and base branch.
+
+## Write The PR Description
+
+Write the PR body so someone uninvolved can quickly understand what changed, why it changed, and what decisions matter for review.
+
+- Start with a concise explanation of the change and its purpose.
+- Include key decisions, tradeoffs, risks, or follow-up context only when they help a reviewer.
+- Mention validation only when it adds useful confidence or context. Do not add a default `Verification` or `Validation` header with a list of commands.
+- Avoid formulaic three-bullet summaries. Use bullets only when they make the change easier to scan.
+- Keep the body as short as the change allows. Do not pad it with implementation trivia, command output, or generic checklist text.
 
 ## Mandatory Shepherding
 
