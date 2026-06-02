@@ -34,7 +34,7 @@ The Nango server is not started from this folder. The CLI compiles these functio
 
 `bun run bootstrap:connections dev` creates non-OAuth connections that CI can safely provision. It currently creates or updates `agent-conversations/local-agent-sync` with `credentials.type = "NONE"` and connection metadata `{ "webhookSecret": "..." }`.
 
-Circleback MCP is intentionally not created, checked, or deployed by this package. Create and manage it manually in Nango when needed.
+Circleback MCP is intentionally not created or checked by bootstrap. Create and manage the Nango integration manually; the sync and MCP client remain in this package so they can run against that manual integration.
 
 Deploy order matters on a fresh environment:
 
