@@ -1,15 +1,9 @@
 import { appendFile } from 'node:fs/promises';
-import { NOT_FOUND_STATUS, REQUIRED_CONNECTIONS } from './nango-resources.js';
-
-type ConnectionData = {
-  connection_id: string;
-  provider_config_key: string;
-};
-
-type ConnectionResponse = {
-  data?: ConnectionData;
-  error?: unknown;
-};
+import {
+  NOT_FOUND_STATUS,
+  parseConnectionResponse,
+  REQUIRED_CONNECTIONS,
+} from './nango-resources.js';
 
 type MissingConnection = {
   integrationId: string;
@@ -57,10 +51,7 @@ async function connectionExists(integrationId: string, connectionId: string): Pr
     return false;
   }
 
-  const body = await parseJson<ConnectionResponse>(response);
-  if (!body.data) {
-    throw new Error(`Nango returned no connection data for ${integrationId}/${connectionId}`);
-  }
+  await parseConnectionResponse(response, integrationId, connectionId);
 
   return true;
 }
@@ -83,10 +74,6 @@ async function request(path: string, options: { allowNotFound?: boolean } = {}):
   }
 
   return response;
-}
-
-async function parseJson<T>(response: Response): Promise<T> {
-  return (await response.json()) as T;
 }
 
 function missingConnectionsMessage(missing: MissingConnection[]): string {
