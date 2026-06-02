@@ -11,7 +11,7 @@ export type Records = {
   created_at: Date;
   updated_at: Date;
   nango_integration_id: string;
-  data_source_id: string;
+  data_source_id: DataSources['id'];
   nango_connection_id: number;
   nango_model: string;
   nango_id: string;
