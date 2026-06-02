@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { captureTranscriptFile } from '../src/capture.js';
 import { loadConfig, readConfigFile, writeConfigFile } from '../src/config.js';
+import { createAgentSyncCli } from '../src/create-cli.js';
 import { discoverConversations } from '../src/discovery.js';
 import { ensureIdentity } from '../src/identity.js';
 import { initializeAgentSync } from '../src/init.js';
@@ -17,6 +18,7 @@ import { parseTranscriptFile } from '../src/transcript-parser.js';
 const TEMP_PREFIX = 'company-brain-agent-sync-';
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
 const INSTALL_SCRIPT_PATH = path.resolve(TEST_DIR, '../../scripts/install-agent-sync.sh');
+const AGENT_SYNC_DIR_ENV = 'COMPANY_BRAIN_AGENT_SYNC_DIR';
 const CODEX_SESSION_DIR_ENV = 'COMPANY_BRAIN_CODEX_SESSION_DIR';
 const CLAUDE_CODE_PROJECTS_DIR_ENV = 'COMPANY_BRAIN_CLAUDE_CODE_PROJECTS_DIR';
 const NANGO_WEBHOOK_URL_ENV = 'COMPANY_BRAIN_NANGO_WEBHOOK_URL';
@@ -38,6 +40,7 @@ type PushedBody = {
 
 describe('agent sync', () => {
   afterEach(async () => {
+    delete process.env[AGENT_SYNC_DIR_ENV];
     delete process.env[CODEX_SESSION_DIR_ENV];
     delete process.env[CLAUDE_CODE_PROJECTS_DIR_ENV];
     delete process.env[NANGO_WEBHOOK_URL_ENV];
@@ -95,6 +98,33 @@ describe('agent sync', () => {
     expect(fileConfig.nangoWebhookUrl).toBe('https://nango.test/webhook/env/agent-conversations');
     expect(fileConfig.nangoConnectionId).toBe('local-agent-sync');
     expect(fileConfig.nangoWebhookSecret).toBe('shared-secret');
+  });
+
+  it('routes init flags through the CLI', async () => {
+    const tempDir = await makeTempDir();
+    process.env[AGENT_SYNC_DIR_ENV] = tempDir;
+    process.env[NANGO_WEBHOOK_URL_ENV] = 'https://nango.test/webhook/env/agent-conversations';
+    process.env[NANGO_CONNECTION_ID_ENV] = 'local-agent-sync';
+    process.env[NANGO_WEBHOOK_SECRET_ENV] = 'shared-secret';
+    const stdout = captureStdout();
+    try {
+      const code = await createAgentSyncCli().run([
+        'init',
+        '--missing-only',
+        '--skip-daemon',
+        '--json',
+      ]);
+
+      expect(code).toBe(0);
+      const result = JSON.parse(stdout.text()) as {
+        missing?: unknown[];
+        launchAgentInstalled?: unknown;
+      };
+      expect(result.missing).toEqual([]);
+      expect(result.launchAgentInstalled).toBe(false);
+    } finally {
+      stdout.restore();
+    }
   });
 
   it('generates a stable local user identifier', async () => {
@@ -337,6 +367,21 @@ function enableNangoPush(options: { failFirst?: boolean } = {}): PushedBody[] {
     return Promise.resolve(new Response(JSON.stringify({ ok: true })));
   }) as unknown as typeof fetch;
   return bodies;
+}
+
+function captureStdout(): { restore: () => void; text: () => string } {
+  const original = process.stdout.write.bind(process.stdout);
+  const chunks: string[] = [];
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    chunks.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString());
+    return true;
+  }) as typeof process.stdout.write;
+  return {
+    restore: () => {
+      process.stdout.write = original;
+    },
+    text: () => chunks.join(''),
+  };
 }
 
 async function writeCodexTranscript(

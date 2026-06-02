@@ -83,6 +83,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["**/*.gen.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off"
+          }
+        }
+      }
     }
   ]
 }
