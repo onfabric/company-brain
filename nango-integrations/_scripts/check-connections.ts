@@ -1,7 +1,9 @@
 import { appendFile } from 'node:fs/promises';
+import type { ConnectionData, ConnectionSpec } from './nango-resources.js';
 import {
   NOT_FOUND_STATUS,
   parseConnectionResponse,
+  parseConnectionsResponse,
   REQUIRED_CONNECTIONS,
 } from './nango-resources.js';
 
@@ -23,9 +25,9 @@ async function main(): Promise<void> {
 
   for (const spec of REQUIRED_CONNECTIONS) {
     const connectionId = optionalEnv(spec.connectionIdEnv) ?? spec.defaultConnectionId;
-    const exists = await connectionExists(spec.integrationId, connectionId);
-    if (exists) {
-      log(`Found ${spec.integrationId}/${connectionId}`);
+    const connection = await findConnection(spec, connectionId);
+    if (connection) {
+      log(`Found ${spec.integrationId}/${connection.connection_id}`);
       continue;
     }
 
@@ -41,19 +43,47 @@ async function main(): Promise<void> {
   log('All required Nango connections exist.');
 }
 
-async function connectionExists(integrationId: string, connectionId: string): Promise<boolean> {
+async function findConnection(
+  spec: ConnectionSpec,
+  connectionId: string,
+): Promise<ConnectionData | null> {
+  const exactConnection = await findConnectionById(spec.integrationId, connectionId);
+  if (exactConnection || spec.bootstrap) {
+    return exactConnection;
+  }
+
+  const integrationConnection = await findFirstConnectionForIntegration(spec.integrationId);
+  if (integrationConnection) {
+    return integrationConnection;
+  }
+
+  return null;
+}
+
+async function findConnectionById(
+  integrationId: string,
+  connectionId: string,
+): Promise<ConnectionData | null> {
   const response = await request(
     `/connections/${encodeURIComponent(connectionId)}?provider_config_key=${encodeURIComponent(integrationId)}`,
     { allowNotFound: true },
   );
 
   if (response.status === NOT_FOUND_STATUS) {
-    return false;
+    return null;
   }
 
-  await parseConnectionResponse(response, integrationId, connectionId);
+  return parseConnectionResponse(response, integrationId, connectionId);
+}
 
-  return true;
+async function findFirstConnectionForIntegration(
+  integrationId: string,
+): Promise<ConnectionData | null> {
+  const response = await request(
+    `/connections?integrationId=${encodeURIComponent(integrationId)}&limit=1`,
+  );
+  const body = await parseConnectionsResponse(response, integrationId);
+  return body.connections[0] ?? null;
 }
 
 async function request(path: string, options: { allowNotFound?: boolean } = {}): Promise<Response> {

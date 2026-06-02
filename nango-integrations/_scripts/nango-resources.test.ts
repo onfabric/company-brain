@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { parseConnectionResponse } from './nango-resources.js';
+import { parseConnectionResponse, parseConnectionsResponse } from './nango-resources.js';
 
 const connection = {
   connection_id: 'local-agent-sync',
@@ -36,5 +36,25 @@ describe('parseConnectionResponse', () => {
         'local-agent-sync',
       ),
     ).rejects.toThrow('Nango returned no connection data for agent-conversations/local-agent-sync');
+  });
+});
+
+describe('parseConnectionsResponse', () => {
+  it('accepts public connection list responses', async () => {
+    const parsed = await parseConnectionsResponse(
+      new Response(JSON.stringify({ connections: [connection] })),
+      'agent-conversations',
+    );
+
+    expect(parsed).toEqual({ connections: [connection] });
+  });
+
+  it('rejects responses without a connection list', async () => {
+    await expect(
+      parseConnectionsResponse(
+        new Response(JSON.stringify({ error: { code: 'not_found' } })),
+        'agent-conversations',
+      ),
+    ).rejects.toThrow('Nango returned no connection list for agent-conversations');
   });
 });
