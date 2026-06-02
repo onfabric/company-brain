@@ -36,7 +36,6 @@ Write the PR body so someone uninvolved can quickly understand what changed, why
 
 - Start with a concise explanation of the change and its purpose.
 - Include key decisions, tradeoffs, risks, or follow-up context only when they help a reviewer.
-- Mention validation only when it adds useful confidence or context. Do not add a default `Verification` or `Validation` header with a list of commands.
 - Avoid formulaic three-bullet summaries. Use bullets only when they make the change easier to scan.
 - Keep the body as short as the change allows. Do not pad it with implementation trivia, command output, or generic checklist text.
 
@@ -98,13 +97,11 @@ If the rerun passes, report success and stop. If it fails again, continue with r
 When post-merge CI fails because of the merged PR or a clear issue exposed by it:
 
 1. Fetch the latest base branch.
-2. Create a new repair branch from the current base branch, using a name like `codex/fix-ci-after-pr-$PR_NUMBER`.
+2. Create a new branch from the current base branch.
 3. Read the failed logs and reproduce locally when practical.
 4. Make the smallest safe fix.
-5. Run the repository's required validation from `AGENTS.md`.
-6. Commit with a Conventional Commit message, usually `fix: repair CI after #$PR_NUMBER`.
-7. Push and open a repair PR.
-8. Link the original PR and failed run URL in the repair PR body.
-9. Shepherd the repair PR too, but do not create an endless chain of repair PRs. If the repair PR's post-merge CI also fails and the next fix is not obvious and narrow, report the failure and ask for direction.
+5. Push and open a repair PR.
+6. Link the original PR and failed run URL in the repair PR body.
+7. Shepherd the repair PR too, but do not create an endless chain of repair PRs. If the repair PR's post-merge CI also fails and the next fix is not obvious and narrow, report the failure and ask for direction.
 
 If logs are missing, permission is denied, the failure does not point to a code fix, or the likely fix would be broad, stop and explain what is known instead of guessing.
