@@ -52,10 +52,10 @@ export class RecordsService extends Service {
     const sources = new Map<string, Source>();
 
     for (const row of rows) {
-      let source = sources.get(row.data_source_id);
+      let source = sources.get(row.nango_integration_id);
       if (!source) {
-        source = { data_source_id: row.data_source_id, count: 0, models: [] };
-        sources.set(row.data_source_id, source);
+        source = { data_source_id: row.nango_integration_id, count: 0, models: [] };
+        sources.set(row.nango_integration_id, source);
       }
       source.count += row.count;
       source.models.push({
@@ -87,7 +87,7 @@ export class RecordsService extends Service {
       offset: params.offset,
       results: results.map((row) => ({
         id: row.id,
-        data_source_id: row.data_source_id,
+        data_source_id: row.nango_integration_id,
         model: row.nango_model,
         created_at: row.created_at.toISOString(),
         updated_at: row.updated_at.toISOString(),
