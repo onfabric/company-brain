@@ -110,7 +110,7 @@ describe('slack threads tests', () => {
     expect(thread.body.includes('<@')).toBe(false);
     expect('source' in thread).toBe(false);
     expect('counts' in thread).toBe(false);
-    expect('participants' in thread).toBe(false);
+    expect(thread.participants).toEqual(['alice@example.com', 'bob@example.com']);
     expect('mentioned_people' in thread).toBe(false);
     expect('title' in thread).toBe(false);
     expect(messageJson.includes('"source"')).toBe(false);
@@ -173,6 +173,7 @@ describe('slack threads tests', () => {
       channel: 'product-launch',
       created_at: '2025-10-31T15:15:00.772Z',
       updated_at: '2025-10-31T15:19:10.000Z',
+      participants: ['alex@example.com', 'maya@example.com', 'priya@example.com'],
       messages: [
         {
           created_at: '2025-10-31T15:15:00.772Z',

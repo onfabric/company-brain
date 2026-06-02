@@ -53,6 +53,7 @@ describe('BatchWriter', () => {
       title: 'One',
       created_at: '2026-06-01T09:10:00.000Z',
       updated_at: '2026-06-01T09:10:00.000Z',
+      participants: [],
     });
     await writer.save({
       id: 'record-2',
@@ -60,6 +61,7 @@ describe('BatchWriter', () => {
       title: 'Two',
       created_at: '2026-06-01T09:11:00.000Z',
       updated_at: '2026-06-01T09:11:00.000Z',
+      participants: [],
     });
 
     expect(calls).toEqual(['save:2', 'after:2']);
@@ -72,6 +74,7 @@ describe('BatchWriter', () => {
       title: 'One',
       created_at: '2026-06-01T09:10:00.000Z',
       updated_at: '2026-06-01T09:10:00.000Z',
+      participants: [],
     });
 
     expect(record.body).toBe('Readable Markdown body');

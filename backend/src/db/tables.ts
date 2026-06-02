@@ -16,3 +16,21 @@ export type Records = {
   nango_id: string;
   body: string;
 };
+
+export type People = {
+  id: string;
+  name: string | null;
+  email: string | null;
+};
+
+export type PeopleDataSources = {
+  id: string;
+  person_id: People['id'];
+  data_source_id: DataSources['id'];
+  data_source_user_id: string;
+};
+
+export type RecordsPeople = {
+  record_id: Records['id'];
+  person_id: People['id'];
+};
