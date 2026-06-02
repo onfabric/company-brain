@@ -1139,8 +1139,49 @@
                 "title": {
                   "type": "string"
                 },
+                "model": {
+                  "type": "string"
+                },
                 "ended_at": {
                   "type": "string"
+                },
+                "usage": {
+                  "type": "object",
+                  "properties": {
+                    "input_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "output_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "cache_creation_input_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "cache_creation_5m_input_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "cache_creation_1h_input_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "cache_read_input_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "reasoning_output_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "total_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  },
+                  "additionalProperties": false
                 },
                 "messages": {
                   "type": "array",
@@ -1165,6 +1206,47 @@
                       "tool_name": {
                         "type": "string"
                       },
+                      "model": {
+                        "type": "string"
+                      },
+                      "usage": {
+                        "type": "object",
+                        "properties": {
+                          "input_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "output_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "cache_creation_input_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "cache_creation_5m_input_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "cache_creation_1h_input_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "cache_read_input_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "reasoning_output_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "total_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          }
+                        },
+                        "additionalProperties": false
+                      },
                       "files": {
                         "type": "array",
                         "items": {
@@ -1175,6 +1257,62 @@
                     "required": [
                       "role",
                       "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "usage_events": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "model": {
+                        "type": "string"
+                      },
+                      "usage": {
+                        "type": "object",
+                        "properties": {
+                          "input_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "output_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "cache_creation_input_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "cache_creation_5m_input_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "cache_creation_1h_input_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "cache_read_input_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "reasoning_output_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "total_tokens": {
+                            "type": "number",
+                            "minimum": 0
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "usage"
                     ],
                     "additionalProperties": false
                   }

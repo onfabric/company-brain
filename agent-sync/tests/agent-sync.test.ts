@@ -27,6 +27,7 @@ const NANGO_WEBHOOK_SECRET_ENV = 'COMPANY_BRAIN_NANGO_WEBHOOK_SECRET';
 const SCAN_INTERVAL_ENV = 'COMPANY_BRAIN_AGENT_SYNC_SCAN_INTERVAL_MS';
 const ENV_SCAN_INTERVAL_MS = 120_000;
 const DEFAULT_NANGO_PUSH_TIMEOUT_MS = 5_000;
+const CODEX_CACHE_READ_INPUT_TOKENS = 200;
 
 const tempDirs: string[] = [];
 const originalFetch = globalThis.fetch;
@@ -155,6 +156,56 @@ describe('agent sync', () => {
     expect(parsed.session_id).toBe('codex-session-1');
     expect(parsed.messages.map((message) => message.role)).toEqual(['user', 'assistant']);
     expect(parsed.messages.some((message) => message.text.includes('Do not index me'))).toBe(false);
+  });
+
+  it('parses Codex token-count events as conversation usage', async () => {
+    const tempDir = await makeTempDir();
+    const transcriptPath = path.join(tempDir, 'codex-usage.jsonl');
+    await writeCodexTranscript(transcriptPath, {
+      sessionId: 'codex-usage-session',
+      cwd: tempDir,
+      text: 'Measure this run',
+      assistantText: 'Usage measured.',
+    });
+    await appendCodexTokenCount(transcriptPath);
+
+    const parsed = await parseTranscriptFile(transcriptPath, 'codex');
+
+    expect(parsed.usage).toEqual({
+      input_tokens: 500,
+      output_tokens: 120,
+      cache_read_input_tokens: 200,
+      reasoning_output_tokens: 30,
+      total_tokens: 650,
+    });
+    expect(parsed.usage_events).toHaveLength(1);
+    expect(parsed.usage_events[0]?.usage.cache_read_input_tokens).toBe(
+      CODEX_CACHE_READ_INPUT_TOKENS,
+    );
+  });
+
+  it('dedupes repeated Claude usage chunks by message id', async () => {
+    const tempDir = await makeTempDir();
+    const transcriptPath = path.join(tempDir, 'claude-usage.jsonl');
+    await writeClaudeUsageTranscript(transcriptPath, {
+      sessionId: 'claude-usage-session',
+      cwd: tempDir,
+    });
+
+    const parsed = await parseTranscriptFile(transcriptPath, 'claude-code');
+
+    expect(parsed.model).toBe('claude-sonnet-4-20250514');
+    expect(parsed.usage).toEqual({
+      input_tokens: 10,
+      output_tokens: 20,
+      cache_creation_input_tokens: 30,
+      cache_creation_5m_input_tokens: 30,
+      cache_creation_1h_input_tokens: 0,
+      cache_read_input_tokens: 40,
+      total_tokens: 100,
+    });
+    expect(parsed.usage_events).toHaveLength(1);
+    expect(parsed.messages.filter((message) => message.usage)).toHaveLength(1);
   });
 
   it('builds conversations with the generated user identifier', async () => {
@@ -467,6 +518,35 @@ async function appendCodexAssistantMessage(transcriptPath: string, text: string)
   );
 }
 
+async function appendCodexTokenCount(transcriptPath: string): Promise<void> {
+  await fs.promises.appendFile(
+    transcriptPath,
+    `\n${JSON.stringify({
+      timestamp: '2026-06-01T10:00:05.000Z',
+      type: 'event_msg',
+      payload: {
+        type: 'token_count',
+        info: {
+          last_token_usage: {
+            input_tokens: 500,
+            cached_input_tokens: CODEX_CACHE_READ_INPUT_TOKENS,
+            output_tokens: 120,
+            reasoning_output_tokens: 30,
+            total_tokens: 650,
+          },
+          total_token_usage: {
+            input_tokens: 500,
+            cached_input_tokens: CODEX_CACHE_READ_INPUT_TOKENS,
+            output_tokens: 120,
+            reasoning_output_tokens: 30,
+            total_tokens: 650,
+          },
+        },
+      },
+    })}`,
+  );
+}
+
 async function writeClaudeTranscript(
   transcriptPath: string,
   options: { sessionId: string; cwd: string; text: string; assistantText: string },
@@ -490,6 +570,56 @@ async function writeClaudeTranscript(
         message: {
           role: 'assistant',
           content: [{ type: 'text', text: options.assistantText }],
+        },
+      }),
+    ].join('\n'),
+  );
+}
+
+async function writeClaudeUsageTranscript(
+  transcriptPath: string,
+  options: { sessionId: string; cwd: string },
+): Promise<void> {
+  await fs.promises.mkdir(path.dirname(transcriptPath), { recursive: true });
+  const usage = {
+    input_tokens: 10,
+    cache_creation_input_tokens: 30,
+    cache_read_input_tokens: 40,
+    output_tokens: 20,
+    cache_creation: {
+      ephemeral_5m_input_tokens: 30,
+      ephemeral_1h_input_tokens: 0,
+    },
+  };
+  await fs.promises.writeFile(
+    transcriptPath,
+    [
+      JSON.stringify({
+        type: 'assistant',
+        sessionId: options.sessionId,
+        timestamp: '2026-06-01T12:30:05.000Z',
+        cwd: options.cwd,
+        requestId: 'req_usage',
+        message: {
+          id: 'msg_usage',
+          role: 'assistant',
+          model: 'claude-sonnet-4-20250514',
+          usage,
+          content: [{ type: 'tool_use', name: 'Read', input: { file_path: '/tmp/example.ts' } }],
+        },
+      }),
+      JSON.stringify({
+        type: 'assistant',
+        sessionId: options.sessionId,
+        timestamp: '2026-06-01T12:30:06.000Z',
+        cwd: options.cwd,
+        requestId: 'req_usage',
+        message: {
+          id: 'msg_usage',
+          role: 'assistant',
+          model: 'claude-sonnet-4-20250514',
+          usage,
+          content: [{ type: 'text', text: 'Read the file.' }],
         },
       }),
     ].join('\n'),

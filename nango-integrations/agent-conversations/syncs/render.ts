@@ -9,9 +9,13 @@ export function renderConversationBody(conversation: AgentConversation): string 
   pushOptionalLine(lines, 'User', conversation.user_identifier);
   pushOptionalLine(lines, 'Workspace', conversation.workspace);
   pushOptionalLine(lines, 'Repository', conversation.repo);
+  pushOptionalLine(lines, 'Model', conversation.model);
   lines.push(`- Started: ${conversation.created_at}`);
   lines.push(`- Updated: ${conversation.updated_at}`);
   pushOptionalLine(lines, 'Ended', conversation.ended_at);
+  if (conversation.usage?.total_tokens !== undefined) {
+    lines.push(`- Total tokens: ${conversation.usage.total_tokens}`);
+  }
   lines.push(EMPTY_LINE);
 
   for (const message of conversation.messages) {
