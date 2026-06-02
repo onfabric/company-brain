@@ -56,7 +56,7 @@ describe('RecordsService', () => {
   it('groups source/model rows into one entry per data source', async () => {
     const repo = new MockRecordsRepository(0, [
       {
-        data_source_id: 'slack',
+        nango_integration_id: 'slack',
         nango_model: 'SlackThread',
         count: 3,
         oldest_created_at: new Date('2026-01-01T00:00:00Z'),
@@ -64,7 +64,7 @@ describe('RecordsService', () => {
         newest_updated_at: new Date('2026-02-02T00:00:00Z'),
       },
       {
-        data_source_id: 'slack',
+        nango_integration_id: 'slack',
         nango_model: 'SlackMessage',
         count: 5,
         oldest_created_at: new Date('2026-01-03T00:00:00Z'),
@@ -72,7 +72,7 @@ describe('RecordsService', () => {
         newest_updated_at: new Date('2026-03-02T00:00:00Z'),
       },
       {
-        data_source_id: 'github',
+        nango_integration_id: 'github',
         nango_model: 'Issue',
         count: 2,
         oldest_created_at: new Date('2026-01-05T00:00:00Z'),
@@ -127,7 +127,7 @@ describe('RecordsService', () => {
       results: [
         {
           id: 'rec-1',
-          data_source_id: 'slack',
+          nango_integration_id: 'slack',
           nango_model: 'SlackThread',
           created_at: new Date('2026-01-01T00:00:00Z'),
           updated_at: new Date('2026-01-02T00:00:00Z'),

@@ -32,6 +32,15 @@ describe('migrations', () => {
     expect(ddl).toContain('DROP INDEX brain.records_bm25_idx');
     expect(ddl).toContain('bm25 (id, body, data_source_id, nango_model, created_at, updated_at)');
   });
+
+  it('normalizes the integration identifier into brain.data_sources', () => {
+    const ddl = readFileSync(join(migrationsDir, '0004_create_brain_data_sources.sql'), 'utf8');
+    expect(ddl).toContain('CREATE TABLE brain.data_sources');
+    expect(ddl).toContain('nango_integration_id text NOT NULL UNIQUE');
+    expect(ddl).toContain('RENAME COLUMN data_source_id TO nango_integration_id');
+    expect(ddl).toContain('ADD COLUMN data_source_id uuid REFERENCES brain.data_sources (id)');
+    expect(ddl).toContain('bm25 (id, body, data_source_id, nango_model, created_at, updated_at)');
+  });
 });
 
 describe('app', () => {
