@@ -10,6 +10,9 @@
     "deploy": "bun run build:backend-client && bun run nango deploy",
     "dev": "bun run build:backend-client && bun run nango dev",
     "dryrun": "bun run build:backend-client && bun run nango dryrun",
+    "bootstrap:integrations": "bun run _scripts/bootstrap-integrations.ts",
+    "bootstrap:connections": "bun run _scripts/bootstrap-connections.ts",
+    "check:connections": "bun run _scripts/check-connections.ts",
     "test": "bun run build:backend-client && bun test",
     "check:types": "bun run build:backend-client && bun run --bun tsc"
   },
