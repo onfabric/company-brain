@@ -7,10 +7,7 @@
 # Run as the Postgres superuser; connection comes from PG* in the environment.
 set -e
 
-# pg_cron is created in the database named by `cron.database_name` (PGDATABASE),
-# and requires shared_preload_libraries=pg_cron (set in db/entrypoint.sh).
 psql -v ON_ERROR_STOP=1 <<'SQL'
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pg_search;
-CREATE EXTENSION IF NOT EXISTS pg_cron;
 SQL
