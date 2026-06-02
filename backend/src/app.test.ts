@@ -26,6 +26,12 @@ describe('migrations', () => {
     expect(ddl).toContain('UNIQUE (nango_connection_id, nango_model, nango_id)');
     expect(ddl).toContain('USING bm25');
   });
+
+  it('widens the bm25 index with model and created_at for search filtering', () => {
+    const ddl = readFileSync(join(migrationsDir, '0003_extend_brain_records_bm25.sql'), 'utf8');
+    expect(ddl).toContain('DROP INDEX brain.records_bm25_idx');
+    expect(ddl).toContain('bm25 (id, body, data_source_id, nango_model, created_at, updated_at)');
+  });
 });
 
 describe('app', () => {

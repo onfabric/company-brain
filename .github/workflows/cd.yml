@@ -156,7 +156,7 @@ jobs:
         run: |
           tar czf bundle.tar.gz \
             docker-compose.yml docker-compose.prod.yml Caddyfile \
-            db/entrypoint.sh db/prepare \
+            db/prepare \
             nango/packages/providers/providers.yaml \
             -C infra/deploy on_box_deploy.sh
 

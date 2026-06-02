@@ -28,4 +28,9 @@ GRANT USAGE ON SCHEMA :"records" TO :"brain_user";
 GRANT SELECT, REFERENCES ON ALL TABLES IN SCHEMA :"records" TO :"brain_user";
 ALTER DEFAULT PRIVILEGES FOR ROLE :"owner" IN SCHEMA :"records"
   GRANT SELECT, REFERENCES ON TABLES TO :"brain_user";
+
+-- pg_search (created in 00-extensions.sh) exposes the bm25 search helpers
+-- (paradedb.score, paradedb.snippet) under the `paradedb` schema; the search
+-- API queries the bm25 index through them, so the brain role needs to reach it.
+GRANT USAGE ON SCHEMA paradedb TO :"brain_user";
 SQL
