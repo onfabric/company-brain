@@ -93,12 +93,6 @@ export const INTEGRATIONS: IntegrationSpec[] = [
     },
   },
   {
-    id: 'circleback-mcp',
-    provider: 'circleback-mcp',
-    displayName: 'Circleback',
-    forwardWebhooks: false,
-  },
-  {
     id: 'agent-conversations',
     provider: 'unauthenticated',
     displayName: 'Agent Conversations',
@@ -121,11 +115,6 @@ export const REQUIRED_CONNECTIONS: ConnectionSpec[] = [
     integrationId: 'github',
     connectionIdEnv: 'GH_CONNECTION_ID',
     defaultConnectionId: 'github',
-  },
-  {
-    integrationId: 'circleback-mcp',
-    connectionIdEnv: 'CIRCLEBACK_MCP_CONNECTION_ID',
-    defaultConnectionId: 'circleback-mcp',
   },
   {
     integrationId: 'agent-conversations',
