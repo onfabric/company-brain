@@ -28,6 +28,10 @@ After finishing an implementation, always run:
 
 When running a script, always check `package.json` scripts (root and per-app) for available commands first.
 
+## Pull requests
+
+- For PR creation and post-merge CI shepherding, use the repo-local `$open-pr` skill. Every PR opened with that skill should be shepherded through merge and post-merge CI.
+
 ## Conventions
 
 - Always use Conventional Commits for commit messages and PR titles.
