@@ -41,6 +41,15 @@ describe('migrations', () => {
     expect(ddl).toContain('ADD COLUMN data_source_id uuid REFERENCES brain.data_sources (id)');
     expect(ddl).toContain('bm25 (id, body, data_source_id, nango_model, created_at, updated_at)');
   });
+
+  it('drops the legacy nango_integration_id from records', () => {
+    const ddl = readFileSync(
+      join(migrationsDir, '0005_drop_records_nango_integration_id.sql'),
+      'utf8',
+    );
+    expect(ddl).toContain('ALTER COLUMN data_source_id SET NOT NULL');
+    expect(ddl).toContain('DROP COLUMN nango_integration_id');
+  });
 });
 
 describe('app', () => {

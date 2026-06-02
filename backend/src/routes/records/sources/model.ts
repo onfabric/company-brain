@@ -9,7 +9,7 @@ export const SourceModelSchema = t.Object({
 });
 
 export const SourceSchema = t.Object({
-  data_source_id: t.String(),
+  data_source_id: t.String({ format: 'uuid' }),
   count: t.Integer(),
   models: t.Array(SourceModelSchema),
 });

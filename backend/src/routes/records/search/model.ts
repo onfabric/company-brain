@@ -2,7 +2,7 @@ import { t } from 'elysia';
 
 export const SearchQuerySchema = t.Object({
   q: t.Optional(t.String({ minLength: 1 })),
-  data_source_id: t.Optional(t.String({ minLength: 1 })),
+  data_source_id: t.Optional(t.String({ format: 'uuid' })),
   model: t.Optional(t.String({ minLength: 1 })),
   created_after: t.Optional(t.String({ format: 'date-time' })),
   created_before: t.Optional(t.String({ format: 'date-time' })),
@@ -14,7 +14,7 @@ export const SearchQuerySchema = t.Object({
 
 export const SearchHitSchema = t.Object({
   id: t.String(),
-  data_source_id: t.String(),
+  data_source_id: t.String({ format: 'uuid' }),
   model: t.String(),
   created_at: t.String({ format: 'date-time' }),
   updated_at: t.String({ format: 'date-time' }),

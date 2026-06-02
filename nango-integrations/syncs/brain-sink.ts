@@ -25,7 +25,7 @@ export function createBrainSink(nango: BrainSinkNango) {
     const { error } = await client('/webhooks/batch-save', {
       method: 'POST',
       body: {
-        data_source_id: nango.providerConfigKey,
+        nango_integration_id: nango.providerConfigKey,
         connection_id: nango.nangoConnectionId,
         model,
         ids: records.map((record) => record.id),

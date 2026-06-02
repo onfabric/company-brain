@@ -2,13 +2,13 @@ import type { Records } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
 
 export type IngestBatch = {
-  dataSourceId: string;
+  nangoIntegrationId: string;
   connectionId: number;
   model: string;
   externalIds: string[];
 };
 
-export type SourceModelRow = Pick<Records, 'nango_integration_id' | 'nango_model'> & {
+export type SourceModelRow = Pick<Records, 'data_source_id' | 'nango_model'> & {
   count: number;
   oldest_created_at: Date;
   newest_created_at: Date;
@@ -29,7 +29,7 @@ export type SearchParams = {
 
 export type SearchResultRow = Pick<
   Records,
-  'id' | 'nango_integration_id' | 'nango_model' | 'created_at' | 'updated_at' | 'body'
+  'id' | 'data_source_id' | 'nango_model' | 'created_at' | 'updated_at' | 'body'
 > & {
   score: number | null;
   snippet: string | null;
@@ -55,7 +55,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     const rows = await this.sql<Pick<Records, 'id'>[]>`
       WITH data_source AS (
         INSERT INTO brain.data_sources (nango_integration_id)
-        VALUES (${batch.dataSourceId})
+        VALUES (${batch.nangoIntegrationId})
         ON CONFLICT (nango_integration_id)
           DO UPDATE SET nango_integration_id = brain.data_sources.nango_integration_id
         RETURNING id
@@ -79,7 +79,6 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
       INSERT INTO brain.records (
         created_at,
         updated_at,
-        nango_integration_id,
         data_source_id,
         nango_connection_id,
         nango_model,
@@ -89,7 +88,6 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
       SELECT
         (data->>'created_at')::timestamptz AS created_at,
         COALESCE((data->>'updated_at')::timestamptz, (data->>'created_at')::timestamptz) AS updated_at,
-        ${batch.dataSourceId} AS nango_integration_id,
         (SELECT id FROM data_source) AS data_source_id,
         connection_id AS nango_connection_id,
         model AS nango_model,
@@ -101,7 +99,6 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
       ON CONFLICT (nango_connection_id, nango_model, nango_id) DO UPDATE SET
         created_at = EXCLUDED.created_at,
         updated_at = EXCLUDED.updated_at,
-        nango_integration_id = EXCLUDED.nango_integration_id,
         data_source_id = EXCLUDED.data_source_id,
         body = EXCLUDED.body
       RETURNING id
@@ -113,15 +110,15 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
   listSourceModels(): Promise<SourceModelRow[]> {
     return this.sql<SourceModelRow[]>`
       SELECT
-        nango_integration_id,
+        data_source_id,
         nango_model,
         COUNT(*)::int AS count,
         MIN(created_at) AS oldest_created_at,
         MAX(created_at) AS newest_created_at,
         MAX(updated_at) AS newest_updated_at
       FROM brain.records
-      GROUP BY nango_integration_id, nango_model
-      ORDER BY nango_integration_id, nango_model
+      GROUP BY data_source_id, nango_model
+      ORDER BY data_source_id, nango_model
     `;
   }
 
@@ -137,7 +134,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     const results = await this.sql<SearchResultRow[]>`
       SELECT
         id,
-        nango_integration_id,
+        data_source_id,
         nango_model,
         created_at,
         updated_at,
@@ -162,7 +159,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
   private buildWhere(params: SearchParams) {
     const conditions = [
       params.query ? this.sql`body @@@ ${params.query}` : null,
-      params.dataSourceId ? this.sql`nango_integration_id = ${params.dataSourceId}` : null,
+      params.dataSourceId ? this.sql`data_source_id = ${params.dataSourceId}` : null,
       params.model ? this.sql`nango_model = ${params.model}` : null,
       params.createdAfter ? this.sql`created_at >= ${params.createdAfter}` : null,
       params.createdBefore ? this.sql`created_at < ${params.createdBefore}` : null,
