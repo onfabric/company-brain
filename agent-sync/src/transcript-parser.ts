@@ -4,6 +4,7 @@ import type {
   AgentMessage,
   AgentMessageRole,
   AgentSource,
+  AgentTokenUsage,
   AgentToolEvent,
   TranscriptParseResult,
 } from './types.js';
@@ -26,6 +27,7 @@ const TOOL_COMPLETED_STATUS = 'completed';
 
 interface ParserState extends TranscriptParseResult {
   callNames: Map<string, string>;
+  seenUsageKeys: Set<string>;
 }
 
 export async function parseTranscriptFile(
@@ -58,21 +60,26 @@ export async function parseTranscriptFile(
 function createState(): ParserState {
   return {
     messages: [],
+    usage_events: [],
     tool_events: [],
     tools_used: [],
     files_touched: [],
     callNames: new Map(),
+    seenUsageKeys: new Set(),
   };
 }
 
 function finalize(state: ParserState): TranscriptParseResult {
+  const usage = state.usage ?? sumUsage(state.usage_events.map((event) => event.usage));
   return {
     session_id: state.session_id,
     cwd: state.cwd,
     model: state.model,
     started_at: state.started_at,
     updated_at: state.updated_at,
+    usage,
     messages: state.messages,
+    usage_events: state.usage_events,
     tool_events: state.tool_events,
     tools_used: uniqueStrings([
       ...state.tools_used,
@@ -101,12 +108,21 @@ function readClaudeRecord(record: Record<string, unknown>, state: ParserState): 
   }
 
   const createdAt = toIso(field(record, 'timestamp'));
+  const model = firstString(message ? field(message, 'model') : undefined, state.model);
+  state.model = firstString(state.model, model);
+  const usage = claimUsageEvent(
+    state,
+    usageEventKey(record, message, createdAt),
+    normalizeUsage(message ? field(message, 'usage') : undefined),
+    createdAt,
+    model,
+  );
   const extracted = extractContent(
     message ? field(message, 'content') : undefined,
     role,
     createdAt,
   );
-  for (const messagePart of extracted.messages) {
+  for (const messagePart of withMessageUsage(extracted.messages, model, usage)) {
     pushMessage(state, messagePart);
   }
   pushToolEvents(state, extracted.toolEvents);
@@ -151,6 +167,7 @@ function readCodexPayload(
 ): void {
   const payloadType = asString(field(payload, 'type'));
   const createdAt = toIso(field(record, 'timestamp'));
+  state.model = firstString(field(payload, 'model'), state.model);
 
   if (payloadType === CODEX_MESSAGE_PAYLOAD_TYPE) {
     const role = asMessageRole(field(payload, 'role'));
@@ -232,6 +249,11 @@ function readCodexEventPayload(
   state: ParserState,
 ): void {
   const payloadType = asString(field(payload, 'type'));
+  if (payloadType === 'token_count') {
+    readCodexTokenCountPayload(payload, record, state);
+    return;
+  }
+
   if (!payloadType || !CODEX_MESSAGE_EVENT_TYPES.has(payloadType)) {
     return;
   }
@@ -247,6 +269,32 @@ function readCodexEventPayload(
     text: compactText(text),
     created_at: toIso(field(record, 'timestamp')),
   });
+}
+
+function readCodexTokenCountPayload(
+  payload: Record<string, unknown>,
+  record: Record<string, unknown>,
+  state: ParserState,
+): void {
+  const info = asRecord(field(payload, 'info'));
+  if (!info) {
+    return;
+  }
+
+  const createdAt = toIso(field(record, 'timestamp'));
+  const lastUsage = normalizeUsage(field(info, 'last_token_usage'));
+  claimUsageEvent(
+    state,
+    `codex:${createdAt ?? 'unknown'}:${JSON.stringify(lastUsage)}`,
+    lastUsage,
+    createdAt,
+    state.model,
+  );
+
+  const totalUsage = normalizeUsage(field(info, 'total_token_usage'));
+  if (totalUsage) {
+    state.usage = totalUsage;
+  }
 }
 
 function updateCommonMetadata(record: Record<string, unknown>, state: ParserState): void {
@@ -415,14 +463,28 @@ function pushMessage(state: ParserState, message: AgentMessage | undefined): voi
     text: compactText(message.text),
     files: message.files && message.files.length > 0 ? uniqueStrings(message.files) : undefined,
   };
-  const exists = state.messages.some(
+  const existingIndex = state.messages.findIndex(
     (existing) =>
       existing.role === normalized.role &&
       existing.tool_name === normalized.tool_name &&
       existing.text === normalized.text,
   );
-  if (!exists) {
+  if (existingIndex === -1) {
     state.messages.push(normalized);
+    return;
+  }
+
+  const existing = state.messages[existingIndex];
+  if (!existing) {
+    return;
+  }
+
+  if ((!existing.usage && normalized.usage) || (!existing.model && normalized.model)) {
+    state.messages[existingIndex] = {
+      ...existing,
+      model: existing.model ?? normalized.model,
+      usage: existing.usage ?? normalized.usage,
+    };
   }
 }
 
@@ -469,6 +531,10 @@ function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
 }
 
+function asNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
+}
+
 function asMessageRole(value: unknown): AgentMessageRole | undefined {
   if (value === 'user' || value === 'assistant' || value === 'system' || value === 'tool') {
     return value;
@@ -480,6 +546,159 @@ function firstString(...values: unknown[]): string | undefined {
   return values.find((value): value is string => typeof value === 'string' && value.length > 0);
 }
 
+function firstNumber(...values: unknown[]): number | undefined {
+  return values.find(
+    (value): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0,
+  );
+}
+
 function field(record: Record<string, unknown>, key: string): unknown {
   return record[key];
+}
+
+function claimUsageEvent(
+  state: ParserState,
+  key: string,
+  usage: AgentTokenUsage | undefined,
+  createdAt: string | undefined,
+  model: string | undefined,
+): AgentTokenUsage | undefined {
+  if (!usage || state.seenUsageKeys.has(key)) {
+    return undefined;
+  }
+
+  state.seenUsageKeys.add(key);
+  state.usage_events.push({
+    ...(createdAt ? { created_at: createdAt } : {}),
+    ...(model ? { model } : {}),
+    usage,
+  });
+  return usage;
+}
+
+function usageEventKey(
+  record: Record<string, unknown>,
+  message: Record<string, unknown> | undefined,
+  createdAt: string | undefined,
+): string {
+  return (
+    firstString(
+      message ? field(message, 'id') : undefined,
+      field(record, 'requestId'),
+      field(record, 'uuid'),
+    ) ?? `usage:${createdAt ?? 'unknown'}`
+  );
+}
+
+function withMessageUsage(
+  messages: AgentMessage[],
+  model: string | undefined,
+  usage: AgentTokenUsage | undefined,
+): AgentMessage[] {
+  return messages.map((message, index) => ({
+    ...message,
+    ...(model ? { model } : {}),
+    ...(index === 0 && usage ? { usage } : {}),
+  }));
+}
+
+function normalizeUsage(value: unknown): AgentTokenUsage | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const cacheCreation = asRecord(field(record, 'cache_creation'));
+  return withTotalTokens(
+    compactUsage({
+      input_tokens: asNumber(field(record, 'input_tokens')),
+      output_tokens: asNumber(field(record, 'output_tokens')),
+      cache_creation_input_tokens: asNumber(field(record, 'cache_creation_input_tokens')),
+      cache_creation_5m_input_tokens: cacheCreation
+        ? asNumber(field(cacheCreation, 'ephemeral_5m_input_tokens'))
+        : undefined,
+      cache_creation_1h_input_tokens: cacheCreation
+        ? asNumber(field(cacheCreation, 'ephemeral_1h_input_tokens'))
+        : undefined,
+      cache_read_input_tokens: firstNumber(
+        field(record, 'cache_read_input_tokens'),
+        field(record, 'cached_input_tokens'),
+      ),
+      reasoning_output_tokens: asNumber(field(record, 'reasoning_output_tokens')),
+      total_tokens: asNumber(field(record, 'total_tokens')),
+    }),
+  );
+}
+
+function compactUsage(usage: AgentTokenUsage): AgentTokenUsage | undefined {
+  const entries = Object.entries(usage).filter(
+    (entry): entry is [keyof AgentTokenUsage, number] => {
+      const [, value] = entry;
+      return value !== undefined;
+    },
+  );
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(entries) as AgentTokenUsage;
+}
+
+function withTotalTokens(usage: AgentTokenUsage | undefined): AgentTokenUsage | undefined {
+  if (!usage) {
+    return undefined;
+  }
+
+  if (usage.total_tokens !== undefined) {
+    return usage;
+  }
+
+  const cacheCreationTokens =
+    usage.cache_creation_input_tokens ??
+    (usage.cache_creation_5m_input_tokens ?? 0) + (usage.cache_creation_1h_input_tokens ?? 0);
+  const totalTokens =
+    (usage.input_tokens ?? 0) +
+    (usage.output_tokens ?? 0) +
+    cacheCreationTokens +
+    (usage.cache_read_input_tokens ?? 0) +
+    (usage.reasoning_output_tokens ?? 0);
+
+  return totalTokens > 0 ? { ...usage, total_tokens: totalTokens } : usage;
+}
+
+function sumUsage(usages: AgentTokenUsage[]): AgentTokenUsage | undefined {
+  const total = compactUsage(
+    usages.reduce<AgentTokenUsage>(
+      (sum, usage) => ({
+        input_tokens: add(sum.input_tokens, usage.input_tokens),
+        output_tokens: add(sum.output_tokens, usage.output_tokens),
+        cache_creation_input_tokens: add(
+          sum.cache_creation_input_tokens,
+          usage.cache_creation_input_tokens,
+        ),
+        cache_creation_5m_input_tokens: add(
+          sum.cache_creation_5m_input_tokens,
+          usage.cache_creation_5m_input_tokens,
+        ),
+        cache_creation_1h_input_tokens: add(
+          sum.cache_creation_1h_input_tokens,
+          usage.cache_creation_1h_input_tokens,
+        ),
+        cache_read_input_tokens: add(sum.cache_read_input_tokens, usage.cache_read_input_tokens),
+        reasoning_output_tokens: add(sum.reasoning_output_tokens, usage.reasoning_output_tokens),
+        total_tokens: add(sum.total_tokens, usage.total_tokens),
+      }),
+      {},
+    ),
+  );
+
+  return withTotalTokens(total);
+}
+
+function add(left: number | undefined, right: number | undefined): number | undefined {
+  if (left === undefined && right === undefined) {
+    return undefined;
+  }
+  return (left ?? 0) + (right ?? 0);
 }
