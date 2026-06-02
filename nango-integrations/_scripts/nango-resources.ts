@@ -25,6 +25,11 @@ export type BootstrappedConnectionSpec = ConnectionSpec & {
   bootstrap: NonNullable<ConnectionSpec['bootstrap']>;
 };
 
+export type ConnectionData = {
+  connection_id: string;
+  provider_config_key: string;
+};
+
 export const SLACK_SCOPES = [
   'channels:read',
   'channels:history',
@@ -133,8 +138,37 @@ export const BOOTSTRAPPED_CONNECTIONS: BootstrappedConnectionSpec[] =
   REQUIRED_CONNECTIONS.filter(isBootstrappedConnection);
 export const NOT_FOUND_STATUS = 404;
 
+export async function parseConnectionResponse(
+  response: Response,
+  integrationId: string,
+  connectionId: string,
+): Promise<ConnectionData> {
+  const body = (await response.json()) as unknown;
+  if (isConnectionData(body)) {
+    return body;
+  }
+
+  if (isRecord(body) && isConnectionData(body.data)) {
+    return body.data;
+  }
+
+  throw new Error(`Nango returned no connection data for ${integrationId}/${connectionId}`);
+}
+
 function isBootstrappedConnection(
   connection: ConnectionSpec,
 ): connection is BootstrappedConnectionSpec {
   return Boolean(connection.bootstrap);
+}
+
+function isConnectionData(value: unknown): value is ConnectionData {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return typeof value.connection_id === 'string' && typeof value.provider_config_key === 'string';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
