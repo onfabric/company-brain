@@ -1,14 +1,8 @@
-import { BOOTSTRAPPED_CONNECTIONS, NOT_FOUND_STATUS } from './nango-resources.js';
-
-type ConnectionData = {
-  connection_id: string;
-  provider_config_key: string;
-};
-
-type ConnectionResponse = {
-  data?: ConnectionData;
-  error?: unknown;
-};
+import {
+  BOOTSTRAPPED_CONNECTIONS,
+  NOT_FOUND_STATUS,
+  parseConnectionResponse,
+} from './nango-resources.js';
 
 const environment = firstPositionalArg() ?? optionalEnv('NANGO_ENV') ?? 'dev';
 const baseUrl = requiredEnv('NANGO_HOSTPORT', 'NANGO_BASE_URL').replace(/\/+$/, '');
@@ -48,10 +42,7 @@ async function connectionExists(integrationId: string, connectionId: string): Pr
     return false;
   }
 
-  const body = await parseJson<ConnectionResponse>(response);
-  if (!body.data) {
-    throw new Error(`Nango returned no connection data for ${integrationId}/${connectionId}`);
-  }
+  await parseConnectionResponse(response, integrationId, connectionId);
 
   return true;
 }
@@ -127,10 +118,6 @@ async function request(
   }
 
   return response;
-}
-
-async function parseJson<T>(response: Response): Promise<T> {
-  return (await response.json()) as T;
 }
 
 function firstPositionalArg(): string | undefined {
