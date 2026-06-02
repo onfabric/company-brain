@@ -3,7 +3,6 @@ export type IntegrationSpec = {
   provider: string;
   displayName: string;
   forwardWebhooks: boolean;
-  authType?: 'MCP_OAUTH2';
   oauth?: {
     clientIdEnv: string;
     clientSecretEnv: string;
@@ -98,7 +97,6 @@ export const INTEGRATIONS: IntegrationSpec[] = [
     provider: 'circleback-mcp',
     displayName: 'Circleback',
     forwardWebhooks: false,
-    authType: 'MCP_OAUTH2',
   },
   {
     id: 'agent-conversations',
