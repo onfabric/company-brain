@@ -72,6 +72,23 @@ data "aws_iam_policy_document" "github_deploy" {
     resources = ["*"]
   }
 
+  statement {
+    sid       = "SsmReadSecrets"
+    actions   = ["ssm:GetParameter"]
+    resources = ["${local.ssm_param_arn_prefix}/*"]
+  }
+
+  statement {
+    sid       = "KmsDecryptViaSsm"
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${data.aws_region.current.name}.amazonaws.com"]
+    }
+  }
+
   # Trigger the deploy on the instance and read command status.
   statement {
     sid       = "SsmSend"

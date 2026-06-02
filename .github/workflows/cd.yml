@@ -193,13 +193,12 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
 
   deploy-nango-integrations:
-    needs: deploy
+    needs: [terraform-apply, deploy]
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: nango-integrations
     env:
-      NANGO_SECRET_KEY_DEV: ${{ secrets.NANGO_SECRET_KEY_DEV }}
       NOTION_CLIENT_ID: ${{ secrets.NOTION_CLIENT_ID }}
       NOTION_CLIENT_SECRET: ${{ secrets.NOTION_CLIENT_SECRET }}
       SLACK_CLIENT_ID: ${{ secrets.SLACK_CLIENT_ID }}
@@ -218,6 +217,18 @@ jobs:
       NANGO_CLI_DEPENDENCY_UPDATE: "false"
     steps:
       - uses: actions/checkout@v6
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Load Nango API key
+        run: |
+          nango_secret_key_dev="$(aws ssm get-parameter --name "${SSM_SECRET_PREFIX}/nango_secret_key_dev" --with-decryption --query Parameter.Value --output text)"
+          echo "::add-mask::${nango_secret_key_dev}"
+          echo "NANGO_SECRET_KEY_DEV=${nango_secret_key_dev}" >> "$GITHUB_ENV"
 
       - name: Use deployed Nango host
         run: echo "NANGO_HOSTPORT=https://${NANGO_HOSTNAME}" >> "$GITHUB_ENV"

@@ -16,6 +16,8 @@ resource "random_password" "dashboard" {
   special = false
 }
 
+resource "random_uuid" "nango_secret_key_dev" {}
+
 resource "aws_ssm_parameter" "db_password" {
   name  = "${var.ssm_secret_prefix}/nango_db_password"
   type  = "SecureString"
@@ -38,6 +40,12 @@ resource "aws_ssm_parameter" "dashboard_password" {
   name  = "${var.ssm_secret_prefix}/nango_dashboard_password"
   type  = "SecureString"
   value = random_password.dashboard.result
+}
+
+resource "aws_ssm_parameter" "nango_secret_key_dev" {
+  name  = "${var.ssm_secret_prefix}/nango_secret_key_dev"
+  type  = "SecureString"
+  value = random_uuid.nango_secret_key_dev.result
 }
 
 # Dozzle simple-auth users.yml. Can't be generated here (it holds a bcrypt
