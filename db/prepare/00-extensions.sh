@@ -7,10 +7,13 @@
 # Run as the Postgres superuser; connection comes from PG* in the environment.
 set -e
 
-# pg_cron is created in the database named by `cron.database_name` (PGDATABASE),
-# and requires shared_preload_libraries=pg_cron (set in db/entrypoint.sh).
+# pg_cron is deliberately not created here. It can only live in the database named
+# by `cron.database_name` (the `postgres` default, where ParadeDB's image bootstrap
+# already installs it) — pg_cron rejects `CREATE EXTENSION` in any other database,
+# and `cron.database_name` is a postmaster setting we can't flip from a prepare
+# script. To run scheduled jobs against this database, use
+# cron.schedule_in_database(..., '<db>') from a connection to the `postgres` DB.
 psql -v ON_ERROR_STOP=1 <<'SQL'
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pg_search;
-CREATE EXTENSION IF NOT EXISTS pg_cron;
 SQL
