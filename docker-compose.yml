@@ -16,9 +16,9 @@ x-nango-base: &nango-base
     - nango
 
 services:
-  nango-db:
+  postgres-db:
     image: *db-image
-    container_name: nango-db
+    container_name: postgres-db
     environment:
       POSTGRES_USER: ${NANGO_DB_USER}
       POSTGRES_DB: ${NANGO_DB_NAME}
@@ -48,12 +48,12 @@ services:
       - NANGO_ENCRYPTION_KEY
       - NANGO_DB_USER
       - NANGO_DB_PASSWORD
-      - NANGO_DB_HOST=nango-db
+      - NANGO_DB_HOST=postgres-db
       - NANGO_DB_PORT=5432
       - NANGO_DB_NAME
       - NANGO_DB_SCHEMA
       - NANGO_DB_SSL=false
-      - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+      - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
       - RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
       - SERVER_PORT=3003
       - CSP_REPORT_ONLY=true
@@ -88,7 +88,7 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      nango-db:
+      postgres-db:
         condition: service_healthy
       nango-elasticsearch:
         condition: service_healthy
@@ -100,12 +100,12 @@ services:
       - NANGO_ENCRYPTION_KEY
       - NANGO_DB_USER
       - NANGO_DB_PASSWORD
-      - NANGO_DB_HOST=nango-db
+      - NANGO_DB_HOST=postgres-db
       - NANGO_DB_PORT=5432
       - NANGO_DB_NAME
       - NANGO_DB_SCHEMA
       - NANGO_DB_SSL=false
-      - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+      - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
       - RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
       - NANGO_ORCHESTRATOR_PORT=3008
       - NANGO_REDIS_URL=redis://nango-redis:6379
@@ -121,7 +121,7 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      nango-db:
+      postgres-db:
         condition: service_healthy
       nango-redis:
         condition: service_healthy
@@ -133,12 +133,12 @@ services:
       - NANGO_ENCRYPTION_KEY
       - NANGO_DB_USER
       - NANGO_DB_PASSWORD
-      - NANGO_DB_HOST=nango-db
+      - NANGO_DB_HOST=postgres-db
       - NANGO_DB_PORT=5432
       - NANGO_DB_NAME
       - NANGO_DB_SCHEMA
       - NANGO_DB_SSL=false
-      - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+      - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
       - RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
       - NANGO_PERSIST_PORT=3007
       - NANGO_REDIS_URL=redis://nango-redis:6379
@@ -154,7 +154,7 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      nango-db:
+      postgres-db:
         condition: service_healthy
       nango-redis:
         condition: service_healthy
@@ -166,12 +166,12 @@ services:
       - NANGO_ENCRYPTION_KEY
       - NANGO_DB_USER
       - NANGO_DB_PASSWORD
-      - NANGO_DB_HOST=nango-db
+      - NANGO_DB_HOST=postgres-db
       - NANGO_DB_PORT=5432
       - NANGO_DB_NAME
       - NANGO_DB_SCHEMA
       - NANGO_DB_SSL=false
-      - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+      - RECORDS_DATABASE_URL=postgresql://${NANGO_DB_USER}:${NANGO_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
       - RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
       - NANGO_JOBS_PORT=3005
       - ORCHESTRATOR_SERVICE_URL=http://nango-orchestrator:3008
@@ -195,7 +195,7 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      nango-db:
+      postgres-db:
         condition: service_healthy
       nango-redis:
         condition: service_healthy
@@ -246,13 +246,13 @@ services:
   # Idempotent DB bootstrap: runs the numbered scripts in db/prepare in order, as
   # the Postgres superuser, before dependents start. Unlike the initdb scripts
   # (which only run on a brand-new data dir), this runs on every up, so it also
-  # provisions the already-initialized Nango database. Add more scripts as needed.
+  # provisions an already-initialized database. Add more scripts as needed.
   db-prepare:
     image: *db-image
     container_name: db-prepare
     entrypoint: ["sh", "/db-prepare/entrypoint.sh"]
     environment:
-      - PGHOST=nango-db
+      - PGHOST=postgres-db
       - PGUSER=${NANGO_DB_USER}
       - PGPASSWORD=${NANGO_DB_PASSWORD}
       - PGDATABASE=${NANGO_DB_NAME}
@@ -262,7 +262,7 @@ services:
     volumes:
       - ./db/prepare:/db-prepare:ro
     depends_on:
-      nango-db:
+      postgres-db:
         condition: service_healthy
     restart: "no"
     networks:
@@ -275,7 +275,7 @@ services:
       dockerfile: backend/Dockerfile
     container_name: brain
     environment:
-      - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+      - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
     ports:
       - "127.0.0.1:${BRAIN_SERVER_PORT}:3010"
     healthcheck:
@@ -298,7 +298,7 @@ services:
       dockerfile: usage-dashboard/Dockerfile
     container_name: usage-dashboard
     environment:
-      - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@nango-db:5432/${NANGO_DB_NAME}
+      - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
       - AI_USAGE_PRICING_JSON
       - USAGE_DASHBOARD_USERNAME
       - USAGE_DASHBOARD_PASSWORD
