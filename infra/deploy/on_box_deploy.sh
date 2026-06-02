@@ -72,6 +72,24 @@ compose="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
 log "Pulling images"
 $compose pull
 
+# Bring the database up first and wait for it to be healthy before starting the
+# rest. On a fresh volume ParadeDB's init restarts the data dir once mid-init;
+# bringing every service up at once makes dependents race that restart, so the
+# depends_on:service_healthy gate sees nango-db briefly unhealthy and aborts the
+# deploy. Starting it alone lets it settle, so the later up never races it.
+log "Starting nango-db"
+$compose up -d nango-db
+log "Waiting for nango-db to be healthy"
+db_deadline=$((SECONDS + 240))
+until [ "$(docker inspect -f '{{.State.Health.Status}}' nango-db 2>/dev/null)" = "healthy" ]; do
+  if [ "$SECONDS" -ge "$db_deadline" ]; then
+    log "nango-db did not become healthy in time:"
+    docker logs nango-db 2>&1 | tail -40
+    exit 1
+  fi
+  sleep 5
+done
+
 log "Starting services (up -d --remove-orphans)"
 $compose up -d --remove-orphans
 
