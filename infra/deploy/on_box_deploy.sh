@@ -16,7 +16,6 @@ secret() {
     --query Parameter.Value --output text
 }
 
-NANGO_ENCRYPTION_KEY="$(secret nango_encryption_key)"
 NANGO_DB_PASSWORD="$(secret nango_db_password)"
 BRAIN_DB_PASSWORD="$(secret brain_db_password)"
 NANGO_DASHBOARD_USERNAME="$(secret nango_dashboard_username)"
@@ -31,7 +30,9 @@ secret dozzle_users > dozzle/data/users.yml
 # Render .env consumed by docker compose. Secrets come from SSM; the rest is
 # fixed prod config.
 cat > .env <<EOF
-NANGO_ENCRYPTION_KEY=${NANGO_ENCRYPTION_KEY}
+# Encryption intentionally disabled so the brain can read nango_records as
+# plaintext over SQL. Leave empty; do not wire a key back in.
+NANGO_ENCRYPTION_KEY=
 NANGO_DB_USER=nango
 NANGO_DB_PASSWORD=${NANGO_DB_PASSWORD}
 NANGO_DB_NAME=nango

@@ -1,10 +1,5 @@
 # Secrets the instance reads at deploy time. Generated once and kept in state
-# (S3 backend is encrypted + access-controlled). Do NOT taint/regenerate
-# encryption_key after data exists — it decrypts everything Nango stores.
-
-resource "random_id" "encryption_key" {
-  byte_length = 32 # 32 raw bytes -> valid base64 key Nango expects
-}
+# (S3 backend is encrypted + access-controlled).
 
 resource "random_password" "db" {
   length  = 32
@@ -19,12 +14,6 @@ resource "random_password" "brain_db" {
 resource "random_password" "dashboard" {
   length  = 24
   special = false
-}
-
-resource "aws_ssm_parameter" "encryption_key" {
-  name  = "${var.ssm_secret_prefix}/nango_encryption_key"
-  type  = "SecureString"
-  value = random_id.encryption_key.b64_std
 }
 
 resource "aws_ssm_parameter" "db_password" {
