@@ -30,11 +30,11 @@ The Nango server is not started from this folder. The CLI compiles these functio
 
 ## Integration Bootstrap
 
-`bun run bootstrap:integrations dev` creates the Nango integrations used by the Company Brain syncs if they do not already exist. Re-run with `--update-existing` to repair display names, webhook forwarding, client IDs, and scopes on existing integrations.
+`bun run bootstrap:integrations dev` creates the Nango integrations used by the Company Brain syncs if they do not already exist. Re-run with `--update-existing` to repair display names, webhook forwarding, client IDs, scopes, and missing Circleback MCP OAuth registration on existing integrations.
 
 `bun run bootstrap:connections dev` creates non-OAuth connections that CI can safely provision. It currently creates or updates `agent-conversations/local-agent-sync` with `credentials.type = "NONE"` and connection metadata `{ "webhookSecret": "..." }`.
 
-Circleback uses dynamic MCP OAuth registration. If Nango cannot start the Circleback OAuth flow after bootstrap, create or repair that integration once in the dashboard so Nango registers the MCP OAuth client.
+Circleback uses dynamic MCP OAuth registration. Bootstrap creates it through Nango's v1 integration API so Nango registers the MCP OAuth client the same way dashboard creation does.
 
 Deploy order matters on a fresh environment:
 

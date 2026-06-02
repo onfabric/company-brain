@@ -1,11 +1,26 @@
 import { describe, expect, it } from 'bun:test';
 
-import { parseConnectionResponse, parseConnectionsResponse } from './nango-resources.js';
+import {
+  INTEGRATIONS,
+  parseConnectionResponse,
+  parseConnectionsResponse,
+} from './nango-resources.js';
 
 const connection = {
   connection_id: 'local-agent-sync',
   provider_config_key: 'agent-conversations',
 };
+
+describe('INTEGRATIONS', () => {
+  it('marks Circleback as an MCP OAuth integration', () => {
+    const circleback = INTEGRATIONS.find((integration) => integration.id === 'circleback-mcp');
+
+    expect(circleback).toMatchObject({
+      provider: 'circleback-mcp',
+      authType: 'MCP_OAUTH2',
+    });
+  });
+});
 
 describe('parseConnectionResponse', () => {
   it('accepts public connection responses', async () => {
