@@ -3,7 +3,6 @@ export type IntegrationSpec = {
   provider: string;
   displayName: string;
   forwardWebhooks: boolean;
-  authType?: 'MCP_OAUTH2';
   oauth?: {
     clientIdEnv: string;
     clientSecretEnv: string;
@@ -94,13 +93,6 @@ export const INTEGRATIONS: IntegrationSpec[] = [
     },
   },
   {
-    id: 'circleback-mcp',
-    provider: 'circleback-mcp',
-    displayName: 'Circleback',
-    forwardWebhooks: false,
-    authType: 'MCP_OAUTH2',
-  },
-  {
     id: 'agent-conversations',
     provider: 'unauthenticated',
     displayName: 'Agent Conversations',
@@ -123,11 +115,6 @@ export const REQUIRED_CONNECTIONS: ConnectionSpec[] = [
     integrationId: 'github',
     connectionIdEnv: 'GH_CONNECTION_ID',
     defaultConnectionId: 'github',
-  },
-  {
-    integrationId: 'circleback-mcp',
-    connectionIdEnv: 'CIRCLEBACK_MCP_CONNECTION_ID',
-    defaultConnectionId: 'circleback-mcp',
   },
   {
     integrationId: 'agent-conversations',
