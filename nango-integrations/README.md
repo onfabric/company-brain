@@ -40,7 +40,7 @@ Deploy order matters on a fresh environment:
 
 1. Run `bun run bootstrap:integrations dev --update-existing`.
 2. Run `bun run bootstrap:connections dev`.
-3. Create the OAuth/MCP dashboard connections for `notion/notion`, `slack/slack`, `github/github`, and `circleback-mcp/circleback-mcp`.
+3. Create one OAuth/MCP dashboard connection for each integration: `notion`, `slack`, `github`, and `circleback-mcp`. Nango may assign generated UUID connection IDs for these manual connections.
 4. Run `bun run check:connections dev`.
 5. Run `bun run deploy dev`.
 
@@ -62,7 +62,7 @@ AGENT_SYNC_WEBHOOK_SECRET=...
 
 Scopes default to the lists below. Override them with GitHub Actions variables `SLACK_SCOPES` and `GH_OAUTH_SCOPES` when needed.
 
-Connection IDs default to the integration ID, except `agent-conversations`, which defaults to `local-agent-sync`. Override them with `NOTION_CONNECTION_ID`, `SLACK_CONNECTION_ID`, `GH_CONNECTION_ID`, `CIRCLEBACK_MCP_CONNECTION_ID`, and `AGENT_CONVERSATIONS_CONNECTION_ID`.
+The connection gate checks configured connection IDs first, then accepts any existing dashboard connection for the OAuth/MCP integrations. Set `NOTION_CONNECTION_ID`, `SLACK_CONNECTION_ID`, `GH_CONNECTION_ID`, or `CIRCLEBACK_MCP_CONNECTION_ID` only when you want the gate to prefer a specific manual connection. The `agent-conversations` connection is provisioned by CI and defaults to `local-agent-sync`; override it with `AGENT_CONVERSATIONS_CONNECTION_ID` only if the webhook sender uses a different connection ID.
 
 Slack is configured with:
 

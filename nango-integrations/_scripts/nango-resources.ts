@@ -30,6 +30,10 @@ export type ConnectionData = {
   provider_config_key: string;
 };
 
+export type ConnectionsData = {
+  connections: ConnectionData[];
+};
+
 export const SLACK_SCOPES = [
   'channels:read',
   'channels:history',
@@ -153,6 +157,20 @@ export async function parseConnectionResponse(
   }
 
   throw new Error(`Nango returned no connection data for ${integrationId}/${connectionId}`);
+}
+
+export async function parseConnectionsResponse(
+  response: Response,
+  integrationId: string,
+): Promise<ConnectionsData> {
+  const body = (await response.json()) as unknown;
+  if (!isRecord(body) || !Array.isArray(body.connections)) {
+    throw new Error(`Nango returned no connection list for ${integrationId}`);
+  }
+
+  return {
+    connections: body.connections.filter(isConnectionData),
+  };
 }
 
 function isBootstrappedConnection(
