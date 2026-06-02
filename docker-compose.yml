@@ -36,7 +36,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # Generous so a fresh-volume init on a small/loaded box has time to settle:
+      # ParadeDB preloads pg_search/pg_cron/vector and the data dir restarts once
+      # mid-init. Too short and a full `up` (DB initializing while every other
+      # service starts) trips the depends_on:service_healthy gate and aborts.
+      start_period: 120s
     restart: always
     networks:
       - nango
