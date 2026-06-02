@@ -21,6 +21,57 @@ bun run dev
 bun run test
 bun run dryrun <sync-name> <connection-id> -e dev --integration-id slack --validate
 bun run deploy dev --integration slack
+bun run bootstrap:integrations dev
+bun run bootstrap:connections dev
+bun run check:connections dev
 ```
 
 The Nango server is not started from this folder. The CLI compiles these functions locally and deploys them to the Nango server configured by the environment variables.
+
+## Integration Bootstrap
+
+`bun run bootstrap:integrations dev` creates the Nango integrations used by the Company Brain syncs if they do not already exist. Re-run with `--update-existing` to repair display names, webhook forwarding, client IDs, and scopes on existing integrations.
+
+`bun run bootstrap:connections dev` creates non-OAuth connections that CI can safely provision. It currently creates or updates `agent-conversations/local-agent-sync` with `credentials.type = "NONE"` and connection metadata `{ "webhookSecret": "..." }`.
+
+Circleback uses dynamic MCP OAuth registration. If Nango cannot start the Circleback OAuth flow after bootstrap, create or repair that integration once in the dashboard so Nango registers the MCP OAuth client.
+
+Deploy order matters on a fresh environment:
+
+1. Run `bun run bootstrap:integrations dev --update-existing`.
+2. Run `bun run bootstrap:connections dev`.
+3. Create the OAuth/MCP dashboard connections for `notion/notion`, `slack/slack`, `github/github`, and `circleback-mcp/circleback-mcp`.
+4. Run `bun run check:connections dev`.
+5. Run `bun run deploy dev`.
+
+The CD workflow follows that order and intentionally stops before deploying syncs while required OAuth/MCP connections are missing.
+
+Required environment:
+
+```sh
+NANGO_HOSTPORT=https://nango-dev.onfabric.io
+NANGO_SECRET_KEY_DEV=...
+NOTION_CLIENT_ID=...
+NOTION_CLIENT_SECRET=...
+SLACK_CLIENT_ID=...
+SLACK_CLIENT_SECRET=...
+GH_OAUTH_CLIENT_ID=...
+GH_OAUTH_CLIENT_SECRET=...
+AGENT_SYNC_WEBHOOK_SECRET=...
+```
+
+Scopes default to the lists below. Override them with GitHub Actions variables `SLACK_SCOPES` and `GH_OAUTH_SCOPES` when needed.
+
+Connection IDs default to the integration ID, except `agent-conversations`, which defaults to `local-agent-sync`. Override them with `NOTION_CONNECTION_ID`, `SLACK_CONNECTION_ID`, `GH_CONNECTION_ID`, `CIRCLEBACK_MCP_CONNECTION_ID`, and `AGENT_CONVERSATIONS_CONNECTION_ID`.
+
+Slack is configured with:
+
+```txt
+channels:read,channels:history,channels:join,groups:read,groups:history,im:read,im:history,mpim:read,mpim:history,users:read,users:read.email
+```
+
+GitHub is configured with:
+
+```txt
+public_repo,read:org,read:user,repo,user:email,user
+```
