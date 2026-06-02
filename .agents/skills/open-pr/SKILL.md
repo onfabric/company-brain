@@ -9,26 +9,10 @@ Use this skill to finish work by opening a pull request and shepherding it until
 
 ## Ground Rules
 
-- Obey the nearest `AGENTS.md` instructions before changing files, running commands, committing, or opening PRs.
-- Check the root `package.json` and relevant package `package.json` scripts before running scripts.
 - Preserve user changes. Do not stage, rewrite, revert, or clean up unrelated work.
 - Use non-interactive git and GitHub CLI commands.
 - Never push directly to `main`.
-- Use Conventional Commit style for commit messages and PR titles.
-- Write PR descriptions for reviewers who did not see the implementation happen.
 - Keep PRs narrow. If post-merge CI fails, fix only the failure caused by the merged PR or the smallest clear compatibility issue exposed by it.
-
-## Open The PR
-
-1. Inspect `git status --short`, the current branch, recent commits, and the relevant diff.
-2. If implementation work is still needed, complete it before preparing the PR.
-3. Run the repository's required validation from `AGENTS.md`.
-4. Create or reuse a focused branch. Prefer the `codex/` prefix for new branches.
-5. Stage only intended files.
-6. Commit with a Conventional Commit message unless the intended commit already exists.
-7. Push the branch and open a PR with `gh pr create`.
-8. Write the PR body using the description guidelines below.
-9. Capture the PR number, PR URL, branch name, and base branch.
 
 ## Write The PR Description
 
