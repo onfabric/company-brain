@@ -8,9 +8,9 @@ export const batchSaveController = new Elysia()
   .post(
     '/webhooks/batch-save',
     async ({ body, recordsService, logger, status }) => {
-      logger.info(`handling batch-save for ${body.data_source_id} ${body.model}`);
+      logger.info(`handling batch-save for ${body.nango_integration_id} ${body.model}`);
       const result = await recordsService.ingestBatch({
-        dataSourceId: body.data_source_id,
+        nangoIntegrationId: body.nango_integration_id,
         connectionId: body.connection_id,
         model: body.model,
         externalIds: body.ids,

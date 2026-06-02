@@ -41,7 +41,7 @@ describe('RecordsService', () => {
     const service = new RecordsService(repo);
 
     const batch: IngestBatch = {
-      dataSourceId: 'slack',
+      nangoIntegrationId: 'slack',
       connectionId: 7,
       model: 'SlackThread',
       externalIds: ['a', 'b', 'c'],
@@ -56,7 +56,8 @@ describe('RecordsService', () => {
   it('groups source/model rows into one entry per data source', async () => {
     const repo = new MockRecordsRepository(0, [
       {
-        nango_integration_id: 'slack',
+        data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_key: 'slack',
         nango_model: 'SlackThread',
         count: 3,
         oldest_created_at: new Date('2026-01-01T00:00:00Z'),
@@ -64,7 +65,8 @@ describe('RecordsService', () => {
         newest_updated_at: new Date('2026-02-02T00:00:00Z'),
       },
       {
-        nango_integration_id: 'slack',
+        data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_key: 'slack',
         nango_model: 'SlackMessage',
         count: 5,
         oldest_created_at: new Date('2026-01-03T00:00:00Z'),
@@ -72,7 +74,8 @@ describe('RecordsService', () => {
         newest_updated_at: new Date('2026-03-02T00:00:00Z'),
       },
       {
-        nango_integration_id: 'github',
+        data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+        data_source_key: 'github',
         nango_model: 'Issue',
         count: 2,
         oldest_created_at: new Date('2026-01-05T00:00:00Z'),
@@ -86,7 +89,8 @@ describe('RecordsService', () => {
 
     expect(sources).toEqual([
       {
-        data_source_id: 'slack',
+        data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_key: 'slack',
         count: 8,
         models: [
           {
@@ -106,7 +110,8 @@ describe('RecordsService', () => {
         ],
       },
       {
-        data_source_id: 'github',
+        data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+        data_source_key: 'github',
         count: 2,
         models: [
           {
@@ -127,7 +132,7 @@ describe('RecordsService', () => {
       results: [
         {
           id: 'rec-1',
-          nango_integration_id: 'slack',
+          data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
           nango_model: 'SlackThread',
           created_at: new Date('2026-01-01T00:00:00Z'),
           updated_at: new Date('2026-01-02T00:00:00Z'),
@@ -141,7 +146,7 @@ describe('RecordsService', () => {
 
     const result = await service.search({
       query: 'hello',
-      dataSourceId: 'slack',
+      dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
       updatedAfter: '2026-01-01',
       limit: 10,
       offset: 0,
@@ -155,7 +160,7 @@ describe('RecordsService', () => {
       results: [
         {
           id: 'rec-1',
-          data_source_id: 'slack',
+          data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
           model: 'SlackThread',
           created_at: '2026-01-01T00:00:00.000Z',
           updated_at: '2026-01-02T00:00:00.000Z',
