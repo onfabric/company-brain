@@ -44,7 +44,9 @@ Deploy order matters on a fresh environment:
 4. Run `bun run check:connections dev`.
 5. Run `bun run deploy dev`.
 
-The CD workflow follows that order and intentionally stops before deploying syncs while required OAuth/MCP connections are missing.
+On a fresh hosted `dev` environment, the first CD run deploys Nango and then stops before bootstrapping integrations when the repository secret `NANGO_SECRET_KEY_DEV` is missing. Sign up in the Nango dashboard, copy the generated `dev` API key, add it as the repository secret `NANGO_SECRET_KEY_DEV`, and rerun CD.
+
+After that, CD bootstraps integrations and non-OAuth connections, then intentionally stops before deploying syncs while required OAuth/MCP connections are missing. Create the dashboard connections for `notion`, `slack`, `github`, and `circleback-mcp`, then rerun CD.
 
 Required environment:
 
