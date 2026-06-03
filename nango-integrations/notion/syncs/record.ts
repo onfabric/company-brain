@@ -45,8 +45,8 @@ export async function buildPageRecord(
   const childPages = uniqueRefs(content.childPages);
   const childDatabases = uniqueRefs([...content.childDatabases, ...propertyResult.childDatabases]);
   const relatedPages = uniqueRefs([...content.relatedPages, ...propertyResult.relatedPages]);
-  const createdBy = toPersonRef(page.created_by);
-  const updatedBy = toPersonRef(page.last_edited_by);
+  const createdBy = toPersonRef(page.created_by, ctx.userEmailsById);
+  const updatedBy = toPersonRef(page.last_edited_by, ctx.userEmailsById);
   const people = uniquePeople([
     ...propertyResult.people,
     ...(createdBy ? [createdBy] : []),

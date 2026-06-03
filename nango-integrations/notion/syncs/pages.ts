@@ -5,6 +5,7 @@ import {
   enqueueDatabaseDataSources,
   enqueueDataSourcePages,
   enqueueSearchResults,
+  loadUserDirectory,
   tryFetchPage,
 } from './client.js';
 import { type NangoLike, type SyncContext, WorkQueue } from './context.js';
@@ -35,6 +36,7 @@ const sync = createSync({
       dataSourceRefsById: new Map(),
       dataSourcesById: new Map(),
       databasesById: new Map(),
+      userEmailsById: new Map(),
     };
 
     const pageQueue = new WorkQueue();
@@ -49,6 +51,7 @@ const sync = createSync({
     });
     let processedPages = 0;
 
+    await loadUserDirectory(ctx);
     await enqueueSearchResults(ctx, pageQueue, dataSourceQueue);
 
     while (pageQueue.hasNext() || databaseQueue.hasNext() || dataSourceQueue.hasNext()) {

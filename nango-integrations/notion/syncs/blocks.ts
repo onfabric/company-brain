@@ -1,6 +1,6 @@
 import type { RawNotionBlock, RawRichText, RenderedContent, RichTextBlock } from './api-types.js';
 import { fetchBlockChildren } from './client.js';
-import type { SyncContext } from './context.js';
+import type { SyncContext, UserDirectory } from './context.js';
 import { mapFile } from './files.js';
 import { referenceForDatabaseId, referenceForPageId } from './references.js';
 import { renderReferenceText, renderRichText, renderRichTextSync } from './rich-text.js';
@@ -102,7 +102,7 @@ async function renderBlock(
     case 'heading_4':
       return renderHeadingBlock(ctx, block, block.heading_4, '####', depth);
     case 'code':
-      return renderCodeBlock(block);
+      return renderCodeBlock(ctx, block);
     case 'equation':
       result.markdown = block.equation?.expression ? `$$\n${block.equation.expression}\n$$` : '';
       return result;
@@ -112,7 +112,7 @@ async function renderBlock(
     case 'bookmark':
       return renderUrlBlock(
         block.bookmark?.url,
-        renderRichTextSync(block.bookmark?.caption),
+        renderRichTextSync(block.bookmark?.caption, ctx.userEmailsById),
         result,
       );
     case 'embed':
@@ -142,7 +142,7 @@ async function renderBlock(
     case 'table':
       return renderTableBlock(ctx, block, depth);
     case 'table_row':
-      result.markdown = renderTableRow(block.table_row?.cells ?? []);
+      result.markdown = renderTableRow(block.table_row?.cells ?? [], ctx.userEmailsById);
       return result;
     case 'breadcrumb':
     case 'table_of_contents':
@@ -167,7 +167,7 @@ async function renderRichTextBlock(
   depth: number,
 ): Promise<RenderedContent> {
   const result = emptyRenderedContent();
-  mergeRichText(result, renderRichText(richTextBlock?.rich_text));
+  mergeRichText(result, renderRichText(richTextBlock?.rich_text, ctx.userEmailsById));
   const childContent = block.has_children
     ? await renderPageContent(ctx, block.id, depth + 1)
     : undefined;
@@ -184,7 +184,7 @@ async function renderHeadingBlock(
   depth: number,
 ): Promise<RenderedContent> {
   const result = emptyRenderedContent();
-  const richText = renderRichText(richTextBlock?.rich_text);
+  const richText = renderRichText(richTextBlock?.rich_text, ctx.userEmailsById);
   mergeRichText(result, richText);
   const childContent = block.has_children
     ? await renderPageContent(ctx, block.id, depth + 1)
@@ -205,7 +205,7 @@ async function renderListItemBlock(
   depth: number,
 ): Promise<RenderedContent> {
   const result = emptyRenderedContent();
-  const richText = renderRichText(richTextBlock?.rich_text);
+  const richText = renderRichText(richTextBlock?.rich_text, ctx.userEmailsById);
   mergeRichText(result, richText);
   const childContent = block.has_children
     ? await renderPageContent(ctx, block.id, depth + 1)
@@ -239,7 +239,7 @@ async function renderToggleBlock(
   depth: number,
 ): Promise<RenderedContent> {
   const result = emptyRenderedContent();
-  const richText = renderRichText(richTextBlock?.rich_text);
+  const richText = renderRichText(richTextBlock?.rich_text, ctx.userEmailsById);
   mergeRichText(result, richText);
   const childContent = block.has_children
     ? await renderPageContent(ctx, block.id, depth + 1)
@@ -261,7 +261,7 @@ async function renderTodoBlock(
   depth: number,
 ): Promise<RenderedContent> {
   const result = emptyRenderedContent();
-  const richText = renderRichText(block.to_do?.rich_text);
+  const richText = renderRichText(block.to_do?.rich_text, ctx.userEmailsById);
   mergeRichText(result, richText);
   const childContent = block.has_children
     ? await renderPageContent(ctx, block.id, depth + 1)
@@ -278,9 +278,9 @@ async function renderTodoBlock(
   return result;
 }
 
-function renderCodeBlock(block: RawNotionBlock): RenderedContent {
+function renderCodeBlock(ctx: SyncContext, block: RawNotionBlock): RenderedContent {
   const result = emptyRenderedContent();
-  const richText = renderRichText(block.code?.rich_text);
+  const richText = renderRichText(block.code?.rich_text, ctx.userEmailsById);
   mergeRichText(result, richText);
   const language = block.code?.language ?? '';
   result.markdown = `\`\`\`${language}\n${richText.text}\n\`\`\``;
@@ -396,11 +396,11 @@ async function renderTableBlock(
 
   for (const row of renderedRows) {
     for (const cell of row) {
-      mergeRichText(result, renderRichText(cell));
+      mergeRichText(result, renderRichText(cell, ctx.userEmailsById));
     }
   }
 
-  const rowLines = renderedRows.map(renderTableRow);
+  const rowLines = renderedRows.map((cells) => renderTableRow(cells, ctx.userEmailsById));
   const firstRow = renderedRows[0] ?? [];
   const separator = `| ${firstRow.map(() => '---').join(' | ')} |`;
   const [header, ...bodyRows] = rowLines;
@@ -418,8 +418,8 @@ async function renderTableBlock(
   return result;
 }
 
-function renderTableRow(cells: RawRichText[][] | undefined): string {
-  return `| ${(cells ?? []).map((cell) => renderRichText(cell).text.replace(/\|/g, '\\|')).join(' | ')} |`;
+function renderTableRow(cells: RawRichText[][] | undefined, directory: UserDirectory): string {
+  return `| ${(cells ?? []).map((cell) => renderRichText(cell, directory).text.replace(/\|/g, '\\|')).join(' | ')} |`;
 }
 
 function mergeOptionalRenderedContent(
