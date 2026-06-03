@@ -1,3 +1,4 @@
+import { openapi } from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
@@ -12,6 +13,16 @@ export function createApp() {
   return new Elysia()
     .onError(elysiaErrorHandler)
     .use(requestResponsePlugin)
+    .use(
+      openapi({
+        documentation: {
+          info: {
+            title: 'Company Brain API',
+            version: '1.0.0',
+          },
+        },
+      }),
+    )
     .use(healthController)
     .use(peopleController)
     .use(peopleMergeController)
