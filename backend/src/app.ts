@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
 import { elysiaErrorHandler } from '#lib/errors.ts';
-import { elysiaAfterResponseHandler, elysiaRequestHandler } from '#lib/requests.ts';
+import { requestResponsePlugin } from '#lib/request-response.ts';
 import { healthController } from '#routes/health/controller.ts';
 import { peopleController } from '#routes/people/controller.ts';
 import { peopleMergeController } from '#routes/people/merge/controller.ts';
@@ -11,8 +11,7 @@ import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
 export function createApp() {
   return new Elysia()
     .onError(elysiaErrorHandler)
-    .onRequest(elysiaRequestHandler)
-    .onAfterResponse(elysiaAfterResponseHandler)
+    .use(requestResponsePlugin)
     .use(healthController)
     .use(peopleController)
     .use(peopleMergeController)
