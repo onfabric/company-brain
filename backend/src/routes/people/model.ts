@@ -16,15 +16,13 @@ export const ListPeopleResponseSchema = t.Object({
   people: t.Array(PersonSchema),
 });
 
-const NullableNonTrivialString = t.Union([t.Null(), t.String({ minLength: 2 })]);
-
 export const UpdatePersonParamsSchema = t.Object({
   id: t.String({ format: 'uuid' }),
 });
 
 export const UpdatePersonBodySchema = t.Object({
-  name: t.Optional(NullableNonTrivialString),
-  email: t.Optional(NullableNonTrivialString),
+  name: t.Optional(t.Union([t.Null(), t.String({ minLength: 1 })])),
+  email: t.Optional(t.Union([t.Null(), t.String({ format: 'email' })])),
 });
 
 export const UpdatePersonResponseSchema = PersonSchema;
