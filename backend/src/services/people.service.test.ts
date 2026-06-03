@@ -127,14 +127,6 @@ describe('PeopleService.updatePerson', () => {
     expect(result).toEqual(updatedPerson);
   });
 
-  it('rejects an empty update', async () => {
-    const repo = new MockPeopleRepository([]);
-    const service = new PeopleService(repo);
-
-    await expect(service.updatePerson(INTO_ID, {})).rejects.toThrow('No fields to update');
-    expect(repo.updateCalls).toEqual([]);
-  });
-
   it('404s when the person does not exist', async () => {
     const repo = new MockPeopleRepository([], null);
     const service = new PeopleService(repo);

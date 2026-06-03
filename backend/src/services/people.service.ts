@@ -34,10 +34,6 @@ export class PeopleService extends Service {
   }
 
   async updatePerson(id: string, updates: PersonUpdate): Promise<Person> {
-    if (updates.name === undefined && updates.email === undefined) {
-      throw new BadRequestError('No fields to update; provide name and/or email');
-    }
-
     const person = await this.peopleRepo.updatePerson(id, updates);
     if (!person) {
       throw new NotFoundError(`Person not found: ${id}`);
