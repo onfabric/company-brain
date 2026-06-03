@@ -12,6 +12,8 @@ export type PersonRow = Pick<People, 'id' | 'name' | 'email'> & {
 
 export type PersonIdentity = Pick<People, 'id' | 'name' | 'email'>;
 
+export type PersonUpdate = Partial<Pick<People, 'name' | 'email'>>;
+
 export type MergeCounts = {
   moved_data_sources: number;
   moved_records: number;
@@ -21,6 +23,7 @@ export abstract class PeopleRepositoryContract {
   abstract listPeople(): Promise<PersonRow[]>;
   abstract getPerson(id: People['id']): Promise<PersonRow | null>;
   abstract findByIds(ids: People['id'][]): Promise<PersonIdentity[]>;
+  abstract updatePerson(id: People['id'], updates: PersonUpdate): Promise<PersonRow | null>;
   abstract merge(fromId: People['id'], intoId: People['id']): Promise<MergeCounts>;
 }
 
@@ -43,6 +46,16 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
       FROM brain.people
       WHERE id IN ${this.sql(ids)}
     `;
+  }
+
+  async updatePerson(id: People['id'], updates: PersonUpdate): Promise<PersonRow | null> {
+    const [updated] = await this.sql<Pick<People, 'id'>[]>`
+      UPDATE brain.people
+      SET ${this.sql(updates)}
+      WHERE id = ${id}
+      RETURNING id
+    `;
+    return updated ? this.getPerson(updated.id) : null;
   }
 
   merge(fromId: People['id'], intoId: People['id']): Promise<MergeCounts> {
