@@ -119,6 +119,12 @@ EOF
   sleep 5
 done
 
+# `up -d` doesn't recreate containers when only a bind-mounted file changed, so a
+# Caddyfile edit leaves the running Caddy on its old config. Hot-reload it (admin
+# API, zero downtime) to pick up routing changes on every deploy.
+log "Reloading Caddy config"
+$compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+
 log "Compose service status"
 $compose ps -a --format 'table {{.Name}}\t{{.Status}}'
 
