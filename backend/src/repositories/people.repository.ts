@@ -6,13 +6,17 @@ export type PersonDataSource = {
   data_source_user_id: PeopleDataSources['data_source_user_id'];
 };
 
-export type PersonRow = Pick<People, 'id' | 'name' | 'email'> & {
+export type PersonRow = Pick<People, 'id' | 'name' | 'email' | 'is_external'> & {
   data_sources: PersonDataSource[];
 };
 
 export type PersonIdentity = Pick<People, 'id' | 'name' | 'email'>;
 
-export type PersonUpdate = Partial<Pick<People, 'name' | 'email'>>;
+export type PersonUpdate = Partial<Pick<People, 'name' | 'email' | 'is_external'>>;
+
+export type PersonFilters = {
+  isExternal?: People['is_external'];
+};
 
 export type MergeCounts = {
   moved_data_sources: number;
@@ -20,7 +24,7 @@ export type MergeCounts = {
 };
 
 export abstract class PeopleRepositoryContract {
-  abstract listPeople(): Promise<PersonRow[]>;
+  abstract listPeople(filters?: PersonFilters): Promise<PersonRow[]>;
   abstract getPerson(id: People['id']): Promise<PersonRow | null>;
   abstract findByIds(ids: People['id'][]): Promise<PersonIdentity[]>;
   abstract updatePerson(id: People['id'], updates: PersonUpdate): Promise<PersonRow | null>;
@@ -28,12 +32,12 @@ export abstract class PeopleRepositoryContract {
 }
 
 export class PeopleRepository extends Repository implements PeopleRepositoryContract {
-  listPeople(): Promise<PersonRow[]> {
-    return this.selectPeople();
+  listPeople(filters: PersonFilters = {}): Promise<PersonRow[]> {
+    return this.selectPeople({ isExternal: filters.isExternal });
   }
 
   async getPerson(id: People['id']): Promise<PersonRow | null> {
-    const [person] = await this.selectPeople(id);
+    const [person] = await this.selectPeople({ id });
     return person ?? null;
   }
 
@@ -94,13 +98,29 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     });
   }
 
-  private selectPeople(id?: People['id']): Promise<PersonRow[]> {
-    const where = id ? this.sql`WHERE p.id = ${id}` : this.sql``;
+  private selectPeople({
+    id,
+    isExternal,
+  }: {
+    id?: People['id'];
+    isExternal?: People['is_external'];
+  } = {}): Promise<PersonRow[]> {
+    const conditions = [];
+    if (id !== undefined) {
+      conditions.push(this.sql`p.id = ${id}`);
+    }
+    if (isExternal !== undefined) {
+      conditions.push(this.sql`p.is_external = ${isExternal}`);
+    }
+    const where = conditions.length
+      ? this.sql`WHERE ${conditions.reduce((acc, cond) => this.sql`${acc} AND ${cond}`)}`
+      : this.sql``;
     return this.sql<PersonRow[]>`
       SELECT
         p.id,
         p.name,
         p.email,
+        p.is_external,
         COALESCE(
           json_agg(
             json_build_object(
@@ -115,7 +135,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
       LEFT JOIN brain.people_data_sources pds ON pds.person_id = p.id
       LEFT JOIN brain.data_sources ds ON ds.id = pds.data_source_id
       ${where}
-      GROUP BY p.id, p.name, p.email
+      GROUP BY p.id, p.name, p.email, p.is_external
       ORDER BY p.name NULLS LAST, p.id
     `;
   }

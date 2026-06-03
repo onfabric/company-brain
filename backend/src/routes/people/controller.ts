@@ -1,5 +1,6 @@
 import { Elysia, StatusMap } from 'elysia';
 import {
+  ListPeopleQuerySchema,
   ListPeopleResponseSchema,
   UpdatePersonBodySchema,
   UpdatePersonParamsSchema,
@@ -12,12 +13,13 @@ export const peopleController = new Elysia()
   .use(PeopleServicePlugin)
   .get(
     '/people',
-    async ({ peopleService, logger, status }) => {
-      logger.info('listing people');
-      const result = await peopleService.listPeople();
+    async ({ query, peopleService, logger, status }) => {
+      logger.info(`listing people is_external=${query.is_external ?? ''}`);
+      const result = await peopleService.listPeople({ isExternal: query.is_external });
       return status(StatusMap.OK, result);
     },
     {
+      query: ListPeopleQuerySchema,
       response: {
         [StatusMap.OK]: ListPeopleResponseSchema,
       },
