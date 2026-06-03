@@ -16,7 +16,7 @@ resource "random_password" "dashboard" {
   special = false
 }
 
-resource "random_uuid" "brain_api_key" {}
+resource "random_uuid4" "brain_api_key" {}
 
 resource "aws_ssm_parameter" "db_password" {
   name  = "${var.ssm_secret_prefix}/nango_db_password"
@@ -33,7 +33,7 @@ resource "aws_ssm_parameter" "brain_db_password" {
 resource "aws_ssm_parameter" "brain_api_key" {
   name  = "${var.ssm_secret_prefix}/brain_api_key"
   type  = "SecureString"
-  value = random_uuid.brain_api_key.result
+  value = random_uuid4.brain_api_key.result
 }
 
 resource "aws_ssm_parameter" "dashboard_username" {
