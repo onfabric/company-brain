@@ -19,7 +19,6 @@ env:
   NANGO_HOSTNAME: nango-dev.onfabric.io
   NANGO_CONNECT_HOSTNAME: nango-auth-dev.onfabric.io
   BRAIN_HOSTNAME: brain-dev.onfabric.io
-  USAGE_DASHBOARD_HOSTNAME: ai-usage-dev.onfabric.io
   DOZZLE_HOSTNAME: dozzle-dev.onfabric.io
   DEPLOY_GROUP: company-brain-dev
   NO_COLOR: "1"
@@ -30,7 +29,6 @@ jobs:
     outputs:
       nango_ecr_repository_url: ${{ steps.tf_outputs.outputs.nango_ecr_repository_url }}
       brain_ecr_repository_url: ${{ steps.tf_outputs.outputs.brain_ecr_repository_url }}
-      usage_dashboard_ecr_repository_url: ${{ steps.tf_outputs.outputs.usage_dashboard_ecr_repository_url }}
       artifacts_bucket: ${{ steps.tf_outputs.outputs.artifacts_bucket }}
       github_deploy_role_arn: ${{ steps.tf_outputs.outputs.github_deploy_role_arn }}
     defaults:
@@ -55,7 +53,6 @@ jobs:
         run: |
           echo "nango_ecr_repository_url=$(terraform output -raw nango_ecr_repository_url)" >> "$GITHUB_OUTPUT"
           echo "brain_ecr_repository_url=$(terraform output -raw brain_ecr_repository_url)" >> "$GITHUB_OUTPUT"
-          echo "usage_dashboard_ecr_repository_url=$(terraform output -raw usage_dashboard_ecr_repository_url)" >> "$GITHUB_OUTPUT"
           echo "artifacts_bucket=$(terraform output -raw artifacts_bucket)" >> "$GITHUB_OUTPUT"
           echo "github_deploy_role_arn=$(terraform output -raw github_deploy_role_arn)" >> "$GITHUB_OUTPUT"
 
@@ -110,26 +107,6 @@ jobs:
           dockerfile: backend/Dockerfile
           cache-scope: brain
 
-  build-docker-usage-dashboard:
-    needs: terraform-apply
-    runs-on: ubuntu-latest
-    outputs:
-      docker_image_tag: ${{ steps.build.outputs.image-tag }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Build and push
-        id: build
-        uses: ./.github/actions/build-and-push-docker
-        with:
-          aws-region: ${{ env.AWS_REGION }}
-          deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
-          ecr-repository-url: ${{ needs.terraform-apply.outputs.usage_dashboard_ecr_repository_url }}
-          context: .
-          dockerfile: usage-dashboard/Dockerfile
-          cache-scope: usage-dashboard
-
   build-bundle:
     needs: terraform-apply
     runs-on: ubuntu-latest
@@ -166,7 +143,7 @@ jobs:
 
   deploy:
     needs:
-      [terraform-apply, build-docker-nango, build-docker-brain, build-docker-usage-dashboard, build-bundle]
+      [terraform-apply, build-docker-nango, build-docker-brain, build-bundle]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -184,12 +161,10 @@ jobs:
           DEPLOY_GROUP: ${{ env.DEPLOY_GROUP }}
           NANGO_IMAGE_URI: ${{ needs.build-docker-nango.outputs.docker_image_tag }}
           BRAIN_IMAGE_URI: ${{ needs.build-docker-brain.outputs.docker_image_tag }}
-          USAGE_DASHBOARD_IMAGE_URI: ${{ needs.build-docker-usage-dashboard.outputs.docker_image_tag }}
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
           NANGO_HOSTNAME: ${{ env.NANGO_HOSTNAME }}
           NANGO_CONNECT_HOSTNAME: ${{ env.NANGO_CONNECT_HOSTNAME }}
           BRAIN_HOSTNAME: ${{ env.BRAIN_HOSTNAME }}
-          USAGE_DASHBOARD_HOSTNAME: ${{ env.USAGE_DASHBOARD_HOSTNAME }}
           DOZZLE_HOSTNAME: ${{ env.DOZZLE_HOSTNAME }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
           AWS_REGION: ${{ env.AWS_REGION }}
