@@ -292,32 +292,6 @@ services:
     networks:
       - nango
 
-  usage-dashboard:
-    image: company-brain/usage-dashboard:local
-    build:
-      context: .
-      dockerfile: usage-dashboard/Dockerfile
-    container_name: usage-dashboard
-    environment:
-      - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
-      - AI_USAGE_PRICING_JSON
-      - USAGE_DASHBOARD_USERNAME
-      - USAGE_DASHBOARD_PASSWORD
-    ports:
-      - "127.0.0.1:${USAGE_DASHBOARD_PORT}:3011"
-    healthcheck:
-      test: ["CMD", "/busybox/wget", "-q", "--spider", "http://localhost:3011/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-    restart: always
-    depends_on:
-      db-prepare:
-        condition: service_completed_successfully
-    networks:
-      - nango
-
   dozzle:
     image: amir20/dozzle:latest
     container_name: dozzle

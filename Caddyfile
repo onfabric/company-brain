@@ -20,10 +20,6 @@
 	}
 }
 
-{$USAGE_DASHBOARD_HOSTNAME} {
-	reverse_proxy usage-dashboard:3011
-}
-
 {$DOZZLE_HOSTNAME} {
 	reverse_proxy dozzle:8080
 }
