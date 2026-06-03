@@ -11,7 +11,7 @@
 }
 
 {$BRAIN_HOSTNAME} {
-	@public path /health /people /people/* /records /records/*
+	@public path /health /people /people/* /records /records/* /openapi /openapi/*
 	handle @public {
 		reverse_proxy brain:3010
 	}
