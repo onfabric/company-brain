@@ -261,7 +261,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
         ? this.sql`EXISTS (
             SELECT 1 FROM brain.records_people rp
             WHERE rp.record_id = brain.records.id
-              AND rp.person_id = ANY(${params.personIds}::uuid[])
+              AND rp.person_id IN ${this.sql(params.personIds)}
           )`
         : null,
       params.model ? this.sql`nango_model = ${params.model}` : null,
