@@ -2,15 +2,19 @@ import { Elysia } from 'elysia';
 import { sql } from '#db/client.ts';
 import { createLogger } from '#lib/logger.ts';
 import { HealthRepository } from '#repositories/health.repository.ts';
+import { PeopleRepository } from '#repositories/people.repository.ts';
 import { RecordsRepository } from '#repositories/records.repository.ts';
 import { HealthService } from '#services/health.service.ts';
+import { PeopleService } from '#services/people.service.ts';
 import { RecordsService } from '#services/records.service.ts';
 
 const healthRepo = new HealthRepository(sql);
 const recordsRepo = new RecordsRepository(sql);
+const peopleRepo = new PeopleRepository(sql);
 
 const healthService = new HealthService(healthRepo);
 const recordsService = new RecordsService(recordsRepo);
+const peopleService = new PeopleService(peopleRepo);
 
 export function loggerPlugin(name: string) {
   const logger = createLogger(name);
@@ -25,4 +29,9 @@ export const HealthServicePlugin = new Elysia({ name: 'service.health' }).decora
 export const RecordsServicePlugin = new Elysia({ name: 'service.records' }).decorate(
   'recordsService',
   recordsService,
+);
+
+export const PeopleServicePlugin = new Elysia({ name: 'service.people' }).decorate(
+  'peopleService',
+  peopleService,
 );
