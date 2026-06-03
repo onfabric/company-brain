@@ -54,6 +54,9 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
         RETURNING id
       `;
 
+      // records_people PK is (record_id, person_id), so a record already linked to
+      // both people would collide when reassigned. Drop merge_from's copy for those
+      // records first; the UPDATE then relabels only the non-colliding remainder.
       await tx`
         DELETE FROM brain.records_people
         WHERE person_id = ${fromId}
