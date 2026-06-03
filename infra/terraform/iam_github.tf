@@ -54,7 +54,6 @@ data "aws_iam_policy_document" "github_deploy" {
     resources = [
       aws_ecr_repository.nango.arn,
       aws_ecr_repository.brain.arn,
-      aws_ecr_repository.usage_dashboard.arn,
     ]
   }
 
