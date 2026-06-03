@@ -1,5 +1,10 @@
 import { Elysia, StatusMap } from 'elysia';
-import { ListPeopleResponseSchema } from '#routes/people/model.ts';
+import {
+  ListPeopleResponseSchema,
+  UpdatePersonBodySchema,
+  UpdatePersonParamsSchema,
+  UpdatePersonResponseSchema,
+} from '#routes/people/model.ts';
 import { loggerPlugin, PeopleServicePlugin } from '#services/plugins.ts';
 
 export const peopleController = new Elysia()
@@ -15,6 +20,21 @@ export const peopleController = new Elysia()
     {
       response: {
         [StatusMap.OK]: ListPeopleResponseSchema,
+      },
+    },
+  )
+  .patch(
+    '/people/:id',
+    async ({ params, body, peopleService, logger, status }) => {
+      logger.info(`updating person ${params.id}`);
+      const person = await peopleService.updatePerson(params.id, body);
+      return status(StatusMap.OK, person);
+    },
+    {
+      params: UpdatePersonParamsSchema,
+      body: UpdatePersonBodySchema,
+      response: {
+        [StatusMap.OK]: UpdatePersonResponseSchema,
       },
     },
   );

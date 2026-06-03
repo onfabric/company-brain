@@ -1,5 +1,5 @@
 import { BadRequestError, NotFoundError } from '#lib/errors.ts';
-import type { PeopleRepositoryContract } from '#repositories/people.repository.ts';
+import type { PeopleRepositoryContract, PersonUpdate } from '#repositories/people.repository.ts';
 import { Service } from '#services/service.ts';
 
 type PersonDataSource = {
@@ -31,6 +31,17 @@ export class PeopleService extends Service {
   async listPeople(): Promise<{ people: Person[] }> {
     const people = await this.peopleRepo.listPeople();
     return { people };
+  }
+
+  async updatePerson(id: string, updates: PersonUpdate): Promise<Person> {
+    const person = await this.peopleRepo.updatePerson(id, updates);
+    if (!person) {
+      throw new NotFoundError(`Person not found: ${id}`);
+    }
+
+    this.logger.info(`updated person ${id}`);
+
+    return person;
   }
 
   async mergePeople(fromId: string, intoId: string): Promise<MergeResult> {

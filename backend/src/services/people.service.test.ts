@@ -4,6 +4,7 @@ import {
   PeopleRepositoryContract,
   type PersonIdentity,
   type PersonRow,
+  type PersonUpdate,
 } from '#repositories/people.repository.ts';
 import { PeopleService } from '#services/people.service.ts';
 
@@ -12,6 +13,7 @@ const INTO_ID = '019e8882-07f1-77a0-b4cf-5798eafb4664';
 
 class MockPeopleRepository extends PeopleRepositoryContract {
   mergeCalls: Array<{ fromId: string; intoId: string }> = [];
+  updateCalls: Array<{ id: string; updates: PersonUpdate }> = [];
 
   constructor(
     private readonly identities: PersonIdentity[],
@@ -31,6 +33,11 @@ class MockPeopleRepository extends PeopleRepositoryContract {
 
   findByIds(ids: string[]): Promise<PersonIdentity[]> {
     return Promise.resolve(this.identities.filter((identity) => ids.includes(identity.id)));
+  }
+
+  updatePerson(id: string, updates: PersonUpdate): Promise<PersonRow | null> {
+    this.updateCalls.push({ id, updates });
+    return Promise.resolve(this.person);
   }
 
   merge(fromId: string, intoId: string): Promise<MergeCounts> {
@@ -98,5 +105,34 @@ describe('PeopleService.mergePeople', () => {
       'merge_from person must have null name and email',
     );
     expect(repo.mergeCalls).toEqual([]);
+  });
+});
+
+describe('PeopleService.updatePerson', () => {
+  it('persists the provided fields and returns the updated person', async () => {
+    const updatedPerson: PersonRow = {
+      id: INTO_ID,
+      name: 'Ada Lovelace',
+      email: null,
+      data_sources: [],
+    };
+    const repo = new MockPeopleRepository([], updatedPerson);
+    const service = new PeopleService(repo);
+
+    const result = await service.updatePerson(INTO_ID, { name: 'Ada Lovelace', email: null });
+
+    expect(repo.updateCalls).toEqual([
+      { id: INTO_ID, updates: { name: 'Ada Lovelace', email: null } },
+    ]);
+    expect(result).toEqual(updatedPerson);
+  });
+
+  it('404s when the person does not exist', async () => {
+    const repo = new MockPeopleRepository([], null);
+    const service = new PeopleService(repo);
+
+    await expect(service.updatePerson(INTO_ID, { name: 'Ada' })).rejects.toThrow(
+      `Person not found: ${INTO_ID}`,
+    );
   });
 });
