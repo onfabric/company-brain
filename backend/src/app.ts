@@ -1,5 +1,6 @@
 import { openapi } from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
+import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
 import { healthController } from '#routes/health/controller.ts';
@@ -19,6 +20,9 @@ export function createApp() {
           info: {
             title: 'Company Brain API',
             version: '1.0.0',
+          },
+          components: {
+            securitySchemes: apiKeySecuritySchemes,
           },
         },
       }),

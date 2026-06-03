@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { StatusMap } from 'elysia';
 
 (process.env as Record<string, string | undefined>).DATABASE_URL ??=
   'postgresql://test:test@localhost:5432/test';
+(process.env as Record<string, string | undefined>).BRAIN_API_KEY ??=
+  '00000000-0000-4000-8000-000000000000';
 
 const migrationsDir = join(import.meta.dir, 'db/migrations');
 
@@ -56,5 +59,32 @@ describe('app', () => {
   it('builds the Elysia app without a database connection', async () => {
     const { createApp } = await import('#app.ts');
     expect(createApp()).toBeDefined();
+  });
+});
+
+describe('api key auth', () => {
+  it('rejects a protected route without a valid api key', async () => {
+    const { createApp } = await import('#app.ts');
+    const res = await createApp().handle(new Request('http://localhost/people'));
+    expect(res.status).toBe(StatusMap.Unauthorized);
+  });
+
+  it('lets a protected route past auth with a valid api key', async () => {
+    const { createApp } = await import('#app.ts');
+    const { API_KEY_HEADER } = await import('#lib/api-key-auth.ts');
+    const res = await createApp().handle(
+      new Request('http://localhost/people', {
+        headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
+      }),
+    );
+    expect(res.status).not.toBe(StatusMap.Unauthorized);
+  });
+
+  it('leaves the internal webhook open to in-network callers', async () => {
+    const { createApp } = await import('#app.ts');
+    const res = await createApp().handle(
+      new Request('http://localhost/webhooks/batch-save', { method: 'POST' }),
+    );
+    expect(res.status).not.toBe(StatusMap.Unauthorized);
   });
 });
