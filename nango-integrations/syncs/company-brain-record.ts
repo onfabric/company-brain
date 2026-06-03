@@ -9,11 +9,12 @@ export const CompanyBrainRecordSchema = z.object({
   created_at: z.iso.datetime({ offset: true }),
   updated_at: z.iso.datetime({ offset: true }),
   body: z.string().min(1),
+  participants: z.array(z.string().min(1)),
 });
 
 export type CompanyBrainRecord = z.infer<typeof CompanyBrainRecordSchema>;
 
-const RESERVED_KEYS = ['id', 'created_at', 'updated_at', 'body'] as const;
+const RESERVED_KEYS = ['id', 'created_at', 'updated_at', 'body', 'participants'] as const;
 
 export function defineCompanyBrainRecord<TShape extends z.ZodRawShape>(shape: TShape) {
   const reserved = RESERVED_KEYS.find((key) => key in shape);

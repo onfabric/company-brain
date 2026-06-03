@@ -105,12 +105,24 @@ function normalizeRawPayload(rawPayload: unknown): unknown {
 }
 
 function normalizeRecord(record: unknown): unknown {
-  if (!record || typeof record !== 'object' || !('started_at' in record)) {
+  if (!record || typeof record !== 'object') {
     return record;
   }
 
-  const { started_at, ...rest } = record as Record<string, unknown>;
-  return { created_at: started_at, ...rest };
+  const fields = record as Record<string, unknown>;
+  const { started_at, ...rest } = fields;
+  const normalized = 'started_at' in fields ? { created_at: started_at, ...rest } : { ...rest };
+
+  if ('participants' in normalized) {
+    return normalized;
+  }
+
+  // biome-ignore lint/complexity/useLiteralKeys: index-signature access requires brackets under tsconfig noPropertyAccessFromIndexSignature
+  const userIdentifier = fields['user_identifier'];
+  const participants =
+    typeof userIdentifier === 'string' && userIdentifier.length > 0 ? [userIdentifier] : [];
+
+  return { ...normalized, participants };
 }
 
 function withRenderedBody(record: AgentConversation): AgentConversation {

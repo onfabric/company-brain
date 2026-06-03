@@ -392,6 +392,20 @@ async function buildPullRequest(
   const assignees = uniqueActorRefs(details.assignees.map(mapUser).filter(isDefined));
   const description = normalizeText(details.body);
   const status = pullRequestStatus(details);
+  const author = mapUser(details.user) ?? unknownActor();
+  const participants = uniqueStrings(
+    [
+      author,
+      ...reviewers,
+      ...requestedReviewers,
+      ...assignees,
+      ...commits.map((commit) => commit.author),
+      ...reviews.map((review) => review.reviewer),
+      ...comments.map((comment) => comment.author),
+    ]
+      .map((actor) => actor.username)
+      .filter((username) => username !== 'unknown'),
+  );
   const updatedAt = latestIso([
     details.updated_at,
     ...comments.map((comment) => comment.updated_at ?? comment.created_at),
@@ -409,7 +423,8 @@ async function buildPullRequest(
       state: details.state,
       status,
       draft: details.draft ?? false,
-      author: mapUser(details.user) ?? unknownActor(),
+      author,
+      participants,
       reviewers: reviewers.length > 0 ? reviewers : undefined,
       requested_reviewers: requestedReviewers.length > 0 ? requestedReviewers : undefined,
       assignees: assignees.length > 0 ? assignees : undefined,

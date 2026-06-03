@@ -52,6 +52,13 @@
                   "type": "string",
                   "minLength": 1
                 },
+                "participants": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
                 "title": {
                   "type": "string"
                 },
@@ -266,6 +273,7 @@
                 "created_at",
                 "updated_at",
                 "body",
+                "participants",
                 "title",
                 "url",
                 "parent"
@@ -361,6 +369,13 @@
                 "body": {
                   "type": "string",
                   "minLength": 1
+                },
+                "participants": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 },
                 "channel": {
                   "type": "string"
@@ -511,6 +526,7 @@
                 "created_at",
                 "updated_at",
                 "body",
+                "participants",
                 "channel",
                 "messages"
               ],
@@ -609,6 +625,13 @@
                 "body": {
                   "type": "string",
                   "minLength": 1
+                },
+                "participants": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 },
                 "repository": {
                   "type": "string"
@@ -858,6 +881,7 @@
                 "created_at",
                 "updated_at",
                 "body",
+                "participants",
                 "repository",
                 "number",
                 "title",
@@ -962,6 +986,13 @@
                   "type": "string",
                   "minLength": 1
                 },
+                "participants": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
                 "title": {
                   "type": "string"
                 },
@@ -1023,6 +1054,7 @@
                 "created_at",
                 "updated_at",
                 "body",
+                "participants",
                 "title",
                 "transcript"
               ],
@@ -1113,6 +1145,13 @@
                 "body": {
                   "type": "string",
                   "minLength": 1
+                },
+                "participants": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 },
                 "source": {
                   "type": "string",
@@ -1373,6 +1412,7 @@
                 "created_at",
                 "updated_at",
                 "body",
+                "participants",
                 "source",
                 "session_id",
                 "messages"

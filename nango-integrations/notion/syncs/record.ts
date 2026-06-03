@@ -89,6 +89,7 @@ export async function buildPageRecord(
       updated_at: page.last_edited_time ?? page.created_time ?? '',
       created_by: createdBy,
       updated_by: updatedBy,
+      participants: collectParticipants(people, mentionedPeople),
       people: people.length > 0 ? people : undefined,
       mentioned_people: mentionedPeople.length > 0 ? mentionedPeople : undefined,
       content: content.markdown || undefined,
@@ -103,6 +104,10 @@ export async function buildPageRecord(
     databaseIds: [...new Set([...content.databaseIds, ...propertyResult.databaseIds])],
     dataSourceIds: [...new Set(content.dataSourceIds)],
   };
+}
+
+function collectParticipants(people: NotionPerson[], mentionedPeople: NotionPerson[]): string[] {
+  return [...new Set([...people, ...mentionedPeople].map((person) => person.identifier))].sort();
 }
 
 function renderPageBody(input: {

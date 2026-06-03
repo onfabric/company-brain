@@ -232,6 +232,7 @@ function buildMeeting(
   const attendees = mapAttendees(merged.attendees);
   const tags = uniqueStrings(merged.tags ?? []);
   const transcript = mapTranscript(transcriptSegments ?? []);
+  const participants = uniqueStrings(attendees.map((attendee) => attendee.email ?? attendee.name));
 
   return CirclebackMeetingSchema.parse(
     withoutUndefined({
@@ -241,6 +242,7 @@ function buildMeeting(
       url: merged.url ?? undefined,
       created_at: createdAt,
       updated_at: createdAt,
+      participants,
       duration_seconds:
         typeof merged.duration === 'number' ? Math.round(merged.duration) : undefined,
       attendees: attendees.length > 0 ? attendees : undefined,

@@ -606,8 +606,47 @@ function buildThread(
     channel,
     created_at: createdAt,
     updated_at: updatedAt,
+    participants: collectParticipants(messages, usersById),
     messages: mappedMessages,
   };
+}
+
+function collectParticipants(
+  messages: RawSlackMessage[],
+  usersById: Map<string, SlackActor>,
+): string[] {
+  const actorsById = new Map<string, SlackActor>();
+  const add = (actor: SlackActor) => {
+    actorsById.set(actor.id, actor);
+  };
+
+  for (const message of messages) {
+    const author = resolveAuthor(message, usersById);
+    add(author);
+    for (const actorId of getMentionedActorIds(message)) {
+      add(usersById.get(actorId) ?? unknownActor(actorId, message.team));
+    }
+    for (const reaction of message.reactions ?? []) {
+      for (const actorId of reaction.users ?? []) {
+        add(usersById.get(actorId) ?? unknownActor(actorId, message.team));
+      }
+    }
+    for (const file of message.files ?? []) {
+      if (file.user) {
+        add(
+          file.user === author.id
+            ? author
+            : (usersById.get(file.user) ?? unknownActor(file.user, message.team)),
+        );
+      }
+    }
+  }
+
+  const identifiers = [...actorsById.values()]
+    .filter((actor) => actor.kind !== 'bot')
+    .map((actor) => firstNonEmpty(actor.email, actor.username, actor.id) ?? actor.id);
+
+  return [...new Set(identifiers)].sort();
 }
 
 function isThreadRootMessage(message: RawSlackMessage): boolean {
