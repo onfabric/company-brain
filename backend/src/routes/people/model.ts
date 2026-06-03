@@ -11,6 +11,7 @@ export const PersonSchema = t.Object({
   email: t.Union([t.String(), t.Null()]),
   is_external: t.Boolean(),
   data_sources: t.Array(PersonDataSourceSchema),
+  records_count: t.Integer(),
 });
 
 export const ListPeopleQuerySchema = t.Object({

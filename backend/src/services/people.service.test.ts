@@ -54,6 +54,7 @@ describe('PeopleService.mergePeople', () => {
       email: 'ada@example.com',
       is_external: false,
       data_sources: [{ data_source_key: 'slack', data_source_user_id: 'U07ABC' }],
+      records_count: 3,
     };
     const repo = new MockPeopleRepository(
       [
@@ -117,6 +118,7 @@ describe('PeopleService.updatePerson', () => {
       email: null,
       is_external: true,
       data_sources: [],
+      records_count: 0,
     };
     const repo = new MockPeopleRepository([], updatedPerson);
     const service = new PeopleService(repo);

@@ -8,6 +8,7 @@ export type PersonDataSource = {
 
 export type PersonRow = Pick<People, 'id' | 'name' | 'email' | 'is_external'> & {
   data_sources: PersonDataSource[];
+  records_count: number;
 };
 
 export type PersonIdentity = Pick<People, 'id' | 'name' | 'email'>;
@@ -130,7 +131,8 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
             ORDER BY ds.nango_integration_id, pds.data_source_user_id
           ) FILTER (WHERE pds.id IS NOT NULL),
           '[]'
-        ) AS data_sources
+        ) AS data_sources,
+        (SELECT COUNT(*) FROM brain.records_people rp WHERE rp.person_id = p.id)::int AS records_count
       FROM brain.people p
       LEFT JOIN brain.people_data_sources pds ON pds.person_id = p.id
       LEFT JOIN brain.data_sources ds ON ds.id = pds.data_source_id

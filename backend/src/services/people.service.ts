@@ -17,6 +17,7 @@ type Person = {
   email: string | null;
   is_external: boolean;
   data_sources: PersonDataSource[];
+  records_count: number;
 };
 
 type MergeResult = {
