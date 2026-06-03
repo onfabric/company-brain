@@ -52,6 +52,7 @@ describe('PeopleService.mergePeople', () => {
       id: INTO_ID,
       name: 'Ada Lovelace',
       email: 'ada@example.com',
+      is_external: false,
       data_sources: [{ data_source_key: 'slack', data_source_user_id: 'U07ABC' }],
     };
     const repo = new MockPeopleRepository(
@@ -114,15 +115,20 @@ describe('PeopleService.updatePerson', () => {
       id: INTO_ID,
       name: 'Ada Lovelace',
       email: null,
+      is_external: true,
       data_sources: [],
     };
     const repo = new MockPeopleRepository([], updatedPerson);
     const service = new PeopleService(repo);
 
-    const result = await service.updatePerson(INTO_ID, { name: 'Ada Lovelace', email: null });
+    const result = await service.updatePerson(INTO_ID, {
+      name: 'Ada Lovelace',
+      email: null,
+      is_external: true,
+    });
 
     expect(repo.updateCalls).toEqual([
-      { id: INTO_ID, updates: { name: 'Ada Lovelace', email: null } },
+      { id: INTO_ID, updates: { name: 'Ada Lovelace', email: null, is_external: true } },
     ]);
     expect(result).toEqual(updatedPerson);
   });

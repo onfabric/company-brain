@@ -21,6 +21,7 @@ export type People = {
   id: string;
   name: string | null;
   email: string | null;
+  is_external: boolean;
 };
 
 export type PeopleDataSources = {

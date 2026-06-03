@@ -1,5 +1,9 @@
 import { BadRequestError, NotFoundError } from '#lib/errors.ts';
-import type { PeopleRepositoryContract, PersonUpdate } from '#repositories/people.repository.ts';
+import type {
+  PeopleRepositoryContract,
+  PersonFilters,
+  PersonUpdate,
+} from '#repositories/people.repository.ts';
 import { Service } from '#services/service.ts';
 
 type PersonDataSource = {
@@ -11,6 +15,7 @@ type Person = {
   id: string;
   name: string | null;
   email: string | null;
+  is_external: boolean;
   data_sources: PersonDataSource[];
 };
 
@@ -28,8 +33,8 @@ export class PeopleService extends Service {
     this.peopleRepo = peopleRepo;
   }
 
-  async listPeople(): Promise<{ people: Person[] }> {
-    const people = await this.peopleRepo.listPeople();
+  async listPeople(filters: PersonFilters = {}): Promise<{ people: Person[] }> {
+    const people = await this.peopleRepo.listPeople(filters);
     return { people };
   }
 
