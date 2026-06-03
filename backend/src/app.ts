@@ -21,6 +21,16 @@ export function createApp() {
             title: 'Company Brain API',
             version: '1.0.0',
           },
+          tags: [
+            {
+              name: 'People',
+              description: 'List, update, and merge the people derived from ingested records.',
+            },
+            {
+              name: 'Records',
+              description: 'Search ingested records and inspect their data sources.',
+            },
+          ],
           components: {
             securitySchemes: apiKeySecuritySchemes,
           },

@@ -32,6 +32,12 @@ export const recordsSearchController = new Elysia()
     },
     {
       [REQUIRE_API_KEY_MACRO_NAME]: true,
+      detail: {
+        tags: ['Records'],
+        summary: 'Search records',
+        description:
+          'Full-text search over ingested records, with optional filtering by data source, person, model, and time range. Results are paginated.',
+      },
       query: SearchQuerySchema,
       response: {
         [StatusMap.OK]: SearchResponseSchema,

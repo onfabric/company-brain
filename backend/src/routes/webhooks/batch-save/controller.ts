@@ -18,6 +18,7 @@ export const batchSaveController = new Elysia()
       return status(StatusMap.OK, result);
     },
     {
+      detail: { hide: true },
       body: BatchSaveBodySchema,
       response: {
         [StatusMap.OK]: BatchSaveResponseSchema,
