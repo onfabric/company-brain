@@ -2,20 +2,24 @@ import { Elysia, StatusMap } from 'elysia';
 
 import { createLogger } from '#lib/logger.ts';
 
-const requestLogger = createLogger('http');
+const httpLogger = createLogger('http');
+
+function resolveStatus(status: number | keyof StatusMap | undefined): number {
+  return typeof status === 'string' ? StatusMap[status] : (status ?? StatusMap.OK);
+}
+
+function formatElapsed(startedAt: number | undefined): string {
+  return startedAt === undefined ? '' : ` (${Math.round(performance.now() - startedAt)}ms)`;
+}
 
 export const requestResponsePlugin = new Elysia({ name: 'request-response' })
   .derive(() => ({ requestStartedAt: performance.now() }))
   .onRequest(({ request }) => {
-    requestLogger.info(`→ ${request.method} ${new URL(request.url).pathname}`);
+    httpLogger.info(`→ ${request.method} ${new URL(request.url).pathname}`);
   })
   .onAfterResponse(({ request, set, requestStartedAt }) => {
-    const status =
-      typeof set.status === 'string' ? StatusMap[set.status] : (set.status ?? StatusMap.OK);
-    const elapsed =
-      requestStartedAt === undefined
-        ? ''
-        : ` (${Math.round(performance.now() - requestStartedAt)}ms)`;
-    requestLogger.info(`← ${request.method} ${new URL(request.url).pathname} ${status}${elapsed}`);
+    const status = resolveStatus(set.status);
+    const elapsed = formatElapsed(requestStartedAt);
+    httpLogger.info(`← ${request.method} ${new URL(request.url).pathname} ${status}${elapsed}`);
   })
   .as('global');
