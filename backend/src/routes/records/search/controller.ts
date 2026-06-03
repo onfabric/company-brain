@@ -11,10 +11,13 @@ export const recordsSearchController = new Elysia()
   .get(
     '/records/search',
     async ({ query, recordsService, logger, status }) => {
-      logger.info(`searching records: q=${query.q ?? ''} source=${query.data_source_id ?? ''}`);
+      logger.info(
+        `searching records: q=${query.q ?? ''} source=${query.data_source_id ?? ''} people=${query.person_id?.length ?? 0}`,
+      );
       const result = await recordsService.search({
         query: query.q,
         dataSourceId: query.data_source_id,
+        personIds: query.person_id,
         model: query.model,
         createdAfter: query.created_after,
         createdBefore: query.created_before,
