@@ -20,6 +20,7 @@ export type SourceModelRow = Pick<Records, 'data_source_id' | 'nango_model'> & {
 export type SearchParams = {
   query?: string;
   dataSourceId?: string;
+  personIds?: string[];
   model?: string;
   createdAfter?: string;
   createdBefore?: string;
@@ -248,12 +249,21 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     return { total: countRow?.total ?? 0, results };
   }
 
-  // The search filters all target bm25 fast fields, so the conditions are pushed
-  // down into the index whether or not a full-text `query` is present.
+  // Most conditions target bm25 fast fields and are pushed down into the index
+  // whether or not a full-text `query` is present. The person filter is a
+  // relational semi-join on brain.records_people, applied as a filter above the
+  // scan; it matches records linked to any of the given people.
   private buildWhere(params: SearchParams) {
     const conditions = [
       params.query ? this.sql`body @@@ ${params.query}` : null,
       params.dataSourceId ? this.sql`data_source_id = ${params.dataSourceId}` : null,
+      params.personIds && params.personIds.length > 0
+        ? this.sql`EXISTS (
+            SELECT 1 FROM brain.records_people rp
+            WHERE rp.record_id = brain.records.id
+              AND rp.person_id = ANY(${params.personIds}::uuid[])
+          )`
+        : null,
       params.model ? this.sql`nango_model = ${params.model}` : null,
       params.createdAfter ? this.sql`created_at >= ${params.createdAfter}` : null,
       params.createdBefore ? this.sql`created_at < ${params.createdBefore}` : null,
