@@ -3,6 +3,7 @@ import { t } from 'elysia';
 export const SearchQuerySchema = t.Object({
   q: t.Optional(t.String({ minLength: 1 })),
   data_source_id: t.Optional(t.String({ format: 'uuid' })),
+  person_id: t.Optional(t.Array(t.String({ format: 'uuid' }), { minItems: 1 })),
   model: t.Optional(t.String({ minLength: 1 })),
   created_after: t.Optional(t.String({ format: 'date-time' })),
   created_before: t.Optional(t.String({ format: 'date-time' })),

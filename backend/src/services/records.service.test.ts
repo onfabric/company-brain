@@ -172,6 +172,19 @@ describe('RecordsService', () => {
     });
   });
 
+  it('forwards the person filter to the repository', async () => {
+    const repo = new MockRecordsRepository(0);
+    const service = new RecordsService(repo);
+
+    const personIds = [
+      '019e8882-07f1-771c-993e-f6825a9224bb',
+      '019e8882-07f1-77a0-b4cf-5798eafb4664',
+    ];
+    await service.search({ personIds, limit: 20, offset: 0 });
+
+    expect(repo.searchCalls[0]?.personIds).toEqual(personIds);
+  });
+
   it('rejects an unparseable time-range filter with a 400', async () => {
     const repo = new MockRecordsRepository(0);
     const service = new RecordsService(repo);
