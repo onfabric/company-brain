@@ -10,6 +10,16 @@
 	reverse_proxy nango-server:3009
 }
 
+{$BRAIN_HOSTNAME} {
+	@public path /health /people /people/* /records /records/*
+	handle @public {
+		reverse_proxy brain:3010
+	}
+	handle {
+		respond 404
+	}
+}
+
 {$USAGE_DASHBOARD_HOSTNAME} {
 	reverse_proxy usage-dashboard:3011
 }

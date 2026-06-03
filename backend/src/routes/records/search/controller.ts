@@ -1,4 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
+import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
 import { SearchQuerySchema, SearchResponseSchema } from '#routes/records/search/model.ts';
 import { loggerPlugin, RecordsServicePlugin } from '#services/plugins.ts';
 
@@ -8,6 +9,7 @@ const DEFAULT_OFFSET = 0;
 export const recordsSearchController = new Elysia()
   .use(loggerPlugin('recordsSearchController'))
   .use(RecordsServicePlugin)
+  .use(apiKeyAuth)
   .get(
     '/records/search',
     async ({ query, recordsService, logger, status }) => {
@@ -29,6 +31,7 @@ export const recordsSearchController = new Elysia()
       return status(StatusMap.OK, result);
     },
     {
+      [REQUIRE_API_KEY_MACRO_NAME]: true,
       query: SearchQuerySchema,
       response: {
         [StatusMap.OK]: SearchResponseSchema,

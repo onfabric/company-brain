@@ -47,6 +47,8 @@ services:
     depends_on:
       nango-server:
         condition: service_healthy
+      brain:
+        condition: service_healthy
       usage-dashboard:
         condition: service_healthy
       dozzle:
@@ -63,6 +65,7 @@ services:
     environment:
       - NANGO_HOSTNAME
       - NANGO_CONNECT_HOSTNAME
+      - BRAIN_HOSTNAME
       - USAGE_DASHBOARD_HOSTNAME
       - DOZZLE_HOSTNAME
       - ACME_EMAIL

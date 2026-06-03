@@ -276,6 +276,7 @@ services:
     container_name: brain
     environment:
       - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
+      - BRAIN_API_KEY
     ports:
       - "127.0.0.1:${BRAIN_SERVER_PORT}:3010"
     healthcheck:
