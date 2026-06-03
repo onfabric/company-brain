@@ -13,8 +13,7 @@
     "packages": [
       "agent-sync/",
       "nango-integrations/",
-      "backend/",
-      "usage-dashboard/"
+      "backend/"
     ],
     "catalog": {
       "typescript": "^5.9.3"

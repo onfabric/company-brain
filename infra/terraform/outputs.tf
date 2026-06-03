@@ -22,11 +22,6 @@ output "brain_ecr_repository_url" {
   value       = aws_ecr_repository.brain.repository_url
 }
 
-output "usage_dashboard_ecr_repository_url" {
-  description = "ECR repo for the AI usage dashboard image."
-  value       = aws_ecr_repository.usage_dashboard.repository_url
-}
-
 output "artifacts_bucket" {
   value = aws_s3_bucket.artifacts.bucket
 }
