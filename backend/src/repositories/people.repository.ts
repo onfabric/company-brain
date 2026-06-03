@@ -10,12 +10,79 @@ export type PersonRow = Pick<People, 'id' | 'name' | 'email'> & {
   data_sources: PersonDataSource[];
 };
 
+export type PersonIdentity = Pick<People, 'id' | 'name' | 'email'>;
+
+export type MergeCounts = {
+  moved_data_sources: number;
+  moved_records: number;
+};
+
 export abstract class PeopleRepositoryContract {
   abstract listPeople(): Promise<PersonRow[]>;
+  abstract getPerson(id: People['id']): Promise<PersonRow | null>;
+  abstract findByIds(ids: People['id'][]): Promise<PersonIdentity[]>;
+  abstract merge(fromId: People['id'], intoId: People['id']): Promise<MergeCounts>;
 }
 
 export class PeopleRepository extends Repository implements PeopleRepositoryContract {
   listPeople(): Promise<PersonRow[]> {
+    return this.selectPeople();
+  }
+
+  async getPerson(id: People['id']): Promise<PersonRow | null> {
+    const [person] = await this.selectPeople(id);
+    return person ?? null;
+  }
+
+  findByIds(ids: People['id'][]): Promise<PersonIdentity[]> {
+    if (ids.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.sql<PersonIdentity[]>`
+      SELECT id, name, email
+      FROM brain.people
+      WHERE id IN ${this.sql(ids)}
+    `;
+  }
+
+  merge(fromId: People['id'], intoId: People['id']): Promise<MergeCounts> {
+    return this.sql.begin(async (tx) => {
+      const movedDataSources = await tx<Pick<PeopleDataSources, 'id'>[]>`
+        UPDATE brain.people_data_sources
+        SET person_id = ${intoId}
+        WHERE person_id = ${fromId}
+        RETURNING id
+      `;
+
+      // records_people PK is (record_id, person_id), so a record already linked to
+      // both people would collide when reassigned. Drop merge_from's copy for those
+      // records first; the UPDATE then relabels only the non-colliding remainder.
+      await tx`
+        DELETE FROM brain.records_people
+        WHERE person_id = ${fromId}
+          AND record_id IN (
+            SELECT record_id FROM brain.records_people WHERE person_id = ${intoId}
+          )
+      `;
+
+      const movedRecords = await tx<{ record_id: string }[]>`
+        UPDATE brain.records_people
+        SET person_id = ${intoId}
+        WHERE person_id = ${fromId}
+        RETURNING record_id
+      `;
+
+      await tx`DELETE FROM brain.people WHERE id = ${fromId}`;
+
+      return {
+        moved_data_sources: movedDataSources.length,
+        moved_records: movedRecords.length,
+      };
+    });
+  }
+
+  private selectPeople(id?: People['id']): Promise<PersonRow[]> {
+    const where = id ? this.sql`WHERE p.id = ${id}` : this.sql``;
     return this.sql<PersonRow[]>`
       SELECT
         p.id,
@@ -34,6 +101,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
       FROM brain.people p
       LEFT JOIN brain.people_data_sources pds ON pds.person_id = p.id
       LEFT JOIN brain.data_sources ds ON ds.id = pds.data_source_id
+      ${where}
       GROUP BY p.id, p.name, p.email
       ORDER BY p.name NULLS LAST, p.id
     `;
