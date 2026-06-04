@@ -6,9 +6,9 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "bun --env-file=../.env --bun vite dev --host 127.0.0.1 --port 3020",
+    "dev": "bun --bun vite dev --host 127.0.0.1 --port 3020",
     "build": "bun --bun vite build",
-    "start": "node dist/server/server.js",
+    "preview": "bun --bun vite preview --host 127.0.0.1 --port 3020",
     "check:types": "bun --bun tsc",
     "test": "vitest run"
   },
@@ -22,7 +22,6 @@
     "@tanstack/react-query": "^5.91.2",
     "@tanstack/react-router": "latest",
     "@tanstack/react-table": "^8.21.3",
-    "@tanstack/react-start": "latest",
     "@tanstack/router-plugin": "^1.132.0",
     "@vitejs/plugin-react": "^6.0.1",
     "class-variance-authority": "^0.7.1",

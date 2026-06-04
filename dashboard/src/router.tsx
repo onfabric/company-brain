@@ -4,6 +4,7 @@ import { routeTree } from './routeTree.gen.ts';
 export function getRouter() {
   return createTanStackRouter({
     routeTree,
+    basepath: '/dashboard',
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,

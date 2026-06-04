@@ -1,7 +1,7 @@
-export const DEFAULT_BRAIN_BASE_URL = 'https://brain-dev.onfabric.io';
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_LIMIT = 20;
 export const API_MAX_LIMIT = 100;
+export const HTTP_UNAUTHORIZED = 401;
 export const COMPACT_LIMIT = 10;
 export const EXPANDED_LIMIT = 50;
 export const FIRST_PAGE = 1;

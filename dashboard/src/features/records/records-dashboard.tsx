@@ -1,15 +1,28 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
-import { useMemo } from 'react';
+import { ChevronLeft, ChevronRight, KeyRound, RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card, CardContent } from '#/components/ui/card.tsx';
 import { Skeleton } from '#/components/ui/skeleton.tsx';
+import { ApiKeyGate } from '#/features/records/api-key-gate.tsx';
 import { RecordPreview } from '#/features/records/record-preview.tsx';
 import { RecordsFilters } from '#/features/records/records-filters.tsx';
 import { RecordsTable } from '#/features/records/records-table.tsx';
-import { listDataSources, listPeople, listRecords, type RecordHit } from '#/lib/brain-functions.ts';
-import { DEFAULT_LIMIT, EMPTY_COUNT, EMPTY_OFFSET, FIRST_PAGE } from '#/lib/constants.ts';
+import {
+  BrainApiError,
+  listDataSources,
+  listPeople,
+  listRecords,
+  type RecordHit,
+} from '#/lib/brain-functions.ts';
+import {
+  DEFAULT_LIMIT,
+  EMPTY_COUNT,
+  EMPTY_OFFSET,
+  FIRST_PAGE,
+  HTTP_UNAUTHORIZED,
+} from '#/lib/constants.ts';
 import {
   cleanRouteSearch,
   type RecordsRouteSearch,
@@ -45,20 +58,64 @@ const LOADING_ROW_KEYS = [
 ];
 
 export function RecordsDashboard({ search }: RecordsDashboardProps) {
+  const [apiKey, setApiKey] = useState<string>();
+  const [apiKeyVersion, setApiKeyVersion] = useState(EMPTY_COUNT);
+  const queryClient = useQueryClient();
+
+  if (!apiKey) {
+    return (
+      <ApiKeyGate
+        onSubmit={(nextApiKey) => {
+          setApiKey(nextApiKey);
+          setApiKeyVersion((version) => version + FIRST_PAGE);
+        }}
+      />
+    );
+  }
+
+  return (
+    <AuthenticatedRecordsDashboard
+      apiKey={apiKey}
+      apiKeyVersion={apiKeyVersion}
+      search={search}
+      onChangeApiKey={() => {
+        setApiKey(undefined);
+        queryClient.removeQueries();
+      }}
+    />
+  );
+}
+
+type AuthenticatedRecordsDashboardProps = {
+  apiKey: string;
+  apiKeyVersion: number;
+  search: RecordsRouteSearch;
+  onChangeApiKey: () => void;
+};
+
+function AuthenticatedRecordsDashboard({
+  apiKey,
+  apiKeyVersion,
+  search,
+  onChangeApiKey,
+}: AuthenticatedRecordsDashboardProps) {
   const navigate = useNavigate({ from: '/' });
   const recordsInput = toRecordsQueryInput(search);
   const recordsQuery = useQuery({
-    queryKey: ['records', recordsInput],
-    queryFn: () => listRecords({ data: recordsInput }),
+    queryKey: ['records', apiKeyVersion, recordsInput],
+    queryFn: () => listRecords(recordsInput, apiKey),
     placeholderData: keepPreviousData,
+    retry: false,
   });
   const sourcesQuery = useQuery({
-    queryKey: ['data-sources'],
-    queryFn: () => listDataSources(),
+    queryKey: ['data-sources', apiKeyVersion],
+    queryFn: () => listDataSources(apiKey),
+    retry: false,
   });
   const peopleQuery = useQuery({
-    queryKey: ['people'],
-    queryFn: () => listPeople({ data: {} }),
+    queryKey: ['people', apiKeyVersion],
+    queryFn: () => listPeople(apiKey),
+    retry: false,
   });
 
   const sources = sourcesQuery.data?.sources ?? [];
@@ -121,6 +178,10 @@ export function RecordsDashboard({ search }: RecordsDashboardProps) {
             <RefreshCw className={recordsQuery.isFetching ? 'animate-spin' : undefined} />
             Refresh
           </Button>
+          <Button type="button" variant="outline" onClick={onChangeApiKey}>
+            <KeyRound />
+            Change key
+          </Button>
         </div>
       </header>
 
@@ -138,7 +199,7 @@ export function RecordsDashboard({ search }: RecordsDashboardProps) {
             {recordsQuery.isLoading ? (
               <LoadingRows />
             ) : recordsQuery.isError ? (
-              <ErrorState message={recordsQuery.error.message} />
+              <ErrorState error={recordsQuery.error} onChangeApiKey={onChangeApiKey} />
             ) : records.length === EMPTY_COUNT ? (
               <EmptyState />
             ) : (
@@ -201,12 +262,20 @@ function LoadingRows() {
   );
 }
 
-function ErrorState({ message }: { message: string }) {
+function ErrorState({ error, onChangeApiKey }: { error: Error; onChangeApiKey: () => void }) {
+  const isAuthError = error instanceof BrainApiError && error.status === HTTP_UNAUTHORIZED;
+
   return (
     <div className="grid min-h-72 place-items-center p-8 text-center">
       <div className="max-w-xl">
         <h2 className="font-semibold">Could not load records</h2>
-        <p className="mt-2 text-muted-foreground text-sm">{message}</p>
+        <p className="mt-2 text-muted-foreground text-sm">{error.message}</p>
+        {isAuthError ? (
+          <Button type="button" className="mt-4" onClick={onChangeApiKey}>
+            <KeyRound />
+            Enter API key
+          </Button>
+        ) : null}
       </div>
     </div>
   );

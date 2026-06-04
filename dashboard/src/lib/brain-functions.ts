@@ -1,13 +1,12 @@
-import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import {
   API_MAX_LIMIT,
-  DEFAULT_BRAIN_BASE_URL,
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
   EMPTY_COUNT,
   EMPTY_OFFSET,
   FIRST_PAGE,
+  HTTP_UNAUTHORIZED,
   NEXT_DAY_OFFSET,
 } from '#/lib/constants.ts';
 
@@ -60,10 +59,6 @@ const PersonDataSourceSchema = z.object({
   data_source_user_id: z.string(),
 });
 
-const PersonFilterSchema = z.object({
-  is_external: z.boolean().optional(),
-});
-
 const PeopleResponseSchema = z.object({
   people: z.array(
     PersonSchema.extend({
@@ -73,7 +68,16 @@ const PeopleResponseSchema = z.object({
   ),
 });
 
-const RecordsQueryInputSchema = z.object({
+export class BrainApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+export const RecordsQueryInputSchema = z.object({
   q: z.string().optional(),
   dataSourceId: z.uuid().optional(),
   personId: z.uuid().optional(),
@@ -89,47 +93,38 @@ export type RecordsQueryInput = z.infer<typeof RecordsQueryInputSchema>;
 export type Source = z.infer<typeof SourceSchema>;
 export type Person = z.infer<typeof PeopleResponseSchema>['people'][number];
 
-export const listRecords = createServerFn({ method: 'GET' })
-  .inputValidator(RecordsQueryInputSchema)
-  .handler(async ({ data }) => {
-    const params = new URLSearchParams();
-    const query = data.q?.trim();
-    if (query) {
-      params.set('q', query);
-    }
-    if (data.dataSourceId) {
-      params.set('data_source_id', data.dataSourceId);
-    }
-    if (data.personId) {
-      params.append('person_id', data.personId);
-    }
-    if (data.createdAfter) {
-      params.set('created_after', startOfDayIso(data.createdAfter));
-    }
-    if (data.createdBefore) {
-      params.set('created_before', exclusiveEndOfDayIso(data.createdBefore));
-    }
+export async function listRecords(input: RecordsQueryInput, apiKey: string) {
+  const params = new URLSearchParams();
+  const query = input.q?.trim();
+  if (query) {
+    params.set('q', query);
+  }
+  if (input.dataSourceId) {
+    params.set('data_source_id', input.dataSourceId);
+  }
+  if (input.personId) {
+    params.append('person_id', input.personId);
+  }
+  if (input.createdAfter) {
+    params.set('created_after', startOfDayIso(input.createdAfter));
+  }
+  if (input.createdBefore) {
+    params.set('created_before', exclusiveEndOfDayIso(input.createdBefore));
+  }
 
-    params.set('limit', String(data.limit));
-    params.set('offset', String(pageToOffset(data.page, data.limit)));
+  params.set('limit', String(input.limit));
+  params.set('offset', String(pageToOffset(input.page, input.limit)));
 
-    return await fetchBrain(`/records?${params.toString()}`, RecordsResponseSchema);
-  });
+  return await fetchBrain(`/records?${params.toString()}`, RecordsResponseSchema, apiKey);
+}
 
-export const listDataSources = createServerFn({ method: 'GET' }).handler(async () => {
-  return await fetchBrain('/data-sources', SourcesResponseSchema);
-});
+export async function listDataSources(apiKey: string) {
+  return await fetchBrain('/data-sources', SourcesResponseSchema, apiKey);
+}
 
-export const listPeople = createServerFn({ method: 'GET' })
-  .inputValidator(PersonFilterSchema)
-  .handler(async ({ data }) => {
-    const params = new URLSearchParams();
-    if (data.is_external !== undefined) {
-      params.set('is_external', String(data.is_external));
-    }
-    const suffix = params.size > EMPTY_COUNT ? `?${params.toString()}` : '';
-    return await fetchBrain(`/people${suffix}`, PeopleResponseSchema);
-  });
+export async function listPeople(apiKey: string) {
+  return await fetchBrain('/people', PeopleResponseSchema, apiKey);
+}
 
 function pageToOffset(page: number, limit: number) {
   return page > FIRST_PAGE ? (page - FIRST_PAGE) * limit : EMPTY_OFFSET;
@@ -145,14 +140,8 @@ function exclusiveEndOfDayIso(date: string) {
   return parsed.toISOString();
 }
 
-async function fetchBrain<T>(path: string, schema: z.ZodType<T>): Promise<T> {
-  const baseUrl = process.env.BRAIN_BASE_URL ?? DEFAULT_BRAIN_BASE_URL;
-  const apiKey = process.env.BRAIN_API_KEY;
-  if (!apiKey) {
-    throw new Error('Missing BRAIN_API_KEY for dashboard API calls.');
-  }
-
-  const response = await fetch(new URL(path, baseUrl), {
+async function fetchBrain<T>(path: string, schema: z.ZodType<T>, apiKey: string): Promise<T> {
+  const response = await fetch(path, {
     headers: {
       accept: 'application/json',
       'api-key': apiKey,
@@ -161,8 +150,18 @@ async function fetchBrain<T>(path: string, schema: z.ZodType<T>): Promise<T> {
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(`Brain API ${response.status}: ${message}`);
+    throw new BrainApiError(errorMessage(response.status, message), response.status);
   }
 
   return schema.parse(await response.json());
+}
+
+function errorMessage(status: number, message: string) {
+  if (status === HTTP_UNAUTHORIZED) {
+    return 'That API key was rejected.';
+  }
+  if (message.length > EMPTY_COUNT) {
+    return `Brain API ${status}: ${message}`;
+  }
+  return `Brain API ${status}: request failed.`;
 }

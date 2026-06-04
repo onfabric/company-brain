@@ -5,7 +5,14 @@ import { dts } from 'rolldown-plugin-dts';
 // sandbox, `elysia`/`bun` only appear in the emitted .d.ts (and are resolvable when
 // type-checking the syncs). Everything else — including the backend's App type — is
 // bundled/inlined so the output is self-contained.
-const KEEP_EXTERNAL = [/^nango$/, /^elysia(\/|$)/, /^bun$/, /^@sinclair\//, /^@elysiajs\//];
+const KEEP_EXTERNAL = [
+  /^nango$/,
+  /^elysia(\/|$)/,
+  /^bun$/,
+  /^node:/,
+  /^@sinclair\//,
+  /^@elysiajs\//,
+];
 
 console.log('Building backend client...');
 
