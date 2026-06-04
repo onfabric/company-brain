@@ -40,13 +40,10 @@ services:
     image: caddy:2.8
     container_name: caddy
     restart: always
-    depends_on:
-      nango-server:
-        condition: service_healthy
-      brain:
-        condition: service_healthy
-      dozzle:
-        condition: service_healthy
+    # No depends_on: it makes compose restart Caddy whenever an upstream is
+    # recreated (every deploy recreates brain), taking the proxy down for the
+    # upstream's health-gate window. Caddy's lb_try_duration already rides out
+    # upstreams that aren't accepting yet, on cold boot and during a recreate.
     ports:
       - "80:80"
       - "443:443"
