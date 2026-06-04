@@ -3,7 +3,6 @@ import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { Badge } from '#/components/ui/badge.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card.tsx';
-import { ScrollArea } from '#/components/ui/scroll-area.tsx';
 import { Separator } from '#/components/ui/separator.tsx';
 import { formatDateTime, participantLabel, recordTitle } from '#/features/records/record-format.ts';
 import type { RecordHit } from '#/lib/brain-functions.ts';
@@ -15,7 +14,7 @@ type RecordPreviewProps = {
 export function RecordPreview({ record }: RecordPreviewProps) {
   if (!record) {
     return (
-      <Card className="h-full min-h-[32rem]">
+      <Card className="flex h-full min-h-0 flex-col">
         <CardHeader>
           <CardTitle>Record</CardTitle>
         </CardHeader>
@@ -25,7 +24,7 @@ export function RecordPreview({ record }: RecordPreviewProps) {
   }
 
   return (
-    <Card className="h-full min-h-[32rem] overflow-hidden">
+    <Card className="flex h-full min-h-0 flex-col overflow-hidden">
       <CardHeader className="gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{record.data_source_key}</Badge>
@@ -41,14 +40,14 @@ export function RecordPreview({ record }: RecordPreviewProps) {
         </div>
       </CardHeader>
       <Separator />
-      <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-17rem)] min-h-[24rem] px-5 py-4">
-          <div className="prose prose-neutral max-w-none prose-headings:scroll-m-20 prose-pre:whitespace-pre-wrap prose-a:text-primary">
+      <CardContent className="min-h-0 flex-1 p-0">
+        <div className="h-full overflow-auto px-5 py-4">
+          <div className="prose prose-neutral max-w-none prose-headings:scroll-m-20 prose-a:text-primary">
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
               {record.body}
             </ReactMarkdown>
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );
