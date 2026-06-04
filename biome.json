@@ -15,6 +15,7 @@
       "!**/build",
       "!**/nango",
       "!**/.nango",
+      "!**/routeTree.gen.ts",
       "!**/*.lock",
       "!nango-integrations/**/*.test.json"
     ]
@@ -90,6 +91,12 @@
         "rules": {
           "correctness": {
             "noUnusedImports": "off"
+          },
+          "style": {
+            "useFilenamingConvention": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off"
           }
         }
       }

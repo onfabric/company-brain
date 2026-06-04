@@ -3,6 +3,7 @@ import { Elysia } from 'elysia';
 import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
+import { dashboardController } from '#routes/dashboard/controller.ts';
 import { dataSourcesController } from '#routes/data-sources/controller.ts';
 import { healthController } from '#routes/health/controller.ts';
 import { peopleIdController } from '#routes/people/[id]/controller.ts';
@@ -43,6 +44,7 @@ export function createApp() {
         },
       }),
     )
+    .use(dashboardController)
     .use(healthController)
     .use(peopleController)
     .use(peopleIdController)

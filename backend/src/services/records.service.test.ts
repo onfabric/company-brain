@@ -111,9 +111,18 @@ describe('RecordsService', () => {
         {
           id: 'rec-1',
           data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+          data_source_key: 'slack',
           created_at: new Date('2026-01-01T00:00:00Z'),
           updated_at: new Date('2026-01-02T00:00:00Z'),
           body: 'hello world',
+          participants: [
+            {
+              id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+              name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              is_external: false,
+            },
+          ],
           score: 4.2,
           snippet: '<b>hello</b> world',
         },
@@ -138,11 +147,20 @@ describe('RecordsService', () => {
         {
           id: 'rec-1',
           data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+          data_source_key: 'slack',
           created_at: '2026-01-01T00:00:00.000Z',
           updated_at: '2026-01-02T00:00:00.000Z',
           score: 4.2,
           snippet: '<b>hello</b> world',
           body: 'hello world',
+          participants: [
+            {
+              id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+              name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              is_external: false,
+            },
+          ],
         },
       ],
     });
@@ -159,6 +177,25 @@ describe('RecordsService', () => {
     await service.search({ personIds, limit: 20, offset: 0 });
 
     expect(repo.searchCalls[0]?.personIds).toEqual(personIds);
+  });
+
+  it('forwards record sort params to the repository', async () => {
+    const repo = new MockRecordsRepository(0);
+    const service = new RecordsService(repo);
+
+    await service.search({ sortBy: 'updated_at', sortOrder: 'asc', limit: 20, offset: 0 });
+
+    expect(repo.searchCalls[0]?.sortBy).toBe('updated_at');
+    expect(repo.searchCalls[0]?.sortOrder).toBe('asc');
+  });
+
+  it('rejects relevance sorting without a full-text query', async () => {
+    const repo = new MockRecordsRepository(0);
+    const service = new RecordsService(repo);
+
+    await expect(service.search({ sortBy: 'relevance', limit: 20, offset: 0 })).rejects.toThrow(
+      'sort_by=relevance requires q',
+    );
   });
 
   it('rejects an unparseable time-range filter with a 400', async () => {
@@ -178,9 +215,11 @@ describe('RecordsService', () => {
       {
         id: '019e8882-07f1-771c-993e-f6825a9224bb',
         data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+        data_source_key: 'github',
         created_at: new Date('2026-01-01T00:00:00Z'),
         updated_at: new Date('2026-01-02T00:00:00Z'),
         body: 'hello world',
+        participants: [],
       },
     );
     const service = new RecordsService(repo);
@@ -191,9 +230,11 @@ describe('RecordsService', () => {
     expect(record).toEqual({
       id: '019e8882-07f1-771c-993e-f6825a9224bb',
       data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+      data_source_key: 'github',
       created_at: '2026-01-01T00:00:00.000Z',
       updated_at: '2026-01-02T00:00:00.000Z',
       body: 'hello world',
+      participants: [],
     });
   });
 

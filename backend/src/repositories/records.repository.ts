@@ -1,5 +1,5 @@
 import type { SQL } from 'bun';
-import type { DataSources, Records } from '#db/tables.ts';
+import type { DataSources, People, Records } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
 
 export type IngestBatch = {
@@ -17,6 +17,15 @@ export type SourceRow = Pick<Records, 'data_source_id'> & {
   newest_updated_at: Date;
 };
 
+export const RECORD_SORT_FIELDS = ['created_at', 'updated_at', 'relevance'] as const;
+export const RECORD_SORT_ORDERS = ['asc', 'desc'] as const;
+export const DEFAULT_RECORD_SORT_FIELD: RecordSortField = 'created_at';
+export const DEFAULT_SEARCH_SORT_FIELD: RecordSortField = 'relevance';
+export const DEFAULT_RECORD_SORT_ORDER: RecordSortOrder = 'desc';
+
+export type RecordSortField = (typeof RECORD_SORT_FIELDS)[number];
+export type RecordSortOrder = (typeof RECORD_SORT_ORDERS)[number];
+
 export type SearchParams = {
   query?: string;
   dataSourceId?: string;
@@ -25,6 +34,8 @@ export type SearchParams = {
   createdBefore?: string;
   updatedAfter?: string;
   updatedBefore?: string;
+  sortBy?: RecordSortField;
+  sortOrder?: RecordSortOrder;
   limit: number;
   offset: number;
 };
@@ -32,7 +43,10 @@ export type SearchParams = {
 export type RecordRow = Pick<
   Records,
   'id' | 'data_source_id' | 'created_at' | 'updated_at' | 'body'
->;
+> & {
+  data_source_key: DataSources['nango_integration_id'];
+  participants: Array<Pick<People, 'id' | 'name' | 'email' | 'is_external'>>;
+};
 
 export type SearchResultRow = RecordRow & {
   score: number | null;
@@ -129,9 +143,6 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     `;
   }
 
-  // Resolve each record's `participants` (per-source user identifiers) to a person
-  // and refresh brain.records_people for the batch. Unknown identifiers get a new
-  // person with name/email left NULL, to be filled in manually later.
   private async linkParticipants(
     tx: SQL,
     batch: IngestBatch,
@@ -223,23 +234,59 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
 
     const scoreExpr = params.query ? this.sql`paradedb.score(id)` : this.sql`NULL::real`;
     const snippetExpr = params.query ? this.sql`paradedb.snippet(body)` : this.sql`NULL::text`;
-    const orderBy = params.query
-      ? this.sql`ORDER BY paradedb.score(id) DESC, updated_at DESC`
-      : this.sql`ORDER BY updated_at DESC`;
+    const orderBy = this.orderBy(params);
+    const pageOrderBy = this.orderBy(params, 'page');
 
     const results = await this.sql<SearchResultRow[]>`
+      WITH page AS (
+        SELECT
+          id,
+          data_source_id,
+          created_at,
+          updated_at,
+          body,
+          ${scoreExpr} AS score,
+          ${snippetExpr} AS snippet
+        FROM brain.records
+        ${where}
+        ${orderBy}
+        LIMIT ${params.limit} OFFSET ${params.offset}
+      )
       SELECT
-        id,
-        data_source_id,
-        created_at,
-        updated_at,
-        body,
-        ${scoreExpr} AS score,
-        ${snippetExpr} AS snippet
-      FROM brain.records
-      ${where}
-      ${orderBy}
-      LIMIT ${params.limit} OFFSET ${params.offset}
+        page.id,
+        page.data_source_id,
+        ds.nango_integration_id AS data_source_key,
+        page.created_at,
+        page.updated_at,
+        page.body,
+        page.score,
+        page.snippet,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', p.id,
+              'name', p.name,
+              'email', p.email,
+              'is_external', p.is_external
+            )
+            ORDER BY p.name NULLS LAST, p.email NULLS LAST, p.id
+          ) FILTER (WHERE p.id IS NOT NULL),
+          '[]'
+        ) AS participants
+      FROM page
+      JOIN brain.data_sources ds ON ds.id = page.data_source_id
+      LEFT JOIN brain.records_people rp ON rp.record_id = page.id
+      LEFT JOIN brain.people p ON p.id = rp.person_id
+      GROUP BY
+        page.id,
+        page.data_source_id,
+        ds.nango_integration_id,
+        page.created_at,
+        page.updated_at,
+        page.body,
+        page.score,
+        page.snippet
+      ${pageOrderBy}
     `;
 
     const [countRow] = await this.sql<{ total: number }[]>`
@@ -249,11 +296,57 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     return { total: countRow?.total ?? 0, results };
   }
 
+  private orderBy(params: SearchParams, scope?: 'page') {
+    const sortBy =
+      params.sortBy ?? (params.query ? DEFAULT_SEARCH_SORT_FIELD : DEFAULT_RECORD_SORT_FIELD);
+    const sortOrder = params.sortOrder ?? DEFAULT_RECORD_SORT_ORDER;
+    const direction = sortOrder === 'asc' ? this.sql`ASC` : this.sql`DESC`;
+    const id = scope === 'page' ? this.sql`page.id` : this.sql`id`;
+    const createdAt = scope === 'page' ? this.sql`page.created_at` : this.sql`created_at`;
+    const updatedAt = scope === 'page' ? this.sql`page.updated_at` : this.sql`updated_at`;
+
+    if (sortBy === 'relevance') {
+      const score = scope === 'page' ? this.sql`page.score` : this.sql`paradedb.score(id)`;
+      return this
+        .sql`ORDER BY ${score} ${direction}, ${updatedAt} ${direction}, ${id} ${direction}`;
+    }
+
+    if (sortBy === 'updated_at') {
+      return this
+        .sql`ORDER BY ${updatedAt} ${direction}, ${createdAt} ${direction}, ${id} ${direction}`;
+    }
+
+    return this
+      .sql`ORDER BY ${createdAt} ${direction}, ${updatedAt} ${direction}, ${id} ${direction}`;
+  }
+
   async getById(id: Records['id']): Promise<RecordRow | null> {
     const [row] = await this.sql<RecordRow[]>`
-      SELECT id, data_source_id, created_at, updated_at, body
-      FROM brain.records
-      WHERE id = ${id}
+      SELECT
+        r.id,
+        r.data_source_id,
+        ds.nango_integration_id AS data_source_key,
+        r.created_at,
+        r.updated_at,
+        r.body,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', p.id,
+              'name', p.name,
+              'email', p.email,
+              'is_external', p.is_external
+            )
+            ORDER BY p.name NULLS LAST, p.email NULLS LAST, p.id
+          ) FILTER (WHERE p.id IS NOT NULL),
+          '[]'
+        ) AS participants
+      FROM brain.records r
+      JOIN brain.data_sources ds ON ds.id = r.data_source_id
+      LEFT JOIN brain.records_people rp ON rp.record_id = r.id
+      LEFT JOIN brain.people p ON p.id = rp.person_id
+      WHERE r.id = ${id}
+      GROUP BY r.id, r.data_source_id, ds.nango_integration_id, r.created_at, r.updated_at, r.body
     `;
     return row ?? null;
   }

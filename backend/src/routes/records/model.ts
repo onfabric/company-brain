@@ -1,4 +1,20 @@
 import { t } from 'elysia';
+import { RECORD_SORT_FIELDS, RECORD_SORT_ORDERS } from '#repositories/records.repository.ts';
+
+const RecordSortFieldSchema = t.Union(
+  RECORD_SORT_FIELDS.map((field) => t.Literal(field)),
+  {
+    description:
+      'Field used to order records. Defaults to relevance when q is present, otherwise created_at.',
+  },
+);
+
+const RecordSortOrderSchema = t.Union(
+  RECORD_SORT_ORDERS.map((order) => t.Literal(order)),
+  {
+    description: 'Direction used for the selected sort field.',
+  },
+);
 
 export const RecordsQuerySchema = t.Object({
   q: t.Optional(
@@ -28,6 +44,8 @@ export const RecordsQuerySchema = t.Object({
   updated_before: t.Optional(
     t.String({ format: 'date-time', description: 'Only records updated at or before this time.' }),
   ),
+  sort_by: t.Optional(RecordSortFieldSchema),
+  sort_order: t.Optional(RecordSortOrderSchema),
   limit: t.Optional(
     t.Integer({
       minimum: 1,
@@ -48,9 +66,18 @@ export const RecordsQuerySchema = t.Object({
 export const RecordSchema = t.Object({
   id: t.String(),
   data_source_id: t.String({ format: 'uuid' }),
+  data_source_key: t.String(),
   created_at: t.String({ format: 'date-time' }),
   updated_at: t.String({ format: 'date-time' }),
   body: t.String({ description: 'Full textual content of the record.' }),
+  participants: t.Array(
+    t.Object({
+      id: t.String({ format: 'uuid' }),
+      name: t.Union([t.String(), t.Null()]),
+      email: t.Union([t.String(), t.Null()]),
+      is_external: t.Boolean(),
+    }),
+  ),
 });
 
 export const RecordHitSchema = t.Composite([
