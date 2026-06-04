@@ -71,7 +71,11 @@ export function PeopleManager({
   const [draft, setDraft] = useState<PersonDraft>();
   const [statusMessage, setStatusMessage] = useState<string>();
 
-  const sentinelRef = useInfiniteScroll({ hasNextPage, isFetchingNextPage, fetchNextPage });
+  const { scrollRef, sentinelRef } = useInfiniteScroll({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: PersonUpdateInput }) =>
@@ -89,7 +93,7 @@ export function PeopleManager({
 
   if (isLoading) {
     return (
-      <section className="p-4">
+      <section className="flex min-h-0 flex-1 flex-col p-4">
         <Card className="overflow-hidden">
           <CardContent className="grid gap-3 p-4">
             {LOADING_ROW_KEYS.map((key) => (
@@ -103,7 +107,7 @@ export function PeopleManager({
 
   if (error) {
     return (
-      <section className="p-4">
+      <section className="flex min-h-0 flex-1 flex-col p-4">
         <Card>
           <CardContent className="grid min-h-72 place-items-center p-8 text-center">
             <div className="max-w-xl">
@@ -123,41 +127,43 @@ export function PeopleManager({
   }
 
   return (
-    <section className="p-4">
-      <Card className="overflow-hidden">
+    <section className="flex min-h-0 flex-1 flex-col p-4">
+      <Card className="flex h-full min-h-0 flex-col overflow-hidden">
         {total === EMPTY_COUNT ? (
-          <div className="grid min-h-72 place-items-center p-8 text-center text-muted-foreground text-sm">
+          <div className="grid min-h-72 flex-1 place-items-center p-8 text-center text-muted-foreground text-sm">
             No people found.
           </div>
         ) : (
           <>
-            <PeopleTable
-              people={people}
-              editingId={editingId}
-              draft={draft}
-              savingId={updateMutation.isPending ? updateMutation.variables?.id : undefined}
-              onEdit={(person) => {
-                setEditingId(person.id);
-                setDraft(draftFromPerson(person));
-                setStatusMessage(undefined);
-              }}
-              onCancel={() => {
-                setEditingId(undefined);
-                setDraft(undefined);
-              }}
-              onChangeDraft={setDraft}
-              onSave={(person, nextDraft) => {
-                updateMutation.mutate({ id: person.id, updates: updateFromDraft(nextDraft) });
-              }}
-            />
-            <div ref={sentinelRef} />
-            {isFetchingNextPage ? (
-              <div className="flex items-center justify-center gap-2 border-t py-4 text-muted-foreground text-sm">
-                <Loader2 className="size-4 animate-spin" />
-                Loading more...
-              </div>
-            ) : null}
-            <div className="flex items-center justify-between gap-3 border-t px-4 py-3 text-sm">
+            <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
+              <PeopleTable
+                people={people}
+                editingId={editingId}
+                draft={draft}
+                savingId={updateMutation.isPending ? updateMutation.variables?.id : undefined}
+                onEdit={(person) => {
+                  setEditingId(person.id);
+                  setDraft(draftFromPerson(person));
+                  setStatusMessage(undefined);
+                }}
+                onCancel={() => {
+                  setEditingId(undefined);
+                  setDraft(undefined);
+                }}
+                onChangeDraft={setDraft}
+                onSave={(person, nextDraft) => {
+                  updateMutation.mutate({ id: person.id, updates: updateFromDraft(nextDraft) });
+                }}
+              />
+              <div ref={sentinelRef} />
+              {isFetchingNextPage ? (
+                <div className="flex items-center justify-center gap-2 border-t py-4 text-muted-foreground text-sm">
+                  <Loader2 className="size-4 animate-spin" />
+                  Loading more...
+                </div>
+              ) : null}
+            </div>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t px-4 py-3 text-sm">
               <StatusLine
                 isFetching={isFetching}
                 statusMessage={statusMessage}

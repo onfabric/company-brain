@@ -15,7 +15,7 @@ type RecordPreviewProps = {
 export function RecordPreview({ record }: RecordPreviewProps) {
   if (!record) {
     return (
-      <Card className="h-full min-h-[32rem]">
+      <Card className="flex h-full min-h-0 flex-col">
         <CardHeader>
           <CardTitle>Record</CardTitle>
         </CardHeader>
@@ -25,7 +25,7 @@ export function RecordPreview({ record }: RecordPreviewProps) {
   }
 
   return (
-    <Card className="h-full min-h-[32rem] overflow-hidden">
+    <Card className="flex h-full min-h-0 flex-col overflow-hidden">
       <CardHeader className="gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{record.data_source_key}</Badge>
@@ -41,8 +41,8 @@ export function RecordPreview({ record }: RecordPreviewProps) {
         </div>
       </CardHeader>
       <Separator />
-      <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-17rem)] min-h-[24rem] px-5 py-4">
+      <CardContent className="min-h-0 flex-1 p-0">
+        <ScrollArea className="h-full px-5 py-4">
           <div className="prose prose-neutral max-w-none prose-headings:scroll-m-20 prose-pre:whitespace-pre-wrap prose-a:text-primary">
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
               {record.body}

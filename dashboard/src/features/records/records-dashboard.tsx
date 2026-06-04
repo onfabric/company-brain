@@ -8,7 +8,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { FileText, KeyRound, Loader2, LogOut, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '#/components/ui/button.tsx';
-import { Card, CardContent } from '#/components/ui/card.tsx';
+import { Card } from '#/components/ui/card.tsx';
 import { Skeleton } from '#/components/ui/skeleton.tsx';
 import { PeopleManager } from '#/features/people/people-manager.tsx';
 import { ApiKeyGate } from '#/features/records/api-key-gate.tsx';
@@ -171,7 +171,7 @@ function AuthenticatedRecordsDashboard({
   }, [recordsQuery.data, sources]);
   const selectedRecord = selectedRecordFor(records, search.selectedRecordId);
   const total = recordsQuery.data?.pages[EMPTY_COUNT]?.total ?? EMPTY_COUNT;
-  const recordsSentinelRef = useInfiniteScroll({
+  const { scrollRef: recordsScrollRef, sentinelRef: recordsSentinelRef } = useInfiniteScroll({
     hasNextPage: recordsQuery.hasNextPage,
     isFetchingNextPage: recordsQuery.isFetchingNextPage,
     fetchNextPage: recordsQuery.fetchNextPage,
@@ -193,8 +193,8 @@ function AuthenticatedRecordsDashboard({
   };
 
   return (
-    <main className="min-h-screen">
-      <header className="border-b bg-card px-4 py-3">
+    <main className="flex h-dvh flex-col overflow-hidden">
+      <header className="shrink-0 border-b bg-card px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-semibold text-lg">Company Brain</h1>
@@ -233,17 +233,19 @@ function AuthenticatedRecordsDashboard({
 
       {activeTab === 'records' ? (
         <>
-          <RecordsFilters
-            search={search}
-            sources={sources}
-            apiKey={apiKey}
-            isFetching={recordsQuery.isFetching}
-            onChange={updateSearch}
-          />
+          <div className="shrink-0">
+            <RecordsFilters
+              search={search}
+              sources={sources}
+              apiKey={apiKey}
+              isFetching={recordsQuery.isFetching}
+              onChange={updateSearch}
+            />
+          </div>
 
-          <section className="grid gap-4 p-4 xl:grid-cols-[minmax(36rem,1.1fr)_minmax(28rem,0.9fr)]">
-            <Card className="overflow-hidden">
-              <CardContent className="p-0">
+          <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-4 overflow-hidden p-4 xl:grid-cols-[minmax(36rem,1.1fr)_minmax(28rem,0.9fr)] xl:grid-rows-1">
+            <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+              <div ref={recordsScrollRef} className="min-h-0 flex-1 overflow-auto">
                 {recordsQuery.isLoading ? (
                   <LoadingRows />
                 ) : recordsQuery.isError ? (
@@ -261,8 +263,8 @@ function AuthenticatedRecordsDashboard({
                     {recordsQuery.isFetchingNextPage ? <LoadingMore /> : null}
                   </>
                 )}
-              </CardContent>
-              <div className="flex items-center justify-between gap-3 border-t px-4 py-3 text-muted-foreground text-sm">
+              </div>
+              <div className="flex shrink-0 items-center justify-between gap-3 border-t px-4 py-3 text-muted-foreground text-sm">
                 <span>
                   Showing {records.length.toLocaleString()} of {total.toLocaleString()}
                 </span>

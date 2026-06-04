@@ -13,6 +13,7 @@ export function useInfiniteScroll({
   isFetchingNextPage,
   fetchNextPage,
 }: InfiniteScrollOptions) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,11 +27,11 @@ export function useInfiniteScroll({
           fetchNextPage();
         }
       },
-      { rootMargin: ROOT_MARGIN },
+      { root: scrollRef.current, rootMargin: ROOT_MARGIN },
     );
     observer.observe(node);
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  return sentinelRef;
+  return { scrollRef, sentinelRef };
 }
