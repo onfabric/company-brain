@@ -65,12 +65,6 @@ export const RecordHitSchema = t.Composite([
   }),
 ]);
 
-export const RecordParamsSchema = t.Object({
-  id: t.String({ format: 'uuid' }),
-});
-
-export const RecordResponseSchema = RecordSchema;
-
 export const RecordsResponseSchema = t.Object({
   total: t.Integer({
     description: 'Total number of records matching the filters, ignoring pagination.',

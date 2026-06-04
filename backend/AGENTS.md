@@ -4,7 +4,7 @@ Bun + Elysia service. See [README](README.md) for run/build; root [`AGENTS.md`](
 
 ## Layering (keep strict)
 
-- `src/routes/<path>/` — `controller.ts` (Elysia routes) + `model.ts` (TypeBox schemas). Wire each controller into `src/app.ts` with `.use()`. The folder tree mirrors the HTTP path so the layout maps directly to the URL: `GET /health` → `src/routes/health/`, `POST /webhooks/batch-save` → `src/routes/webhooks/batch-save/`.
+- `src/routes/<path>/` — one folder per endpoint, holding `controller.ts` (a single Elysia route) + `model.ts` (TypeBox schemas). Wire each controller into `src/app.ts` with `.use()`. The folder tree mirrors the full HTTP path so the layout maps directly to the URL: `GET /health` → `src/routes/health/`, `POST /webhooks/batch-save` → `src/routes/webhooks/batch-save/`, `GET /records/:id` → `src/routes/records/[id]/`. Dynamic segments use `[id]` in the folder name (the literal `:id` route string stays in `controller.ts`; `:` is not portable across filesystems). A schema shared by sibling routes lives in the parent folder's `model.ts` (e.g. `RecordSchema`, `PersonSchema`) and is imported by the children.
 - `src/services/` — business logic, one service per concern, extends `Service` (gives `this.logger`). No SQL here.
 - `src/repositories/` — all SQL, one repository per concern, extends `Repository` (holds the `Bun.sql` client). No business logic here.
 - Controllers call services; services call repositories. Build the graph once in `src/services/plugins.ts` and expose each via an Elysia `.decorate` plugin.
