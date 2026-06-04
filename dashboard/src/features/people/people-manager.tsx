@@ -1,18 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowRightLeft, KeyRound, Save, Undo2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, KeyRound, Pencil, Save, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '#/components/ui/badge.tsx';
 import { Button } from '#/components/ui/button.tsx';
 import { Card, CardContent } from '#/components/ui/card.tsx';
 import { Input } from '#/components/ui/input.tsx';
 import { Label } from '#/components/ui/label.tsx';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '#/components/ui/select.tsx';
 import { Skeleton } from '#/components/ui/skeleton.tsx';
 import {
   Table,
@@ -25,12 +18,11 @@ import {
 import { participantLabel } from '#/features/records/record-format.ts';
 import {
   BrainApiError,
-  mergePeople,
   type Person,
   type PersonUpdateInput,
   updatePerson,
 } from '#/lib/brain-functions.ts';
-import { EMPTY_COUNT, HTTP_UNAUTHORIZED } from '#/lib/constants.ts';
+import { EMPTY_COUNT, FIRST_PAGE, HTTP_UNAUTHORIZED, PEOPLE_PAGE_SIZE } from '#/lib/constants.ts';
 
 type PeopleManagerProps = {
   apiKey: string;
@@ -48,6 +40,7 @@ type PersonDraft = {
 };
 
 const SOURCE_BADGE_LIMIT = 3;
+const PAGE_RANGE_OFFSET = FIRST_PAGE;
 const LOADING_ROW_KEYS = [
   'people-loading-row-a',
   'people-loading-row-b',
@@ -66,55 +59,39 @@ export function PeopleManager({
   onChangeApiKey,
 }: PeopleManagerProps) {
   const queryClient = useQueryClient();
-  const [drafts, setDrafts] = useState<Record<string, PersonDraft>>({});
-  const [mergeFromId, setMergeFromId] = useState<string>();
-  const [mergeIntoId, setMergeIntoId] = useState<string>();
+  const [editingId, setEditingId] = useState<string>();
+  const [draft, setDraft] = useState<PersonDraft>();
+  const [page, setPage] = useState(FIRST_PAGE);
   const [statusMessage, setStatusMessage] = useState<string>();
 
-  const sourceOptions = useMemo(
-    () => people.filter((person) => person.name === null && person.email === null),
-    [people],
+  const total = people.length;
+  const totalPages = Math.max(FIRST_PAGE, Math.ceil(total / PEOPLE_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - FIRST_PAGE) * PEOPLE_PAGE_SIZE;
+  const pagePeople = useMemo(
+    () => people.slice(pageStart, pageStart + PEOPLE_PAGE_SIZE),
+    [people, pageStart],
   );
-  const mergeFromPerson =
-    sourceOptions.find((person) => person.id === mergeFromId) ?? sourceOptions[EMPTY_COUNT];
-  const targetOptions = useMemo(
-    () => people.filter((person) => person.id !== mergeFromPerson?.id),
-    [mergeFromPerson?.id, people],
-  );
-  const mergeIntoPerson =
-    targetOptions.find((person) => person.id === mergeIntoId) ?? targetOptions[EMPTY_COUNT];
+  const rangeStart = total > EMPTY_COUNT ? pageStart + PAGE_RANGE_OFFSET : EMPTY_COUNT;
+  const rangeEnd = Math.min(pageStart + PEOPLE_PAGE_SIZE, total);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: PersonUpdateInput }) =>
       updatePerson(id, updates, apiKey),
     onSuccess: (person) => {
-      setDrafts((current) => ({ ...current, [person.id]: draftFromPerson(person) }));
+      setEditingId(undefined);
+      setDraft(undefined);
       setStatusMessage(`Saved ${participantLabel(person)}.`);
       void queryClient.invalidateQueries({ queryKey: ['people'] });
       void queryClient.invalidateQueries({ queryKey: ['records'] });
     },
   });
 
-  const mergeMutation = useMutation({
-    mutationFn: ({
-      mergeFromId: sourceId,
-      mergeIntoId: targetId,
-    }: {
-      mergeFromId: string;
-      mergeIntoId: string;
-    }) => mergePeople({ mergeFromId: sourceId, mergeIntoId: targetId }, apiKey),
-    onSuccess: (result) => {
-      setMergeFromId(undefined);
-      setMergeIntoId(result.person.id);
-      setStatusMessage(
-        `Merged ${result.moved_records.toLocaleString()} records into ${participantLabel(result.person)}.`,
-      );
-      void queryClient.invalidateQueries({ queryKey: ['people'] });
-      void queryClient.invalidateQueries({ queryKey: ['records'] });
-    },
-  });
-
-  const mutationError = updateMutation.error ?? mergeMutation.error;
+  const goToPage = (next: number) => {
+    setEditingId(undefined);
+    setDraft(undefined);
+    setPage(next);
+  };
 
   if (isLoading) {
     return (
@@ -154,97 +131,67 @@ export function PeopleManager({
   return (
     <section className="p-4">
       <Card className="overflow-hidden">
-        <CardContent className="border-b p-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(14rem,1fr)_minmax(14rem,1fr)_auto] lg:items-end">
-            <div className="grid gap-2">
-              <Label htmlFor="merge-from">Merge from</Label>
-              <Select
-                value={mergeFromPerson?.id}
-                onValueChange={setMergeFromId}
-                disabled={sourceOptions.length === EMPTY_COUNT || mergeMutation.isPending}
-              >
-                <SelectTrigger id="merge-from">
-                  <SelectValue placeholder="No unresolved people" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sourceOptions.map((person) => (
-                    <SelectItem key={person.id} value={person.id}>
-                      {personOptionLabel(person)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="merge-into">Merge into</Label>
-              <Select
-                value={mergeIntoPerson?.id}
-                onValueChange={setMergeIntoId}
-                disabled={targetOptions.length === EMPTY_COUNT || mergeMutation.isPending}
-              >
-                <SelectTrigger id="merge-into">
-                  <SelectValue placeholder="No target person" />
-                </SelectTrigger>
-                <SelectContent>
-                  {targetOptions.map((person) => (
-                    <SelectItem key={person.id} value={person.id}>
-                      {personOptionLabel(person)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button
-              type="button"
-              className="lg:w-32"
-              disabled={!mergeFromPerson || !mergeIntoPerson || mergeMutation.isPending}
-              onClick={() => {
-                if (!mergeFromPerson || !mergeIntoPerson) {
-                  return;
-                }
-                mergeMutation.mutate({
-                  mergeFromId: mergeFromPerson.id,
-                  mergeIntoId: mergeIntoPerson.id,
-                });
-              }}
-            >
-              <ArrowRightLeft />
-              {mergeMutation.isPending ? 'Merging' : 'Merge'}
-            </Button>
-          </div>
-
-          <StatusLine isFetching={isFetching} statusMessage={statusMessage} error={mutationError} />
-        </CardContent>
-
-        {people.length === EMPTY_COUNT ? (
+        {total === EMPTY_COUNT ? (
           <div className="grid min-h-72 place-items-center p-8 text-center text-muted-foreground text-sm">
             No people found.
           </div>
         ) : (
-          <PeopleTable
-            people={people}
-            drafts={drafts}
-            savingId={updateMutation.isPending ? updateMutation.variables?.id : undefined}
-            mergeFromId={mergeFromPerson?.id}
-            mergeIntoId={mergeIntoPerson?.id}
-            onChangeDraft={(id, draft) => {
-              setDrafts((current) => ({ ...current, [id]: draft }));
-            }}
-            onResetDraft={(person) => {
-              setDrafts((current) => ({ ...current, [person.id]: draftFromPerson(person) }));
-            }}
-            onSave={(person, draft) => {
-              updateMutation.mutate({ id: person.id, updates: updateFromDraft(draft) });
-            }}
-            onSelectMergeFrom={(id) => {
-              setMergeFromId(id);
-            }}
-            onSelectMergeInto={(id) => {
-              setMergeIntoId(id);
-            }}
-          />
+          <>
+            <PeopleTable
+              people={pagePeople}
+              editingId={editingId}
+              draft={draft}
+              savingId={updateMutation.isPending ? updateMutation.variables?.id : undefined}
+              onEdit={(person) => {
+                setEditingId(person.id);
+                setDraft(draftFromPerson(person));
+                setStatusMessage(undefined);
+              }}
+              onCancel={() => {
+                setEditingId(undefined);
+                setDraft(undefined);
+              }}
+              onChangeDraft={setDraft}
+              onSave={(person, nextDraft) => {
+                updateMutation.mutate({ id: person.id, updates: updateFromDraft(nextDraft) });
+              }}
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm">
+              <StatusLine
+                isFetching={isFetching}
+                statusMessage={statusMessage}
+                error={updateMutation.error}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                total={total}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= FIRST_PAGE}
+                  onClick={() => goToPage(currentPage - FIRST_PAGE)}
+                >
+                  <ChevronLeft />
+                  Previous
+                </Button>
+                <span className="min-w-24 text-center text-muted-foreground">
+                  Page {currentPage.toLocaleString()} of {totalPages.toLocaleString()}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => goToPage(currentPage + FIRST_PAGE)}
+                >
+                  Next
+                  <ChevronRight />
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </Card>
     </section>
@@ -253,29 +200,25 @@ export function PeopleManager({
 
 function PeopleTable({
   people,
-  drafts,
+  editingId,
+  draft,
   savingId,
-  mergeFromId,
-  mergeIntoId,
+  onEdit,
+  onCancel,
   onChangeDraft,
-  onResetDraft,
   onSave,
-  onSelectMergeFrom,
-  onSelectMergeInto,
 }: {
   people: Person[];
-  drafts: Record<string, PersonDraft>;
+  editingId?: string;
+  draft?: PersonDraft;
   savingId?: string;
-  mergeFromId?: string;
-  mergeIntoId?: string;
-  onChangeDraft: (id: string, draft: PersonDraft) => void;
-  onResetDraft: (person: Person) => void;
+  onEdit: (person: Person) => void;
+  onCancel: () => void;
+  onChangeDraft: (draft: PersonDraft) => void;
   onSave: (person: Person, draft: PersonDraft) => void;
-  onSelectMergeFrom: (id: string) => void;
-  onSelectMergeInto: (id: string) => void;
 }) {
   return (
-    <Table className="min-w-[76rem] table-fixed">
+    <Table className="min-w-[68rem] table-fixed">
       <TableHeader>
         <TableRow>
           <TableHead className="w-[19rem]">Person</TableHead>
@@ -283,120 +226,156 @@ function PeopleTable({
           <TableHead className="w-[8rem]">Type</TableHead>
           <TableHead className="w-[7rem] text-right">Records</TableHead>
           <TableHead>Sources</TableHead>
-          <TableHead className="w-[16rem]">Actions</TableHead>
+          <TableHead className="w-[10rem]">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {people.map((person) => {
-          const draft = drafts[person.id] ?? draftFromPerson(person);
-          const canSave = hasDraftChanges(person, draft);
-          const canMergeFrom = person.name === null && person.email === null;
-          return (
-            <TableRow key={person.id}>
-              <TableCell>
-                <div className="grid gap-1">
-                  <Input
-                    value={draft.name}
-                    placeholder="Name"
-                    onChange={(event) => {
-                      onChangeDraft(person.id, { ...draft, name: event.target.value });
-                    }}
-                  />
-                  <span
-                    className="truncate font-mono text-muted-foreground text-xs"
-                    title={person.id}
-                  >
-                    {person.id}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Input
-                  type="email"
-                  value={draft.email}
-                  placeholder="Email"
-                  onChange={(event) => {
-                    onChangeDraft(person.id, { ...draft, email: event.target.value });
-                  }}
-                />
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <input
-                    id={`person-external-${person.id}`}
-                    type="checkbox"
-                    className="size-4 rounded border-input accent-primary"
-                    checked={draft.is_external}
-                    onChange={(event) => {
-                      onChangeDraft(person.id, {
-                        ...draft,
-                        is_external: event.target.checked,
-                      });
-                    }}
-                  />
-                  <Label htmlFor={`person-external-${person.id}`}>External</Label>
-                </div>
-              </TableCell>
-              <TableCell className="text-right font-medium">
-                {person.records_count.toLocaleString()}
-              </TableCell>
-              <TableCell>
-                <PersonSources person={person} />
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={!canSave || savingId === person.id}
-                    onClick={() => {
-                      onSave(person, draft);
-                    }}
-                  >
-                    <Save />
-                    {savingId === person.id ? 'Saving' : 'Save'}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    title="Reset"
-                    disabled={!canSave || savingId === person.id}
-                    onClick={() => {
-                      onResetDraft(person);
-                    }}
-                  >
-                    <Undo2 />
-                    <span className="sr-only">Reset</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={mergeFromId === person.id ? 'secondary' : 'outline'}
-                    disabled={!canMergeFrom}
-                    onClick={() => {
-                      onSelectMergeFrom(person.id);
-                    }}
-                  >
-                    From
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={mergeIntoId === person.id ? 'secondary' : 'outline'}
-                    onClick={() => {
-                      onSelectMergeInto(person.id);
-                    }}
-                  >
-                    Into
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          );
-        })}
+        {people.map((person) =>
+          editingId === person.id && draft ? (
+            <PersonEditRow
+              key={person.id}
+              person={person}
+              draft={draft}
+              isSaving={savingId === person.id}
+              onChangeDraft={onChangeDraft}
+              onCancel={onCancel}
+              onSave={onSave}
+            />
+          ) : (
+            <PersonReadRow key={person.id} person={person} onEdit={onEdit} />
+          ),
+        )}
       </TableBody>
     </Table>
+  );
+}
+
+function PersonReadRow({ person, onEdit }: { person: Person; onEdit: (person: Person) => void }) {
+  return (
+    <TableRow>
+      <TableCell>
+        <div className="grid gap-1">
+          <span className={person.name ? '' : 'text-muted-foreground'}>{person.name ?? '—'}</span>
+          <span className="truncate font-mono text-muted-foreground text-xs" title={person.id}>
+            {person.id}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <span className={person.email ? 'truncate' : 'text-muted-foreground'}>
+          {person.email ?? '—'}
+        </span>
+      </TableCell>
+      <TableCell>
+        <Badge variant={person.is_external ? 'secondary' : 'outline'}>
+          {person.is_external ? 'External' : 'Internal'}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-right font-medium">
+        {person.records_count.toLocaleString()}
+      </TableCell>
+      <TableCell>
+        <PersonSources person={person} />
+      </TableCell>
+      <TableCell>
+        <Button type="button" size="sm" variant="outline" onClick={() => onEdit(person)}>
+          <Pencil />
+          Edit
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function PersonEditRow({
+  person,
+  draft,
+  isSaving,
+  onChangeDraft,
+  onCancel,
+  onSave,
+}: {
+  person: Person;
+  draft: PersonDraft;
+  isSaving: boolean;
+  onChangeDraft: (draft: PersonDraft) => void;
+  onCancel: () => void;
+  onSave: (person: Person, draft: PersonDraft) => void;
+}) {
+  const canSave = hasDraftChanges(person, draft);
+  return (
+    <TableRow>
+      <TableCell>
+        <div className="grid gap-1">
+          <Input
+            value={draft.name}
+            placeholder="Name"
+            onChange={(event) => {
+              onChangeDraft({ ...draft, name: event.target.value });
+            }}
+          />
+          <span className="truncate font-mono text-muted-foreground text-xs" title={person.id}>
+            {person.id}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Input
+          type="email"
+          value={draft.email}
+          placeholder="Email"
+          onChange={(event) => {
+            onChangeDraft({ ...draft, email: event.target.value });
+          }}
+        />
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <input
+            id={`person-external-${person.id}`}
+            type="checkbox"
+            className="size-4 rounded border-input accent-primary"
+            checked={draft.is_external}
+            onChange={(event) => {
+              onChangeDraft({ ...draft, is_external: event.target.checked });
+            }}
+          />
+          <Label htmlFor={`person-external-${person.id}`}>External</Label>
+        </div>
+      </TableCell>
+      <TableCell className="text-right font-medium">
+        {person.records_count.toLocaleString()}
+      </TableCell>
+      <TableCell>
+        <PersonSources person={person} />
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            disabled={!canSave || isSaving}
+            onClick={() => {
+              onSave(person, draft);
+            }}
+          >
+            <Save />
+            {isSaving ? 'Saving' : 'Save'}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            title="Cancel"
+            disabled={isSaving}
+            onClick={onCancel}
+          >
+            <X />
+            <span className="sr-only">Cancel</span>
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -432,24 +411,34 @@ function StatusLine({
   isFetching,
   statusMessage,
   error,
+  rangeStart,
+  rangeEnd,
+  total,
 }: {
   isFetching: boolean;
   statusMessage?: string;
   error: Error | null;
+  rangeStart: number;
+  rangeEnd: number;
+  total: number;
 }) {
   if (error) {
-    return <p className="mt-3 text-destructive text-sm">{error.message}</p>;
+    return <span className="text-destructive">{error.message}</span>;
   }
 
   if (statusMessage) {
-    return <p className="mt-3 text-muted-foreground text-sm">{statusMessage}</p>;
+    return <span className="text-muted-foreground">{statusMessage}</span>;
   }
 
   if (isFetching) {
-    return <p className="mt-3 text-muted-foreground text-sm">Refreshing people...</p>;
+    return <span className="text-muted-foreground">Refreshing people...</span>;
   }
 
-  return null;
+  return (
+    <span className="text-muted-foreground">
+      {rangeStart.toLocaleString()}-{rangeEnd.toLocaleString()} of {total.toLocaleString()}
+    </span>
+  );
 }
 
 function draftFromPerson(person: Person): PersonDraft {
@@ -480,8 +469,4 @@ function hasDraftChanges(person: Person, draft: PersonDraft) {
 function nullableText(value: string) {
   const trimmed = value.trim();
   return trimmed.length > EMPTY_COUNT ? trimmed : null;
-}
-
-function personOptionLabel(person: Person) {
-  return `${participantLabel(person)} (${person.records_count.toLocaleString()})`;
 }
