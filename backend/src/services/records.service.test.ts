@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   type IngestBatch,
+  type RecordRow,
   RecordsRepositoryContract,
   type SearchPage,
   type SearchParams,
@@ -11,11 +12,13 @@ import { RecordsService } from '#services/records.service.ts';
 class MockRecordsRepository extends RecordsRepositoryContract {
   readonly calls: IngestBatch[] = [];
   searchCalls: SearchParams[] = [];
+  getByIdCalls: string[] = [];
 
   constructor(
     private readonly ingested: number,
     private readonly sourceModels: SourceModelRow[] = [],
     private readonly page: SearchPage = { total: 0, results: [] },
+    private readonly record: RecordRow | null = null,
   ) {
     super();
   }
@@ -32,6 +35,11 @@ class MockRecordsRepository extends RecordsRepositoryContract {
   search(params: SearchParams): Promise<SearchPage> {
     this.searchCalls.push(params);
     return Promise.resolve(this.page);
+  }
+
+  getById(id: string): Promise<RecordRow | null> {
+    this.getByIdCalls.push(id);
+    return Promise.resolve(this.record);
   }
 }
 
@@ -192,5 +200,43 @@ describe('RecordsService', () => {
     await expect(
       service.search({ createdAfter: 'not-a-date', limit: 20, offset: 0 }),
     ).rejects.toThrow('Invalid created_after timestamp: not-a-date');
+  });
+
+  it('maps a record fetched by id', async () => {
+    const repo = new MockRecordsRepository(
+      0,
+      [],
+      { total: 0, results: [] },
+      {
+        id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+        nango_model: 'SlackThread',
+        created_at: new Date('2026-01-01T00:00:00Z'),
+        updated_at: new Date('2026-01-02T00:00:00Z'),
+        body: 'hello world',
+      },
+    );
+    const service = new RecordsService(repo);
+
+    const record = await service.getRecord('019e8882-07f1-771c-993e-f6825a9224bb');
+
+    expect(repo.getByIdCalls).toEqual(['019e8882-07f1-771c-993e-f6825a9224bb']);
+    expect(record).toEqual({
+      id: '019e8882-07f1-771c-993e-f6825a9224bb',
+      data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+      model: 'SlackThread',
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-02T00:00:00.000Z',
+      body: 'hello world',
+    });
+  });
+
+  it('throws a 404 when the record does not exist', async () => {
+    const repo = new MockRecordsRepository(0);
+    const service = new RecordsService(repo);
+
+    await expect(service.getRecord('019e8882-07f1-771c-993e-f6825a9224bb')).rejects.toThrow(
+      'Record not found: 019e8882-07f1-771c-993e-f6825a9224bb',
+    );
   });
 });
