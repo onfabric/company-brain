@@ -11,8 +11,8 @@ import {
 } from './model.js';
 import { renderThreadBody } from './render.js';
 
-const THREADS_PAGE_SIZE = 100;
 const MAX_GMAIL_PAGE_SIZE = 500;
+const THREADS_PAGE_SIZE = 100;
 const HISTORY_PAGE_SIZE = MAX_GMAIL_PAGE_SIZE;
 const PROXY_RETRIES = 3;
 const NOT_FOUND_STATUS = 404;
@@ -30,7 +30,7 @@ const MetadataSchema = z.object({
     .min(1)
     .max(MAX_GMAIL_PAGE_SIZE)
     .optional()
-    .describe('Threads to hydrate per backfill execution'),
+    .describe('Threads to hydrate per Gmail list page during backfill'),
 });
 
 const CheckpointSchema = z.object({
@@ -208,7 +208,7 @@ const HTML_ENTITIES: Record<string, string> = {
 const sync = createSync({
   description:
     'Sync Gmail conversation threads as self-contained records with participants, labels, message bodies, and attachment metadata',
-  version: '1.0.0',
+  version: '1.0.1',
   endpoints: [{ method: 'POST', path: '/syncs/gmail-threads', group: 'Gmail Threads' }],
   frequency: 'every 5 minutes',
   autoStart: true,
@@ -292,7 +292,7 @@ async function syncBackfill(
   context: SyncContext,
   metadata: Metadata,
 ): Promise<void> {
-  const pageToken = checkpoint.phase === 'backfill' ? checkpoint.page_token : undefined;
+  let pageToken = checkpoint.phase === 'backfill' ? checkpoint.page_token : undefined;
   const pageSize = metadata.pageSize ?? THREADS_PAGE_SIZE;
   const includeSpamTrash = metadata.includeSpamTrash ?? true;
   const backfillHistoryId =
@@ -304,35 +304,23 @@ async function syncBackfill(
     await nango.trackDeletesStart('GmailThread');
   }
 
-  const listResponse = await nango.get({
-    endpoint: '/gmail/v1/users/me/threads',
-    params: {
-      maxResults: pageSize,
-      includeSpamTrash: includeSpamTrash ? 'true' : 'false',
-      ...(pageToken && { pageToken }),
-    },
-    retries: PROXY_RETRIES,
-  });
-  const listData = ThreadListResponseSchema.parse(listResponse.data);
-  const writer = createThreadWriter(nango, pageSize);
+  while (true) {
+    pageToken = await syncBackfillPage(nango, context, {
+      pageSize,
+      includeSpamTrash,
+      pageToken,
+    });
 
-  for (const threadSummary of listData.threads ?? []) {
-    const thread = await fetchThread(nango, threadSummary.id, context);
-    if (thread) {
-      await writer.save(thread);
+    if (!pageToken) {
+      break;
     }
-  }
 
-  await writer.flush();
-
-  if (listData.nextPageToken) {
     await nango.saveCheckpoint({
       phase: 'backfill',
       history_id: '',
-      page_token: listData.nextPageToken,
+      page_token: pageToken,
       backfill_history_id: backfillHistoryId,
     });
-    return;
   }
 
   await nango.trackDeletesEnd('GmailThread');
@@ -342,6 +330,38 @@ async function syncBackfill(
     page_token: '',
     backfill_history_id: '',
   });
+}
+
+async function syncBackfillPage(
+  nango: NangoSyncLocal,
+  context: SyncContext,
+  options: {
+    pageSize: number;
+    includeSpamTrash: boolean;
+    pageToken: string | undefined;
+  },
+): Promise<string | undefined> {
+  const listResponse = await nango.get({
+    endpoint: '/gmail/v1/users/me/threads',
+    params: {
+      maxResults: options.pageSize,
+      includeSpamTrash: options.includeSpamTrash ? 'true' : 'false',
+      ...(options.pageToken && { pageToken: options.pageToken }),
+    },
+    retries: PROXY_RETRIES,
+  });
+  const listData = ThreadListResponseSchema.parse(listResponse.data);
+  const writer = createThreadWriter(nango, options.pageSize);
+
+  for (const threadSummary of listData.threads ?? []) {
+    const thread = await fetchThread(nango, threadSummary.id, context);
+    if (thread) {
+      await writer.save(thread);
+    }
+  }
+
+  await writer.flush();
+  return listData.nextPageToken;
 }
 
 async function syncHistory(

@@ -29,16 +29,29 @@
           ]
         }
       },
-      "/gmail/v1/users/me/threads": {
-        "response": {
-          "threads": [
-            {
-              "id": "thread-1",
-              "historyId": "901"
-            }
-          ]
+      "/gmail/v1/users/me/threads": [
+        {
+          "response": {
+            "threads": [
+              {
+                "id": "thread-1",
+                "historyId": "901"
+              }
+            ],
+            "nextPageToken": "page-2"
+          }
+        },
+        {
+          "response": {
+            "threads": [
+              {
+                "id": "thread-2",
+                "historyId": "903"
+              }
+            ]
+          }
         }
-      },
+      ],
       "/gmail/v1/users/me/threads/thread-1": {
         "response": {
           "id": "thread-1",
@@ -128,6 +141,44 @@
                 ]
               },
               "sizeEstimate": 4096
+            }
+          ]
+        }
+      },
+      "/gmail/v1/users/me/threads/thread-2": {
+        "response": {
+          "id": "thread-2",
+          "historyId": "903",
+          "messages": [
+            {
+              "id": "msg-3",
+              "threadId": "thread-2",
+              "labelIds": ["INBOX"],
+              "snippet": "Second page message",
+              "historyId": "903",
+              "internalDate": "1761994800000",
+              "payload": {
+                "mimeType": "text/plain",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "Carol Example <carol@example.com>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "Me <me@example.com>"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Second page"
+                  }
+                ],
+                "body": {
+                  "size": 19,
+                  "data": "U2Vjb25kIHBhZ2UgbWVzc2FnZQ"
+                }
+              },
+              "sizeEstimate": 2048
             }
           ]
         }

@@ -20,6 +20,7 @@ describe('gmail thread sync tests', () => {
       nangoMock: asNango(nangoMock),
       batchSaveSpy: spyOn(nangoMock, 'batchSave'),
       batchDeleteSpy: spyOn(nangoMock, 'batchDelete'),
+      saveCheckpointSpy: spyOn(nangoMock, 'saveCheckpoint'),
       getSpy: spyOn(nangoMock, 'get'),
     };
   };
@@ -30,25 +31,56 @@ describe('gmail thread sync tests', () => {
   });
 
   it('should build readable Gmail thread records', async () => {
-    const { nangoMock, batchSaveSpy, getSpy } = createTestContext();
+    const { nangoMock, batchSaveSpy, saveCheckpointSpy, getSpy } = createTestContext();
 
     await createSync.exec(nangoMock);
 
     const savedThreads = batchSaveSpy.mock.calls.flatMap((call) =>
       call[1] === 'GmailThread' ? call[0] : [],
     );
-    const [thread] = JSON.parse(JSON.stringify(savedThreads));
-    const threadListCall = getSpy.mock.calls.find(
+    const [thread, secondPageThread] = JSON.parse(JSON.stringify(savedThreads));
+    const threadListCalls = getSpy.mock.calls.filter(
       ([config]) => config.endpoint === '/gmail/v1/users/me/threads',
     );
+    const checkpointCalls = saveCheckpointSpy.mock.calls.map(([checkpoint]) => checkpoint);
     const threadGetCall = getSpy.mock.calls.find(
       ([config]) => config.endpoint === '/gmail/v1/users/me/threads/thread-1',
     );
+    const secondPageThreadGetCall = getSpy.mock.calls.find(
+      ([config]) => config.endpoint === '/gmail/v1/users/me/threads/thread-2',
+    );
 
-    expect(savedThreads).toHaveLength(1);
-    expect(threadListCall?.[0].params).toMatchObject({ includeSpamTrash: 'true' });
+    expect(savedThreads).toHaveLength(2);
+    expect(threadListCalls).toHaveLength(2);
+    expect(threadListCalls[0]?.[0].params).toMatchObject({ includeSpamTrash: 'true' });
+    expect(threadListCalls[1]?.[0].params).toMatchObject({
+      includeSpamTrash: 'true',
+      pageToken: 'page-2',
+    });
     expect(threadGetCall?.[0].params).toMatchObject({ format: 'full' });
+    expect(secondPageThreadGetCall?.[0].params).toMatchObject({ format: 'full' });
+    expect(checkpointCalls).toContainEqual({
+      phase: 'backfill',
+      history_id: '',
+      page_token: 'page-2',
+      backfill_history_id: '900',
+    });
+    expect(checkpointCalls.at(-1)).toEqual({
+      phase: 'history',
+      history_id: '900',
+      page_token: '',
+      backfill_history_id: '',
+    });
     expectGmailThreadSchema(thread);
+    expectGmailThreadSchema(secondPageThread);
+    expect(secondPageThread).toMatchObject({
+      id: 'thread-2',
+      mailbox: 'me@example.com',
+      subject: 'Second page',
+      labels: ['INBOX'],
+      participants: ['carol@example.com', 'me@example.com'],
+    });
+    expect(secondPageThread.body).toContain('Second page message');
     expect(thread).toStrictEqual({
       id: 'thread-1',
       body:
