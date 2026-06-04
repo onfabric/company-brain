@@ -45,9 +45,10 @@ exports=$(jq -rn \
 remote_script=$(cat <<REMOTE
 set -euo pipefail
 timeout 600 bash -c 'until [ -f /opt/cb-bootstrap.done ]; do echo waiting for instance bootstrap; sleep 5; done'
-rm -rf /opt/company-brain && mkdir -p /opt/company-brain
+mkdir -p /opt/company-brain
 aws s3 cp "$BUNDLE_URL" /tmp/bundle.tar.gz
-tar xzf /tmp/bundle.tar.gz -C /opt/company-brain
+# Extract in place (no rm -rf) so bind-mounted dirs keep their inodes and Caddy can hot-reload without a recreate.
+tar xzf /tmp/bundle.tar.gz --overwrite -C /opt/company-brain
 cd /opt/company-brain
 ${exports}
 bash on_box_deploy.sh

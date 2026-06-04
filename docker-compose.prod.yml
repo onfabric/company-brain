@@ -63,7 +63,7 @@ services:
       - DOZZLE_HOSTNAME
       - ACME_EMAIL
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy:/etc/caddy:ro
       - caddy-data:/data
       - caddy-config:/config
     networks:
