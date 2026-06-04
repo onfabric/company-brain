@@ -38,7 +38,7 @@ const RecordHitSchema = z
   }));
 
 const RecordsResponseSchema = z.object({
-  total: z.number().int(),
+  total: z.number().int().nullable(),
   limit: z.number().int(),
   offset: z.number().int(),
   results: z.array(RecordHitSchema),

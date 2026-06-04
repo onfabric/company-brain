@@ -93,8 +93,9 @@ export const RecordHitSchema = t.Composite([
 ]);
 
 export const RecordsResponseSchema = t.Object({
-  total: t.Integer({
-    description: 'Total number of records matching the filters, ignoring pagination.',
+  total: t.Union([t.Integer(), t.Null()], {
+    description:
+      'Total number of records matching the filters, ignoring pagination. Returned on the first page (offset 0); null on later pages to avoid recounting while scrolling.',
   }),
   limit: t.Integer(),
   offset: t.Integer(),

@@ -54,7 +54,9 @@ export type SearchResultRow = RecordRow & {
 };
 
 export type SearchPage = {
-  total: number;
+  // Computed only on the first page (offset 0) so scrolling does not re-run a
+  // full count for every page; null on subsequent pages.
+  total: number | null;
   results: SearchResultRow[];
 };
 
@@ -288,6 +290,10 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
         page.snippet
       ${pageOrderBy}
     `;
+
+    if (params.offset > 0) {
+      return { total: null, results };
+    }
 
     const [countRow] = await this.sql<{ total: number }[]>`
       SELECT COUNT(*)::int AS total FROM brain.records ${where}

@@ -122,9 +122,10 @@ function AuthenticatedRecordsDashboard({
     queryKey: ['records', apiKeyVersion, recordsInput],
     queryFn: ({ pageParam }) => listRecords({ ...recordsInput, offset: pageParam }, apiKey),
     initialPageParam: EMPTY_OFFSET,
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: (lastPage, allPages) => {
+      const matchTotal = allPages[EMPTY_COUNT]?.total ?? EMPTY_COUNT;
       const nextOffset = lastPage.offset + lastPage.limit;
-      return nextOffset < lastPage.total ? nextOffset : undefined;
+      return nextOffset < matchTotal ? nextOffset : undefined;
     },
     placeholderData: keepPreviousData,
     retry: false,

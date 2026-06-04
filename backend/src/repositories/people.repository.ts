@@ -195,15 +195,30 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     const conditions: SqlFragment[] =
       id !== undefined ? [this.sql`p.id = ${id}`] : this.filterConditions({ isExternal, query });
     const where = this.whereClause(conditions);
-    const orderBy = this.buildOrderBy(sortBy, sortOrder);
     const limitClause = limit !== undefined ? this.sql`LIMIT ${limit}` : this.sql``;
     const offsetClause = offset ? this.sql`OFFSET ${offset}` : this.sql``;
+    // Select and order the page from brain.people first, then join data sources
+    // for that page only. This keeps the json_agg bounded to the page instead of
+    // aggregating every matching person on each fetch.
     return this.sql<PersonRow[]>`
+      WITH page AS (
+        SELECT
+          p.id,
+          p.name,
+          p.email,
+          p.is_external,
+          (SELECT COUNT(*) FROM brain.records_people rp WHERE rp.person_id = p.id)::int AS records_count
+        FROM brain.people p
+        ${where}
+        ${this.buildOrderBy(sortBy, sortOrder, 'page')}
+        ${limitClause}
+        ${offsetClause}
+      )
       SELECT
-        p.id,
-        p.name,
-        p.email,
-        p.is_external,
+        page.id,
+        page.name,
+        page.email,
+        page.is_external,
         COALESCE(
           json_agg(
             json_build_object(
@@ -214,27 +229,31 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
           ) FILTER (WHERE pds.id IS NOT NULL),
           '[]'
         ) AS data_sources,
-        (SELECT COUNT(*) FROM brain.records_people rp WHERE rp.person_id = p.id)::int AS records_count
-      FROM brain.people p
-      LEFT JOIN brain.people_data_sources pds ON pds.person_id = p.id
+        page.records_count
+      FROM page
+      LEFT JOIN brain.people_data_sources pds ON pds.person_id = page.id
       LEFT JOIN brain.data_sources ds ON ds.id = pds.data_source_id
-      ${where}
-      GROUP BY p.id, p.name, p.email, p.is_external
-      ${orderBy}
-      ${limitClause}
-      ${offsetClause}
+      GROUP BY page.id, page.name, page.email, page.is_external, page.records_count
+      ${this.buildOrderBy(sortBy, sortOrder, 'result')}
     `;
   }
 
-  private buildOrderBy(sortBy?: PersonSortField, sortOrder?: PersonSortOrder) {
+  private buildOrderBy(
+    sortBy: PersonSortField | undefined,
+    sortOrder: PersonSortOrder | undefined,
+    scope: 'page' | 'result',
+  ) {
     const field = sortBy ?? DEFAULT_PERSON_SORT_FIELD;
     const direction =
       (sortOrder ?? DEFAULT_PERSON_SORT_ORDER) === 'desc' ? this.sql`DESC` : this.sql`ASC`;
+    const name = scope === 'page' ? this.sql`p.name` : this.sql`page.name`;
+    const id = scope === 'page' ? this.sql`p.id` : this.sql`page.id`;
+    const recordsCount = scope === 'page' ? this.sql`records_count` : this.sql`page.records_count`;
 
     if (field === 'records_count') {
-      return this.sql`ORDER BY records_count ${direction}, p.name ASC NULLS LAST, p.id ASC`;
+      return this.sql`ORDER BY ${recordsCount} ${direction}, ${name} ASC NULLS LAST, ${id} ASC`;
     }
 
-    return this.sql`ORDER BY p.name ${direction} NULLS LAST, p.id ASC`;
+    return this.sql`ORDER BY ${name} ${direction} NULLS LAST, ${id} ASC`;
   }
 }
