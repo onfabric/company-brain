@@ -1,6 +1,10 @@
 import type { DataSources, People, PeopleDataSources } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
 
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
 export type PersonDataSource = {
   data_source_key: DataSources['nango_integration_id'];
   data_source_user_id: PeopleDataSources['data_source_user_id'];
@@ -27,6 +31,8 @@ export type PersonFilters = {
   isExternal?: People['is_external'];
   sortBy?: PersonSortField;
   sortOrder?: PersonSortOrder;
+  query?: string;
+  limit?: number;
 };
 
 export type MergeCounts = {
@@ -48,6 +54,8 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
       isExternal: filters.isExternal,
       sortBy: filters.sortBy,
       sortOrder: filters.sortOrder,
+      query: filters.query,
+      limit: filters.limit,
     });
   }
 
@@ -118,11 +126,15 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     isExternal,
     sortBy,
     sortOrder,
+    query,
+    limit,
   }: {
     id?: People['id'];
     isExternal?: People['is_external'];
     sortBy?: PersonSortField;
     sortOrder?: PersonSortOrder;
+    query?: string;
+    limit?: number;
   } = {}): Promise<PersonRow[]> {
     const conditions = [];
     if (id !== undefined) {
@@ -131,10 +143,27 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     if (isExternal !== undefined) {
       conditions.push(this.sql`p.is_external = ${isExternal}`);
     }
+    const trimmedQuery = query?.trim();
+    if (trimmedQuery) {
+      // Match on name/email, or on any of the person's per-source handles. The
+      // handle match is an EXISTS so the data_sources aggregate below stays
+      // complete rather than being narrowed to the matching row.
+      const pattern = `%${escapeLike(trimmedQuery)}%`;
+      conditions.push(this.sql`(
+        p.name ILIKE ${pattern} ESCAPE '\\'
+        OR p.email ILIKE ${pattern} ESCAPE '\\'
+        OR EXISTS (
+          SELECT 1 FROM brain.people_data_sources pds_q
+          WHERE pds_q.person_id = p.id
+            AND pds_q.data_source_user_id ILIKE ${pattern} ESCAPE '\\'
+        )
+      )`);
+    }
     const where = conditions.length
       ? this.sql`WHERE ${conditions.reduce((acc, cond) => this.sql`${acc} AND ${cond}`)}`
       : this.sql``;
     const orderBy = this.buildOrderBy(sortBy, sortOrder);
+    const limitClause = limit !== undefined ? this.sql`LIMIT ${limit}` : this.sql``;
     return this.sql<PersonRow[]>`
       SELECT
         p.id,
@@ -158,6 +187,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
       ${where}
       GROUP BY p.id, p.name, p.email, p.is_external
       ${orderBy}
+      ${limitClause}
     `;
   }
 

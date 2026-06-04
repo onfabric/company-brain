@@ -47,4 +47,17 @@ describe('ListPeopleQuerySchema', () => {
     expect((await listPeople('?sort_by=email')).status).toBe(INVALID);
     expect((await listPeople('?sort_order=sideways')).status).toBe(INVALID);
   });
+
+  it('accepts a search query and a numeric limit', async () => {
+    expect(await listPeople('?q=ada&limit=25')).toEqual({
+      status: VALID,
+      body: { q: 'ada', limit: 25 },
+    });
+  });
+
+  it('rejects an empty query and out-of-range limits', async () => {
+    expect((await listPeople('?q=')).status).toBe(INVALID);
+    expect((await listPeople('?limit=0')).status).toBe(INVALID);
+    expect((await listPeople('?limit=101')).status).toBe(INVALID);
+  });
 });

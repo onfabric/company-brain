@@ -39,6 +39,14 @@ export class PeopleService extends Service {
     return { people };
   }
 
+  async getPerson(id: string): Promise<Person> {
+    const person = await this.peopleRepo.getPerson(id);
+    if (!person) {
+      throw new NotFoundError(`Person not found: ${id}`);
+    }
+    return person;
+  }
+
   async updatePerson(id: string, updates: PersonUpdate): Promise<Person> {
     const person = await this.peopleRepo.updatePerson(id, updates);
     if (!person) {

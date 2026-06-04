@@ -11,8 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '#/components/ui/select.tsx';
-import { participantLabel } from '#/features/records/record-format.ts';
-import type { Person, Source } from '#/lib/brain-functions.ts';
+import { ParticipantFilter } from '#/features/records/participant-filter.tsx';
+import type { Source } from '#/lib/brain-functions.ts';
 import {
   DEFAULT_LIMIT,
   EMPTY_COUNT,
@@ -25,7 +25,7 @@ import type { RecordsRouteSearch } from '#/lib/records-search.ts';
 type RecordsFiltersProps = {
   search: RecordsRouteSearch;
   sources: Source[];
-  people: Person[];
+  apiKey: string;
   isFetching: boolean;
   onChange: (next: Partial<RecordsRouteSearch>, resetPage?: boolean) => void;
 };
@@ -33,7 +33,7 @@ type RecordsFiltersProps = {
 export function RecordsFilters({
   search,
   sources,
-  people,
+  apiKey,
   isFetching,
   onChange,
 }: RecordsFiltersProps) {
@@ -99,30 +99,11 @@ export function RecordsFilters({
         </Select>
       </div>
 
-      <div className="grid gap-2">
-        <Label>Participant</Label>
-        <Select
-          value={search.personId ?? EMPTY_OPTION_VALUE}
-          onValueChange={(value) =>
-            onChange({
-              personId: value === EMPTY_OPTION_VALUE ? undefined : value,
-              page: FIRST_PAGE,
-            })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="All people" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={EMPTY_OPTION_VALUE}>All people</SelectItem>
-            {people.map((person) => (
-              <SelectItem key={person.id} value={person.id}>
-                {participantLabel(person)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <ParticipantFilter
+        apiKey={apiKey}
+        personId={search.personId}
+        onSelect={(personId) => onChange({ personId, page: FIRST_PAGE })}
+      />
 
       <div className="grid gap-2">
         <Label htmlFor="created-after">From</Label>

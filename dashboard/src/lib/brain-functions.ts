@@ -105,6 +105,8 @@ export type ListPeopleInput = {
   isExternal?: boolean;
   sortBy?: PeopleSortField;
   sortOrder?: PeopleSortOrder;
+  query?: string;
+  limit?: number;
 };
 
 export async function listRecords(input: RecordsQueryInput, apiKey: string) {
@@ -153,8 +155,19 @@ export async function listPeople(apiKey: string, input: ListPeopleInput = {}) {
   if (input.sortOrder) {
     params.set('sort_order', input.sortOrder);
   }
+  const search = input.query?.trim();
+  if (search) {
+    params.set('q', search);
+  }
+  if (input.limit !== undefined) {
+    params.set('limit', String(input.limit));
+  }
   const query = params.toString();
   return await fetchBrain(`/people${query ? `?${query}` : ''}`, PeopleResponseSchema, apiKey);
+}
+
+export async function getPerson(id: string, apiKey: string) {
+  return await fetchBrain(`/people/${id}`, PersonDetailsSchema, apiKey);
 }
 
 export async function updatePerson(id: string, input: PersonUpdateInput, apiKey: string) {

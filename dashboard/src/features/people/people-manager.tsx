@@ -83,6 +83,8 @@ export function PeopleManager({
       setDraft(undefined);
       setStatusMessage(`Saved ${participantLabel(person)}.`);
       void queryClient.invalidateQueries({ queryKey: ['people'] });
+      void queryClient.invalidateQueries({ queryKey: ['people-search'] });
+      void queryClient.invalidateQueries({ queryKey: ['person', person.id] });
       void queryClient.invalidateQueries({ queryKey: ['records'] });
     },
   });

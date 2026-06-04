@@ -1,9 +1,13 @@
 import { t } from 'elysia';
 import { PersonSchema } from '#routes/people/model.ts';
 
-export const UpdatePersonParamsSchema = t.Object({
+export const PersonParamsSchema = t.Object({
   id: t.String({ format: 'uuid' }),
 });
+
+export const UpdatePersonParamsSchema = PersonParamsSchema;
+
+export const GetPersonResponseSchema = PersonSchema;
 
 export const UpdatePersonBodySchema = t.Object(
   {
