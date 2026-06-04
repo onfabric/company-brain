@@ -20,8 +20,6 @@ secret() {
 NANGO_DB_PASSWORD="$(secret nango_db_password)"
 BRAIN_DB_PASSWORD="$(secret brain_db_password)"
 BRAIN_API_KEY="$(secret brain_api_key)"
-NANGO_DASHBOARD_USERNAME="$(secret nango_dashboard_username)"
-NANGO_DASHBOARD_PASSWORD="$(secret nango_dashboard_password)"
 
 # Dozzle simple-auth users file (full users.yml, generated via `dozzle generate`),
 # mounted into the container at /data/users.yml by the prod compose override.
@@ -53,8 +51,6 @@ ELASTICSEARCH_PORT=9200
 DOZZLE_PORT=8080
 BRAIN_SERVER_PORT=3010
 FLAG_AUTH_ENABLED=true
-NANGO_DASHBOARD_USERNAME=${NANGO_DASHBOARD_USERNAME}
-NANGO_DASHBOARD_PASSWORD=${NANGO_DASHBOARD_PASSWORD}
 LOG_LEVEL=info
 NANGO_IMAGE_URI=${NANGO_IMAGE_URI}
 BRAIN_IMAGE_URI=${BRAIN_IMAGE_URI}
