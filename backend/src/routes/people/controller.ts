@@ -19,6 +19,7 @@ export const peopleController = new Elysia()
         sortOrder: query.sort_order,
         query: query.q,
         limit: query.limit,
+        offset: query.offset,
       });
       return status(StatusMap.OK, result);
     },

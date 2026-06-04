@@ -4,7 +4,6 @@ import {
   DASHBOARD_TABS,
   DATE_SLICE_END,
   DEFAULT_LIMIT,
-  DEFAULT_PAGE,
   EMPTY_COUNT,
   LIMIT_OPTIONS,
   RECORD_SORT_FIELDS,
@@ -24,7 +23,6 @@ export type RecordsRouteSearch = {
   createdBefore?: string;
   sortBy?: RecordSortField;
   sortOrder?: RecordSortOrder;
-  page: number;
   limit: number;
   selectedRecordId?: string;
 };
@@ -39,13 +37,12 @@ export function normalizeRouteSearch(search: Record<string, unknown>): RecordsRo
     createdBefore: stringValue(search.createdBefore),
     sortBy: sortFieldValue(search.sortBy),
     sortOrder: sortOrderValue(search.sortOrder),
-    page: positiveInteger(search.page, DEFAULT_PAGE),
     limit: limitValue(search.limit),
     selectedRecordId: stringValue(search.selectedRecordId),
   };
 }
 
-export function toRecordsQueryInput(search: RecordsRouteSearch): RecordsQueryInput {
+export function toRecordsQueryInput(search: RecordsRouteSearch): Omit<RecordsQueryInput, 'offset'> {
   return {
     q: search.q,
     dataSourceId: search.dataSourceId,
@@ -54,7 +51,6 @@ export function toRecordsQueryInput(search: RecordsRouteSearch): RecordsQueryInp
     createdBefore: search.createdBefore,
     sortBy: search.sortBy,
     sortOrder: search.sortOrder,
-    page: search.page,
     limit: search.limit,
   };
 }
@@ -69,7 +65,6 @@ export function cleanRouteSearch(search: RecordsRouteSearch): RecordsRouteSearch
     createdBefore: search.createdBefore || undefined,
     sortBy: search.sortBy || undefined,
     sortOrder: search.sortOrder || undefined,
-    page: search.page,
     limit: search.limit,
     selectedRecordId: search.selectedRecordId || undefined,
   };

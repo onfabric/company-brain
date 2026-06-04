@@ -1,6 +1,11 @@
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, FileText, KeyRound, LogOut, Users } from 'lucide-react';
+import { FileText, KeyRound, Loader2, LogOut, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card, CardContent } from '#/components/ui/card.tsx';
@@ -30,18 +35,19 @@ import {
   EMPTY_OFFSET,
   FIRST_PAGE,
   HTTP_UNAUTHORIZED,
+  PEOPLE_PAGE_SIZE,
 } from '#/lib/constants.ts';
 import {
   cleanRouteSearch,
   type RecordsRouteSearch,
   toRecordsQueryInput,
 } from '#/lib/records-search.ts';
+import { useInfiniteScroll } from '#/lib/use-infinite-scroll.ts';
 
 type RecordsDashboardProps = {
   search: RecordsRouteSearch;
 };
 
-const PAGE_WINDOW_LABEL_OFFSET = FIRST_PAGE;
 const LOADING_ROW_KEYS = [
   'loading-row-a',
   'loading-row-b',
@@ -112,9 +118,14 @@ function AuthenticatedRecordsDashboard({
   const navigate = useNavigate({ from: '/' });
   const activeTab = search.tab ?? 'records';
   const recordsInput = toRecordsQueryInput(search);
-  const recordsQuery = useQuery({
+  const recordsQuery = useInfiniteQuery({
     queryKey: ['records', apiKeyVersion, recordsInput],
-    queryFn: () => listRecords(recordsInput, apiKey),
+    queryFn: ({ pageParam }) => listRecords({ ...recordsInput, offset: pageParam }, apiKey),
+    initialPageParam: EMPTY_OFFSET,
+    getNextPageParam: (lastPage) => {
+      const nextOffset = lastPage.offset + lastPage.limit;
+      return nextOffset < lastPage.total ? nextOffset : undefined;
+    },
     placeholderData: keepPreviousData,
     retry: false,
   });
@@ -123,50 +134,58 @@ function AuthenticatedRecordsDashboard({
     queryFn: () => listDataSources(apiKey),
     retry: false,
   });
-  const peopleQuery = useQuery({
+  const peopleQuery = useInfiniteQuery({
     queryKey: ['people', apiKeyVersion, DEFAULT_PEOPLE_SORT_FIELD, DEFAULT_PEOPLE_SORT_ORDER],
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       listPeople(apiKey, {
         sortBy: DEFAULT_PEOPLE_SORT_FIELD,
         sortOrder: DEFAULT_PEOPLE_SORT_ORDER,
+        limit: PEOPLE_PAGE_SIZE,
+        offset: pageParam,
       }),
+    initialPageParam: EMPTY_OFFSET,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((sum, page) => sum + page.people.length, EMPTY_COUNT);
+      return loaded < lastPage.total ? loaded : undefined;
+    },
     enabled: activeTab === 'people',
     retry: false,
   });
 
   const sources = sourcesQuery.data?.sources ?? [];
-  const people = peopleQuery.data?.people ?? [];
+  const people = useMemo(
+    () => peopleQuery.data?.pages.flatMap((page) => page.people) ?? [],
+    [peopleQuery.data],
+  );
+  const peopleTotal = peopleQuery.data?.pages[EMPTY_COUNT]?.total ?? EMPTY_COUNT;
   const records = useMemo(() => {
     const sourceLabels = new Map(
       sources.map((source) => [source.data_source_id, source.data_source_key]),
     );
-    return (recordsQuery.data?.results ?? []).map((record) => ({
+    const hits = recordsQuery.data?.pages.flatMap((page) => page.results) ?? [];
+    return hits.map((record) => ({
       ...record,
       data_source_key: sourceLabels.get(record.data_source_id) ?? record.data_source_key,
     }));
-  }, [recordsQuery.data?.results, sources]);
+  }, [recordsQuery.data, sources]);
   const selectedRecord = selectedRecordFor(records, search.selectedRecordId);
-  const total = recordsQuery.data?.total ?? EMPTY_COUNT;
-  const limit = recordsQuery.data?.limit ?? search.limit ?? DEFAULT_LIMIT;
-  const currentPage = search.page || FIRST_PAGE;
-  const totalPages = Math.max(FIRST_PAGE, Math.ceil(total / limit));
-  const rangeStart =
-    total > EMPTY_COUNT
-      ? (currentPage - FIRST_PAGE) * limit + PAGE_WINDOW_LABEL_OFFSET
-      : EMPTY_OFFSET;
-  const rangeEnd = Math.min(currentPage * limit, total);
+  const total = recordsQuery.data?.pages[EMPTY_COUNT]?.total ?? EMPTY_COUNT;
+  const recordsSentinelRef = useInfiniteScroll({
+    hasNextPage: recordsQuery.hasNextPage,
+    isFetchingNextPage: recordsQuery.isFetchingNextPage,
+    fetchNextPage: recordsQuery.fetchNextPage,
+  });
   const headerDescription =
     activeTab === 'people'
-      ? `${people.length.toLocaleString()} people ranked by records`
+      ? `${peopleTotal.toLocaleString()} people ranked by records`
       : `${total.toLocaleString()} records matching current filters`;
 
-  const updateSearch = (next: Partial<RecordsRouteSearch>, resetPage = true) => {
+  const updateSearch = (next: Partial<RecordsRouteSearch>) => {
     void navigate({
       search: (previous) =>
         cleanRouteSearch({
           ...previous,
           ...next,
-          page: resetPage ? FIRST_PAGE : (next.page ?? previous.page ?? FIRST_PAGE),
           limit: next.limit ?? previous.limit ?? DEFAULT_LIMIT,
         }),
     });
@@ -187,7 +206,7 @@ function AuthenticatedRecordsDashboard({
               size="sm"
               variant={activeTab === 'records' ? 'secondary' : 'ghost'}
               aria-selected={activeTab === 'records'}
-              onClick={() => updateSearch({ tab: 'records' }, false)}
+              onClick={() => updateSearch({ tab: 'records' })}
             >
               <FileText />
               Records
@@ -198,7 +217,7 @@ function AuthenticatedRecordsDashboard({
               size="sm"
               variant={activeTab === 'people' ? 'secondary' : 'ghost'}
               aria-selected={activeTab === 'people'}
-              onClick={() => updateSearch({ tab: 'people' }, false)}
+              onClick={() => updateSearch({ tab: 'people' })}
             >
               <Users />
               People
@@ -231,43 +250,21 @@ function AuthenticatedRecordsDashboard({
                 ) : records.length === EMPTY_COUNT ? (
                   <EmptyState />
                 ) : (
-                  <RecordsTable
-                    records={records}
-                    selectedRecordId={selectedRecord?.id}
-                    onSelectRecord={(id) => updateSearch({ selectedRecordId: id }, false)}
-                  />
+                  <>
+                    <RecordsTable
+                      records={records}
+                      selectedRecordId={selectedRecord?.id}
+                      onSelectRecord={(id) => updateSearch({ selectedRecordId: id })}
+                    />
+                    <div ref={recordsSentinelRef} />
+                    {recordsQuery.isFetchingNextPage ? <LoadingMore /> : null}
+                  </>
                 )}
               </CardContent>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm">
-                <span className="text-muted-foreground">
-                  {rangeStart.toLocaleString()}-{rangeEnd.toLocaleString()} of{' '}
-                  {total.toLocaleString()}
+              <div className="flex items-center justify-between gap-3 border-t px-4 py-3 text-muted-foreground text-sm">
+                <span>
+                  Showing {records.length.toLocaleString()} of {total.toLocaleString()}
                 </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage <= FIRST_PAGE || recordsQuery.isFetching}
-                    onClick={() => updateSearch({ page: currentPage - FIRST_PAGE }, false)}
-                  >
-                    <ChevronLeft />
-                    Previous
-                  </Button>
-                  <span className="min-w-24 text-center text-muted-foreground">
-                    Page {currentPage.toLocaleString()} of {totalPages.toLocaleString()}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage >= totalPages || recordsQuery.isFetching}
-                    onClick={() => updateSearch({ page: currentPage + FIRST_PAGE }, false)}
-                  >
-                    Next
-                    <ChevronRight />
-                  </Button>
-                </div>
               </div>
             </Card>
 
@@ -278,8 +275,12 @@ function AuthenticatedRecordsDashboard({
         <PeopleManager
           apiKey={apiKey}
           people={people}
+          total={peopleTotal}
           isLoading={peopleQuery.isLoading}
-          isFetching={peopleQuery.isFetching}
+          isFetching={peopleQuery.isFetching && !peopleQuery.isFetchingNextPage}
+          isFetchingNextPage={peopleQuery.isFetchingNextPage}
+          hasNextPage={peopleQuery.hasNextPage}
+          fetchNextPage={peopleQuery.fetchNextPage}
           error={peopleQuery.error}
           onChangeApiKey={onChangeApiKey}
         />
@@ -298,6 +299,15 @@ function LoadingRows() {
       {LOADING_ROW_KEYS.map((key) => (
         <Skeleton key={key} className="h-14 w-full" />
       ))}
+    </div>
+  );
+}
+
+function LoadingMore() {
+  return (
+    <div className="flex items-center justify-center gap-2 border-t py-4 text-muted-foreground text-sm">
+      <Loader2 className="size-4 animate-spin" />
+      Loading more...
     </div>
   );
 }

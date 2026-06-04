@@ -61,8 +61,17 @@ export const ListPeopleQuerySchema = t.Object({
       description: 'Maximum number of people to return. Omit to return all matches.',
     }),
   ),
+  offset: t.Optional(
+    t.Integer({
+      minimum: 0,
+      description: 'Number of people to skip, for pagination.',
+    }),
+  ),
 });
 
 export const ListPeopleResponseSchema = t.Object({
+  total: t.Integer({
+    description: 'Total number of people matching the filters, ignoring pagination.',
+  }),
   people: t.Array(PersonSchema),
 });

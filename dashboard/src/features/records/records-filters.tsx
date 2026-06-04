@@ -13,13 +13,7 @@ import {
 } from '#/components/ui/select.tsx';
 import { ParticipantFilter } from '#/features/records/participant-filter.tsx';
 import type { Source } from '#/lib/brain-functions.ts';
-import {
-  DEFAULT_LIMIT,
-  EMPTY_COUNT,
-  EMPTY_OPTION_VALUE,
-  FIRST_PAGE,
-  LIMIT_OPTIONS,
-} from '#/lib/constants.ts';
+import { DEFAULT_LIMIT, EMPTY_COUNT, EMPTY_OPTION_VALUE, LIMIT_OPTIONS } from '#/lib/constants.ts';
 import type { RecordsRouteSearch } from '#/lib/records-search.ts';
 
 type RecordsFiltersProps = {
@@ -27,7 +21,7 @@ type RecordsFiltersProps = {
   sources: Source[];
   apiKey: string;
   isFetching: boolean;
-  onChange: (next: Partial<RecordsRouteSearch>, resetPage?: boolean) => void;
+  onChange: (next: Partial<RecordsRouteSearch>) => void;
 };
 
 export function RecordsFilters({
@@ -56,7 +50,7 @@ export function RecordsFilters({
       className="grid gap-3 border-b bg-background/95 px-4 py-4 lg:grid-cols-[minmax(18rem,2fr)_repeat(5,minmax(9rem,1fr))_auto] lg:items-end"
       onSubmit={(event) => {
         event.preventDefault();
-        onChange({ q: draft || undefined, page: FIRST_PAGE });
+        onChange({ q: draft || undefined });
       }}
     >
       <div className="grid gap-2">
@@ -81,7 +75,6 @@ export function RecordsFilters({
           onValueChange={(value) =>
             onChange({
               dataSourceId: value === EMPTY_OPTION_VALUE ? undefined : value,
-              page: FIRST_PAGE,
             })
           }
         >
@@ -102,7 +95,7 @@ export function RecordsFilters({
       <ParticipantFilter
         apiKey={apiKey}
         personId={search.personId}
-        onSelect={(personId) => onChange({ personId, page: FIRST_PAGE })}
+        onSelect={(personId) => onChange({ personId })}
       />
 
       <div className="grid gap-2">
@@ -111,9 +104,7 @@ export function RecordsFilters({
           id="created-after"
           type="date"
           value={search.createdAfter ?? ''}
-          onChange={(event) =>
-            onChange({ createdAfter: event.target.value || undefined, page: FIRST_PAGE })
-          }
+          onChange={(event) => onChange({ createdAfter: event.target.value || undefined })}
         />
       </div>
 
@@ -123,17 +114,15 @@ export function RecordsFilters({
           id="created-before"
           type="date"
           value={search.createdBefore ?? ''}
-          onChange={(event) =>
-            onChange({ createdBefore: event.target.value || undefined, page: FIRST_PAGE })
-          }
+          onChange={(event) => onChange({ createdBefore: event.target.value || undefined })}
         />
       </div>
 
       <div className="grid gap-2">
-        <Label>Page Size</Label>
+        <Label>Load Size</Label>
         <Select
           value={String(search.limit || DEFAULT_LIMIT)}
-          onValueChange={(value) => onChange({ limit: Number(value), page: FIRST_PAGE })}
+          onValueChange={(value) => onChange({ limit: Number(value) })}
         >
           <SelectTrigger>
             <SelectValue />
@@ -165,7 +154,6 @@ export function RecordsFilters({
               personId: undefined,
               createdAfter: undefined,
               createdBefore: undefined,
-              page: FIRST_PAGE,
             })
           }
         >

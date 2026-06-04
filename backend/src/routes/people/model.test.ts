@@ -48,16 +48,17 @@ describe('ListPeopleQuerySchema', () => {
     expect((await listPeople('?sort_order=sideways')).status).toBe(INVALID);
   });
 
-  it('accepts a search query and a numeric limit', async () => {
-    expect(await listPeople('?q=ada&limit=25')).toEqual({
+  it('accepts a search query, limit, and offset', async () => {
+    expect(await listPeople('?q=ada&limit=25&offset=50')).toEqual({
       status: VALID,
-      body: { q: 'ada', limit: 25 },
+      body: { q: 'ada', limit: 25, offset: 50 },
     });
   });
 
-  it('rejects an empty query and out-of-range limits', async () => {
+  it('rejects an empty query, out-of-range limits, and a negative offset', async () => {
     expect((await listPeople('?q=')).status).toBe(INVALID);
     expect((await listPeople('?limit=0')).status).toBe(INVALID);
     expect((await listPeople('?limit=101')).status).toBe(INVALID);
+    expect((await listPeople('?offset=-1')).status).toBe(INVALID);
   });
 });

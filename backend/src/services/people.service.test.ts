@@ -30,6 +30,10 @@ class MockPeopleRepository extends PeopleRepositoryContract {
     return Promise.resolve([]);
   }
 
+  countPeople(): Promise<number> {
+    return Promise.resolve(0);
+  }
+
   getPerson(): Promise<PersonRow | null> {
     return Promise.resolve(this.person);
   }

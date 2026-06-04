@@ -1,5 +1,8 @@
+import type { SQL } from 'bun';
 import type { DataSources, People, PeopleDataSources } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
+
+type SqlFragment = SQL.Query<unknown>;
 
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (char) => `\\${char}`);
@@ -33,6 +36,7 @@ export type PersonFilters = {
   sortOrder?: PersonSortOrder;
   query?: string;
   limit?: number;
+  offset?: number;
 };
 
 export type MergeCounts = {
@@ -42,6 +46,7 @@ export type MergeCounts = {
 
 export abstract class PeopleRepositoryContract {
   abstract listPeople(filters?: PersonFilters): Promise<PersonRow[]>;
+  abstract countPeople(filters?: PersonFilters): Promise<number>;
   abstract getPerson(id: People['id']): Promise<PersonRow | null>;
   abstract findByIds(ids: People['id'][]): Promise<PersonIdentity[]>;
   abstract updatePerson(id: People['id'], updates: PersonUpdate): Promise<PersonRow | null>;
@@ -56,7 +61,18 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
       sortOrder: filters.sortOrder,
       query: filters.query,
       limit: filters.limit,
+      offset: filters.offset,
     });
+  }
+
+  async countPeople(filters: PersonFilters = {}): Promise<number> {
+    const where = this.whereClause(
+      this.filterConditions({ isExternal: filters.isExternal, query: filters.query }),
+    );
+    const [row] = await this.sql<{ total: number }[]>`
+      SELECT COUNT(*)::int AS total FROM brain.people p ${where}
+    `;
+    return row?.total ?? 0;
   }
 
   async getPerson(id: People['id']): Promise<PersonRow | null> {
@@ -121,25 +137,16 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     });
   }
 
-  private selectPeople({
-    id,
+  // Conditions shared by the list query and the matching count. `id` is handled
+  // separately by selectPeople since it is only used for single-person lookups.
+  private filterConditions({
     isExternal,
-    sortBy,
-    sortOrder,
     query,
-    limit,
   }: {
-    id?: People['id'];
     isExternal?: People['is_external'];
-    sortBy?: PersonSortField;
-    sortOrder?: PersonSortOrder;
     query?: string;
-    limit?: number;
-  } = {}): Promise<PersonRow[]> {
-    const conditions = [];
-    if (id !== undefined) {
-      conditions.push(this.sql`p.id = ${id}`);
-    }
+  }): SqlFragment[] {
+    const conditions: SqlFragment[] = [];
     if (isExternal !== undefined) {
       conditions.push(this.sql`p.is_external = ${isExternal}`);
     }
@@ -159,11 +166,38 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
         )
       )`);
     }
-    const where = conditions.length
+    return conditions;
+  }
+
+  private whereClause(conditions: SqlFragment[]) {
+    return conditions.length
       ? this.sql`WHERE ${conditions.reduce((acc, cond) => this.sql`${acc} AND ${cond}`)}`
       : this.sql``;
+  }
+
+  private selectPeople({
+    id,
+    isExternal,
+    sortBy,
+    sortOrder,
+    query,
+    limit,
+    offset,
+  }: {
+    id?: People['id'];
+    isExternal?: People['is_external'];
+    sortBy?: PersonSortField;
+    sortOrder?: PersonSortOrder;
+    query?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<PersonRow[]> {
+    const conditions: SqlFragment[] =
+      id !== undefined ? [this.sql`p.id = ${id}`] : this.filterConditions({ isExternal, query });
+    const where = this.whereClause(conditions);
     const orderBy = this.buildOrderBy(sortBy, sortOrder);
     const limitClause = limit !== undefined ? this.sql`LIMIT ${limit}` : this.sql``;
+    const offsetClause = offset ? this.sql`OFFSET ${offset}` : this.sql``;
     return this.sql<PersonRow[]>`
       SELECT
         p.id,
@@ -188,6 +222,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
       GROUP BY p.id, p.name, p.email, p.is_external
       ${orderBy}
       ${limitClause}
+      ${offsetClause}
     `;
   }
 

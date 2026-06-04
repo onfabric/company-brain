@@ -2,7 +2,6 @@ import { z } from 'zod';
 import {
   API_MAX_LIMIT,
   DEFAULT_LIMIT,
-  DEFAULT_PAGE,
   EMPTY_COUNT,
   EMPTY_OFFSET,
   FIRST_PAGE,
@@ -69,6 +68,7 @@ const PersonDetailsSchema = PersonSchema.extend({
 });
 
 const PeopleResponseSchema = z.object({
+  total: z.number().int(),
   people: z.array(PersonDetailsSchema),
 });
 
@@ -89,7 +89,7 @@ export const RecordsQueryInputSchema = z.object({
   createdBefore: z.string().optional(),
   sortBy: z.enum(RECORD_SORT_FIELDS).optional(),
   sortOrder: z.enum(RECORD_SORT_ORDERS).optional(),
-  page: z.number().int().min(FIRST_PAGE).default(DEFAULT_PAGE),
+  offset: z.number().int().min(EMPTY_OFFSET).default(EMPTY_OFFSET),
   limit: z.number().int().min(FIRST_PAGE).max(API_MAX_LIMIT).default(DEFAULT_LIMIT),
 });
 
@@ -107,6 +107,7 @@ export type ListPeopleInput = {
   sortOrder?: PeopleSortOrder;
   query?: string;
   limit?: number;
+  offset?: number;
 };
 
 export async function listRecords(input: RecordsQueryInput, apiKey: string) {
@@ -135,7 +136,7 @@ export async function listRecords(input: RecordsQueryInput, apiKey: string) {
   }
 
   params.set('limit', String(input.limit));
-  params.set('offset', String(pageToOffset(input.page, input.limit)));
+  params.set('offset', String(input.offset));
 
   return await fetchBrain(`/records?${params.toString()}`, RecordsResponseSchema, apiKey);
 }
@@ -162,6 +163,9 @@ export async function listPeople(apiKey: string, input: ListPeopleInput = {}) {
   if (input.limit !== undefined) {
     params.set('limit', String(input.limit));
   }
+  if (input.offset !== undefined) {
+    params.set('offset', String(input.offset));
+  }
   const query = params.toString();
   return await fetchBrain(`/people${query ? `?${query}` : ''}`, PeopleResponseSchema, apiKey);
 }
@@ -176,10 +180,6 @@ export async function updatePerson(id: string, input: PersonUpdateInput, apiKey:
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
   });
-}
-
-function pageToOffset(page: number, limit: number) {
-  return page > FIRST_PAGE ? (page - FIRST_PAGE) * limit : EMPTY_OFFSET;
 }
 
 function startOfDayIso(date: string) {
