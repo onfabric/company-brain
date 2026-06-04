@@ -8,6 +8,8 @@ import {
   FIRST_PAGE,
   HTTP_UNAUTHORIZED,
   NEXT_DAY_OFFSET,
+  type PEOPLE_SORT_FIELDS,
+  type PEOPLE_SORT_ORDERS,
   RECORD_SORT_FIELDS,
   RECORD_SORT_ORDERS,
 } from '#/lib/constants.ts';
@@ -61,13 +63,19 @@ const PersonDataSourceSchema = z.object({
   data_source_user_id: z.string(),
 });
 
+const PersonDetailsSchema = PersonSchema.extend({
+  data_sources: z.array(PersonDataSourceSchema),
+  records_count: z.number().int(),
+});
+
 const PeopleResponseSchema = z.object({
-  people: z.array(
-    PersonSchema.extend({
-      data_sources: z.array(PersonDataSourceSchema),
-      records_count: z.number().int(),
-    }),
-  ),
+  people: z.array(PersonDetailsSchema),
+});
+
+const MergePeopleResponseSchema = z.object({
+  person: PersonDetailsSchema,
+  moved_data_sources: z.number().int(),
+  moved_records: z.number().int(),
 });
 
 export class BrainApiError extends Error {
@@ -91,11 +99,19 @@ export const RecordsQueryInputSchema = z.object({
   limit: z.number().int().min(FIRST_PAGE).max(API_MAX_LIMIT).default(DEFAULT_LIMIT),
 });
 
+export type PeopleSortField = (typeof PEOPLE_SORT_FIELDS)[number];
+export type PeopleSortOrder = (typeof PEOPLE_SORT_ORDERS)[number];
 export type RecordHit = z.infer<typeof RecordHitSchema>;
 export type RecordsResponse = z.infer<typeof RecordsResponseSchema>;
 export type RecordsQueryInput = z.infer<typeof RecordsQueryInputSchema>;
 export type Source = z.infer<typeof SourceSchema>;
-export type Person = z.infer<typeof PeopleResponseSchema>['people'][number];
+export type Person = z.infer<typeof PersonDetailsSchema>;
+export type PersonUpdateInput = Partial<Pick<Person, 'name' | 'email' | 'is_external'>>;
+export type ListPeopleInput = {
+  isExternal?: boolean;
+  sortBy?: PeopleSortField;
+  sortOrder?: PeopleSortOrder;
+};
 
 export async function listRecords(input: RecordsQueryInput, apiKey: string) {
   const params = new URLSearchParams();
@@ -132,8 +148,41 @@ export async function listDataSources(apiKey: string) {
   return await fetchBrain('/data-sources', SourcesResponseSchema, apiKey);
 }
 
-export async function listPeople(apiKey: string) {
-  return await fetchBrain('/people', PeopleResponseSchema, apiKey);
+export async function listPeople(apiKey: string, input: ListPeopleInput = {}) {
+  const params = new URLSearchParams();
+  if (input.isExternal !== undefined) {
+    params.set('is_external', String(input.isExternal));
+  }
+  if (input.sortBy) {
+    params.set('sort_by', input.sortBy);
+  }
+  if (input.sortOrder) {
+    params.set('sort_order', input.sortOrder);
+  }
+  const query = params.toString();
+  return await fetchBrain(`/people${query ? `?${query}` : ''}`, PeopleResponseSchema, apiKey);
+}
+
+export async function updatePerson(id: string, input: PersonUpdateInput, apiKey: string) {
+  return await fetchBrain(`/people/${id}`, PersonDetailsSchema, apiKey, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function mergePeople(
+  input: { mergeFromId: string; mergeIntoId: string },
+  apiKey: string,
+) {
+  return await fetchBrain('/people/merge', MergePeopleResponseSchema, apiKey, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      merge_from_id: input.mergeFromId,
+      merge_into_id: input.mergeIntoId,
+    }),
+  });
 }
 
 function pageToOffset(page: number, limit: number) {
@@ -150,12 +199,18 @@ function exclusiveEndOfDayIso(date: string) {
   return parsed.toISOString();
 }
 
-async function fetchBrain<T>(path: string, schema: z.ZodType<T>, apiKey: string): Promise<T> {
+async function fetchBrain<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  apiKey: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const headers = new Headers(init.headers);
+  headers.set('accept', 'application/json');
+  headers.set('api-key', apiKey);
   const response = await fetch(path, {
-    headers: {
-      accept: 'application/json',
-      'api-key': apiKey,
-    },
+    ...init,
+    headers,
   });
 
   if (!response.ok) {

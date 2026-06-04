@@ -15,6 +15,12 @@ export const SCORE_PRECISION = 2;
 export const DATE_SLICE_END = 10;
 export const RECORD_SORT_FIELDS = ['created_at', 'updated_at', 'relevance'] as const;
 export const RECORD_SORT_ORDERS = ['asc', 'desc'] as const;
+export const PEOPLE_SORT_FIELDS = ['name', 'records_count'] as const;
+export const PEOPLE_SORT_ORDERS = ['asc', 'desc'] as const;
+export const DEFAULT_PEOPLE_SORT_FIELD =
+  'records_count' satisfies (typeof PEOPLE_SORT_FIELDS)[number];
+export const DEFAULT_PEOPLE_SORT_ORDER = 'desc' satisfies (typeof PEOPLE_SORT_ORDERS)[number];
+export const DASHBOARD_TABS = ['records', 'people'] as const;
 export const DATE_TIME_FORMAT_OPTIONS = {
   dateStyle: 'medium',
   timeStyle: 'short',
