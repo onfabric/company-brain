@@ -16,6 +16,12 @@ export const recordsSourcesController = new Elysia()
     },
     {
       [REQUIRE_API_KEY_MACRO_NAME]: true,
+      detail: {
+        tags: ['Records'],
+        summary: 'List record sources',
+        description:
+          'Returns each data source that has ingested records, broken down by model with per-model counts and timestamps.',
+      },
       response: {
         [StatusMap.OK]: ListSourcesResponseSchema,
       },

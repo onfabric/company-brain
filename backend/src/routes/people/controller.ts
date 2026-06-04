@@ -22,6 +22,12 @@ export const peopleController = new Elysia()
     },
     {
       [REQUIRE_API_KEY_MACRO_NAME]: true,
+      detail: {
+        tags: ['People'],
+        summary: 'List people',
+        description:
+          'Returns the people derived from ingested records, optionally filtered by whether they are external to the company.',
+      },
       query: ListPeopleQuerySchema,
       response: {
         [StatusMap.OK]: ListPeopleResponseSchema,
@@ -37,6 +43,13 @@ export const peopleController = new Elysia()
     },
     {
       requireApiKey: true,
+      parse: 'json',
+      detail: {
+        tags: ['People'],
+        summary: 'Update a person',
+        description:
+          'Updates a person’s editable fields. Only the fields included in the request body are changed.',
+      },
       params: UpdatePersonParamsSchema,
       body: UpdatePersonBodySchema,
       response: {
