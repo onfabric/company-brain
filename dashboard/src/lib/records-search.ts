@@ -6,7 +6,12 @@ import {
   DEFAULT_PAGE,
   EMPTY_COUNT,
   LIMIT_OPTIONS,
+  RECORD_SORT_FIELDS,
+  RECORD_SORT_ORDERS,
 } from '#/lib/constants.ts';
+
+export type RecordSortField = (typeof RECORD_SORT_FIELDS)[number];
+export type RecordSortOrder = (typeof RECORD_SORT_ORDERS)[number];
 
 export type RecordsRouteSearch = {
   q?: string;
@@ -14,6 +19,8 @@ export type RecordsRouteSearch = {
   personId?: string;
   createdAfter?: string;
   createdBefore?: string;
+  sortBy?: RecordSortField;
+  sortOrder?: RecordSortOrder;
   page: number;
   limit: number;
   selectedRecordId?: string;
@@ -26,6 +33,8 @@ export function normalizeRouteSearch(search: Record<string, unknown>): RecordsRo
     personId: stringValue(search.personId),
     createdAfter: stringValue(search.createdAfter),
     createdBefore: stringValue(search.createdBefore),
+    sortBy: sortFieldValue(search.sortBy),
+    sortOrder: sortOrderValue(search.sortOrder),
     page: positiveInteger(search.page, DEFAULT_PAGE),
     limit: limitValue(search.limit),
     selectedRecordId: stringValue(search.selectedRecordId),
@@ -39,6 +48,8 @@ export function toRecordsQueryInput(search: RecordsRouteSearch): RecordsQueryInp
     personId: search.personId,
     createdAfter: search.createdAfter,
     createdBefore: search.createdBefore,
+    sortBy: search.sortBy,
+    sortOrder: search.sortOrder,
     page: search.page,
     limit: search.limit,
   };
@@ -51,6 +62,8 @@ export function cleanRouteSearch(search: RecordsRouteSearch): RecordsRouteSearch
     personId: search.personId || undefined,
     createdAfter: search.createdAfter || undefined,
     createdBefore: search.createdBefore || undefined,
+    sortBy: search.sortBy || undefined,
+    sortOrder: search.sortOrder || undefined,
     page: search.page,
     limit: search.limit,
     selectedRecordId: search.selectedRecordId || undefined,
@@ -76,4 +89,16 @@ function limitValue(value: unknown) {
     return parsed;
   }
   return parsed <= API_MAX_LIMIT ? parsed : DEFAULT_LIMIT;
+}
+
+function sortFieldValue(value: unknown) {
+  return RECORD_SORT_FIELDS.includes(value as RecordSortField)
+    ? (value as RecordSortField)
+    : undefined;
+}
+
+function sortOrderValue(value: unknown) {
+  return RECORD_SORT_ORDERS.includes(value as RecordSortOrder)
+    ? (value as RecordSortOrder)
+    : undefined;
 }

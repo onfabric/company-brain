@@ -69,6 +69,10 @@ export class RecordsService extends Service {
   async search(
     params: SearchParams,
   ): Promise<{ total: number; limit: number; offset: number; results: SearchHit[] }> {
+    if (params.sortBy === 'relevance' && !params.query) {
+      throw new BadRequestError('sort_by=relevance requires q');
+    }
+
     const { total, results } = await this.recordsRepo.search({
       ...params,
       createdAfter: this.toIso('created_after', params.createdAfter),

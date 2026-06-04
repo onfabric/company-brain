@@ -179,6 +179,25 @@ describe('RecordsService', () => {
     expect(repo.searchCalls[0]?.personIds).toEqual(personIds);
   });
 
+  it('forwards record sort params to the repository', async () => {
+    const repo = new MockRecordsRepository(0);
+    const service = new RecordsService(repo);
+
+    await service.search({ sortBy: 'updated_at', sortOrder: 'asc', limit: 20, offset: 0 });
+
+    expect(repo.searchCalls[0]?.sortBy).toBe('updated_at');
+    expect(repo.searchCalls[0]?.sortOrder).toBe('asc');
+  });
+
+  it('rejects relevance sorting without a full-text query', async () => {
+    const repo = new MockRecordsRepository(0);
+    const service = new RecordsService(repo);
+
+    await expect(service.search({ sortBy: 'relevance', limit: 20, offset: 0 })).rejects.toThrow(
+      'sort_by=relevance requires q',
+    );
+  });
+
   it('rejects an unparseable time-range filter with a 400', async () => {
     const repo = new MockRecordsRepository(0);
     const service = new RecordsService(repo);

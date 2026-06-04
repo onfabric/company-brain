@@ -124,18 +124,11 @@ function AuthenticatedRecordsDashboard({
     const sourceLabels = new Map(
       sources.map((source) => [source.data_source_id, source.data_source_key]),
     );
-    return (recordsQuery.data?.results ?? [])
-      .map((record) => ({
-        ...record,
-        data_source_key: sourceLabels.get(record.data_source_id) ?? record.data_source_key,
-      }))
-      .sort((left, right) => {
-        if (search.q) {
-          return EMPTY_COUNT;
-        }
-        return Date.parse(right.created_at) - Date.parse(left.created_at);
-      });
-  }, [recordsQuery.data?.results, search.q, sources]);
+    return (recordsQuery.data?.results ?? []).map((record) => ({
+      ...record,
+      data_source_key: sourceLabels.get(record.data_source_id) ?? record.data_source_key,
+    }));
+  }, [recordsQuery.data?.results, sources]);
   const selectedRecord = selectedRecordFor(records, search.selectedRecordId);
   const total = recordsQuery.data?.total ?? EMPTY_COUNT;
   const limit = recordsQuery.data?.limit ?? search.limit ?? DEFAULT_LIMIT;

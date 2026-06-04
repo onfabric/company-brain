@@ -8,6 +8,8 @@ import {
   FIRST_PAGE,
   HTTP_UNAUTHORIZED,
   NEXT_DAY_OFFSET,
+  RECORD_SORT_FIELDS,
+  RECORD_SORT_ORDERS,
 } from '#/lib/constants.ts';
 
 const PersonSchema = z.object({
@@ -83,6 +85,8 @@ export const RecordsQueryInputSchema = z.object({
   personId: z.uuid().optional(),
   createdAfter: z.string().optional(),
   createdBefore: z.string().optional(),
+  sortBy: z.enum(RECORD_SORT_FIELDS).optional(),
+  sortOrder: z.enum(RECORD_SORT_ORDERS).optional(),
   page: z.number().int().min(FIRST_PAGE).default(DEFAULT_PAGE),
   limit: z.number().int().min(FIRST_PAGE).max(API_MAX_LIMIT).default(DEFAULT_LIMIT),
 });
@@ -110,6 +114,12 @@ export async function listRecords(input: RecordsQueryInput, apiKey: string) {
   }
   if (input.createdBefore) {
     params.set('created_before', exclusiveEndOfDayIso(input.createdBefore));
+  }
+  if (input.sortBy) {
+    params.set('sort_by', input.sortBy);
+  }
+  if (input.sortOrder) {
+    params.set('sort_order', input.sortOrder);
   }
 
   params.set('limit', String(input.limit));

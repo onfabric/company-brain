@@ -17,6 +17,15 @@ export type SourceRow = Pick<Records, 'data_source_id'> & {
   newest_updated_at: Date;
 };
 
+export const RECORD_SORT_FIELDS = ['created_at', 'updated_at', 'relevance'] as const;
+export const RECORD_SORT_ORDERS = ['asc', 'desc'] as const;
+export const DEFAULT_RECORD_SORT_FIELD: RecordSortField = 'created_at';
+export const DEFAULT_SEARCH_SORT_FIELD: RecordSortField = 'relevance';
+export const DEFAULT_RECORD_SORT_ORDER: RecordSortOrder = 'desc';
+
+export type RecordSortField = (typeof RECORD_SORT_FIELDS)[number];
+export type RecordSortOrder = (typeof RECORD_SORT_ORDERS)[number];
+
 export type SearchParams = {
   query?: string;
   dataSourceId?: string;
@@ -25,6 +34,8 @@ export type SearchParams = {
   createdBefore?: string;
   updatedAfter?: string;
   updatedBefore?: string;
+  sortBy?: RecordSortField;
+  sortOrder?: RecordSortOrder;
   limit: number;
   offset: number;
 };
@@ -223,12 +234,8 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
 
     const scoreExpr = params.query ? this.sql`paradedb.score(id)` : this.sql`NULL::real`;
     const snippetExpr = params.query ? this.sql`paradedb.snippet(body)` : this.sql`NULL::text`;
-    const orderBy = params.query
-      ? this.sql`ORDER BY paradedb.score(id) DESC, updated_at DESC`
-      : this.sql`ORDER BY updated_at DESC`;
-    const pageOrderBy = params.query
-      ? this.sql`ORDER BY page.score DESC, page.updated_at DESC`
-      : this.sql`ORDER BY page.updated_at DESC`;
+    const orderBy = this.orderBy(params);
+    const pageOrderBy = this.orderBy(params, 'page');
 
     const results = await this.sql<SearchResultRow[]>`
       WITH page AS (
@@ -287,6 +294,30 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     `;
 
     return { total: countRow?.total ?? 0, results };
+  }
+
+  private orderBy(params: SearchParams, scope?: 'page') {
+    const sortBy =
+      params.sortBy ?? (params.query ? DEFAULT_SEARCH_SORT_FIELD : DEFAULT_RECORD_SORT_FIELD);
+    const sortOrder = params.sortOrder ?? DEFAULT_RECORD_SORT_ORDER;
+    const direction = sortOrder === 'asc' ? this.sql`ASC` : this.sql`DESC`;
+    const id = scope === 'page' ? this.sql`page.id` : this.sql`id`;
+    const createdAt = scope === 'page' ? this.sql`page.created_at` : this.sql`created_at`;
+    const updatedAt = scope === 'page' ? this.sql`page.updated_at` : this.sql`updated_at`;
+
+    if (sortBy === 'relevance') {
+      const score = scope === 'page' ? this.sql`page.score` : this.sql`paradedb.score(id)`;
+      return this
+        .sql`ORDER BY ${score} ${direction}, ${updatedAt} ${direction}, ${id} ${direction}`;
+    }
+
+    if (sortBy === 'updated_at') {
+      return this
+        .sql`ORDER BY ${updatedAt} ${direction}, ${createdAt} ${direction}, ${id} ${direction}`;
+    }
+
+    return this
+      .sql`ORDER BY ${createdAt} ${direction}, ${updatedAt} ${direction}, ${id} ${direction}`;
   }
 
   async getById(id: Records['id']): Promise<RecordRow | null> {

@@ -14,7 +14,7 @@ export const recordsController = new Elysia()
     '/records',
     async ({ query, recordsService, logger, status }) => {
       logger.info(
-        `searching records: q=${query.q ?? ''} source=${query.data_source_id ?? ''} people=${query.person_id?.length ?? 0}`,
+        `searching records: q=${query.q ?? ''} source=${query.data_source_id ?? ''} people=${query.person_id?.length ?? 0} sort=${query.sort_by ?? ''}:${query.sort_order ?? ''}`,
       );
       const result = await recordsService.search({
         query: query.q,
@@ -24,6 +24,8 @@ export const recordsController = new Elysia()
         createdBefore: query.created_before,
         updatedAfter: query.updated_after,
         updatedBefore: query.updated_before,
+        sortBy: query.sort_by,
+        sortOrder: query.sort_order,
         limit: query.limit ?? DEFAULT_LIMIT,
         offset: query.offset ?? DEFAULT_OFFSET,
       });
