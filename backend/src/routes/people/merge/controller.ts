@@ -16,6 +16,13 @@ export const peopleMergeController = new Elysia()
     },
     {
       [REQUIRE_API_KEY_MACRO_NAME]: true,
+      parse: 'json',
+      detail: {
+        tags: ['People'],
+        summary: 'Merge two people',
+        description:
+          'Merges one person into another, moving the source person’s data sources and records onto the target and deleting the source.',
+      },
       body: MergePeopleBodySchema,
       response: {
         [StatusMap.OK]: MergePeopleResponseSchema,
