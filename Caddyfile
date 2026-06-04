@@ -3,17 +3,29 @@
 }
 
 {$NANGO_HOSTNAME} {
-	reverse_proxy nango-server:3003
+	reverse_proxy nango-server:3003 {
+		# Retry dial failures to ride out the container recreate gap on deploy.
+		lb_try_duration 30s
+		lb_try_interval 250ms
+	}
 }
 
 {$NANGO_CONNECT_HOSTNAME} {
-	reverse_proxy nango-server:3009
+	reverse_proxy nango-server:3009 {
+		# Retry dial failures to ride out the container recreate gap on deploy.
+		lb_try_duration 30s
+		lb_try_interval 250ms
+	}
 }
 
 {$BRAIN_HOSTNAME} {
 	@public path /health /people /people/* /records /records/* /openapi /openapi/*
 	handle @public {
-		reverse_proxy brain:3010
+		reverse_proxy brain:3010 {
+			# Retry dial failures to ride out the container recreate gap on deploy.
+			lb_try_duration 30s
+			lb_try_interval 250ms
+		}
 	}
 	handle {
 		respond 404
@@ -21,5 +33,9 @@
 }
 
 {$DOZZLE_HOSTNAME} {
-	reverse_proxy dozzle:8080
+	reverse_proxy dozzle:8080 {
+		# Retry dial failures to ride out the container recreate gap on deploy.
+		lb_try_duration 30s
+		lb_try_interval 250ms
+	}
 }
