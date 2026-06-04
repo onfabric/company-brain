@@ -1,5 +1,5 @@
 import type { RecordHit } from '#/lib/brain-functions.ts';
-import { DATE_TIME_FORMAT_OPTIONS, RECORD_PREVIEW_LINES } from '#/lib/constants.ts';
+import { DATE_TIME_FORMAT_OPTIONS, EMPTY_COUNT, RECORD_PREVIEW_LINES } from '#/lib/constants.ts';
 import { dayKey } from '#/lib/records-search.ts';
 
 const headingPattern = /^#\s+/;
@@ -39,6 +39,12 @@ export function participantLabel(participant: {
   name: string | null;
   email: string | null;
   id: string;
+  data_sources?: Array<{ data_source_user_id: string }>;
 }) {
-  return participant.name ?? participant.email ?? participant.id;
+  return (
+    participant.name ??
+    participant.email ??
+    participant.data_sources?.[EMPTY_COUNT]?.data_source_user_id ??
+    participant.id
+  );
 }
