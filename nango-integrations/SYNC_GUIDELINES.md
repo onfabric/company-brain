@@ -68,7 +68,11 @@ If the provider does not expose a timestamp for a nested item, do not invent one
 
 Save records periodically with `nango.batchSave()` as pages or batches are processed. Do not wait for the entire provider dataset to download before writing records.
 
+Full backfills must keep following provider pagination until the provider is exhausted. Do not stop the run just because the provider returned a next cursor, page token, or continuation URL. Save each page or bounded batch as it is processed, then continue with the next provider page. If the run is interrupted, checkpoints should allow it to resume from the last saved page.
+
 Prefer bounded batches that keep memory use low and make partial progress durable. If the sync uses checkpoints, advance them only after the corresponding records have been saved.
+
+Company Brain syncs must notify the backend every time a batch is saved so the brain service can ingest the new Nango records. Use `BatchWriter` with `afterSave: createBrainSink(nango)`, or an equivalent hook that calls the backend immediately after every `nango.batchSave()` with the saved record ids, model, provider config key, and connection id.
 
 ## Schema And Tests
 
@@ -79,6 +83,8 @@ Tests should:
 - parse saved records with the exported model schema
 - assert that `body` includes important content
 - assert that raw provider fields and unnecessary IDs are absent
+- assert full backfills drain multiple provider pages in a single run when pagination continues
+- assert saved batches notify the backend ingestion hook
 - use realistic provider payloads
 
 When the saved model changes in a breaking way, bump the sync version, run `bun run compile`, and commit the generated `.nango/nango.json` update. Existing Nango records may need to be cleared with `reset: true` and `emptyCache: true` before a fresh sync.
