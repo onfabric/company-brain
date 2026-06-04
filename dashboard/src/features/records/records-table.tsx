@@ -19,7 +19,7 @@ import {
   recordTitle,
 } from '#/features/records/record-format.ts';
 import type { RecordHit } from '#/lib/brain-functions.ts';
-import { EMPTY_COUNT, SCORE_PRECISION } from '#/lib/constants.ts';
+import { EMPTY_COUNT } from '#/lib/constants.ts';
 import { dayKey } from '#/lib/records-search.ts';
 
 type RecordsTableProps = {
@@ -52,11 +52,16 @@ const columns: Array<ColumnDef<RecordHit>> = [
     cell: ({ row }) => (
       <div className="flex max-w-56 flex-wrap gap-1">
         {row.original.participants.length > EMPTY_COUNT ? (
-          row.original.participants.map((participant) => (
-            <Badge key={participant.id} variant="secondary">
-              {participantLabel(participant)}
-            </Badge>
-          ))
+          row.original.participants.map((participant) => {
+            const label = participantLabel(participant);
+            return (
+              <Badge key={participant.id} variant="secondary" className="max-w-full">
+                <span className="truncate" title={label}>
+                  {label}
+                </span>
+              </Badge>
+            );
+          })
         ) : (
           <span className="text-muted-foreground text-xs">None</span>
         )}
@@ -72,15 +77,6 @@ const columns: Array<ColumnDef<RecordHit>> = [
       </span>
     ),
   },
-  {
-    accessorKey: 'score',
-    header: 'Score',
-    cell: ({ row }) => (
-      <span className="text-muted-foreground">
-        {row.original.score === null ? '—' : row.original.score.toFixed(SCORE_PRECISION)}
-      </span>
-    ),
-  },
 ];
 
 const columnClassNames: Record<string, string> = {
@@ -88,7 +84,6 @@ const columnClassNames: Record<string, string> = {
   record: 'w-[34rem]',
   participants: 'w-56',
   created_at: 'w-44',
-  score: 'w-24',
 };
 
 export function RecordsTable({ records, selectedRecordId, onSelectRecord }: RecordsTableProps) {
