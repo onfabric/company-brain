@@ -25,7 +25,6 @@ type Source = {
 type Record = {
   id: string;
   data_source_id: string;
-  model: string;
   created_at: string;
   updated_at: string;
   body: string;
@@ -115,7 +114,6 @@ export class RecordsService extends Service {
     return {
       id: row.id,
       data_source_id: row.data_source_id,
-      model: row.nango_model,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
       body: row.body,

@@ -16,12 +16,6 @@ export const RecordsQuerySchema = t.Object({
       description: 'Restrict results to records attributed to any of these people.',
     }),
   ),
-  model: t.Optional(
-    t.String({
-      minLength: 1,
-      description: 'Restrict results to a single record model (record type).',
-    }),
-  ),
   created_after: t.Optional(
     t.String({ format: 'date-time', description: 'Only records created at or after this time.' }),
   ),
@@ -54,7 +48,6 @@ export const RecordsQuerySchema = t.Object({
 export const RecordSchema = t.Object({
   id: t.String(),
   data_source_id: t.String({ format: 'uuid' }),
-  model: t.String({ description: 'The record model (record type) this record belongs to.' }),
   created_at: t.String({ format: 'date-time' }),
   updated_at: t.String({ format: 'date-time' }),
   body: t.String({ description: 'Full textual content of the record.' }),

@@ -21,7 +21,6 @@ export type SearchParams = {
   query?: string;
   dataSourceId?: string;
   personIds?: string[];
-  model?: string;
   createdAfter?: string;
   createdBefore?: string;
   updatedAfter?: string;
@@ -32,7 +31,7 @@ export type SearchParams = {
 
 export type RecordRow = Pick<
   Records,
-  'id' | 'data_source_id' | 'nango_model' | 'created_at' | 'updated_at' | 'body'
+  'id' | 'data_source_id' | 'created_at' | 'updated_at' | 'body'
 >;
 
 export type SearchResultRow = RecordRow & {
@@ -233,7 +232,6 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
       SELECT
         id,
         data_source_id,
-        nango_model,
         created_at,
         updated_at,
         body,
@@ -254,7 +252,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
 
   async getById(id: Records['id']): Promise<RecordRow | null> {
     const [row] = await this.sql<RecordRow[]>`
-      SELECT id, data_source_id, nango_model, created_at, updated_at, body
+      SELECT id, data_source_id, created_at, updated_at, body
       FROM brain.records
       WHERE id = ${id}
     `;
@@ -276,7 +274,6 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
               AND rp.person_id IN ${this.sql(params.personIds)}
           )`
         : null,
-      params.model ? this.sql`nango_model = ${params.model}` : null,
       params.createdAfter ? this.sql`created_at >= ${params.createdAfter}` : null,
       params.createdBefore ? this.sql`created_at < ${params.createdBefore}` : null,
       params.updatedAfter ? this.sql`updated_at >= ${params.updatedAfter}` : null,
