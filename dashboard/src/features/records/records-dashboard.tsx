@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, KeyRound, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, KeyRound, LogOut } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card, CardContent } from '#/components/ui/card.tsx';
@@ -9,6 +9,11 @@ import { ApiKeyGate } from '#/features/records/api-key-gate.tsx';
 import { RecordPreview } from '#/features/records/record-preview.tsx';
 import { RecordsFilters } from '#/features/records/records-filters.tsx';
 import { RecordsTable } from '#/features/records/records-table.tsx';
+import {
+  clearStoredBrainApiKey,
+  readStoredBrainApiKey,
+  storeBrainApiKey,
+} from '#/lib/api-key-storage.ts';
 import {
   BrainApiError,
   listDataSources,
@@ -58,19 +63,24 @@ const LOADING_ROW_KEYS = [
 ];
 
 export function RecordsDashboard({ search }: RecordsDashboardProps) {
-  const [apiKey, setApiKey] = useState<string>();
+  const [apiKey, setApiKey] = useState<string | undefined>(() => readStoredBrainApiKey());
   const [apiKeyVersion, setApiKeyVersion] = useState(EMPTY_COUNT);
   const queryClient = useQueryClient();
 
+  const updateApiKey = (nextApiKey: string) => {
+    storeBrainApiKey(nextApiKey);
+    setApiKey(nextApiKey);
+    setApiKeyVersion((version) => version + FIRST_PAGE);
+  };
+
+  const clearApiKey = () => {
+    clearStoredBrainApiKey();
+    setApiKey(undefined);
+    queryClient.removeQueries();
+  };
+
   if (!apiKey) {
-    return (
-      <ApiKeyGate
-        onSubmit={(nextApiKey) => {
-          setApiKey(nextApiKey);
-          setApiKeyVersion((version) => version + FIRST_PAGE);
-        }}
-      />
-    );
+    return <ApiKeyGate onSubmit={updateApiKey} />;
   }
 
   return (
@@ -78,10 +88,7 @@ export function RecordsDashboard({ search }: RecordsDashboardProps) {
       apiKey={apiKey}
       apiKeyVersion={apiKeyVersion}
       search={search}
-      onChangeApiKey={() => {
-        setApiKey(undefined);
-        queryClient.removeQueries();
-      }}
+      onChangeApiKey={clearApiKey}
     />
   );
 }
@@ -162,18 +169,9 @@ function AuthenticatedRecordsDashboard({
               {total.toLocaleString()} records matching current filters
             </p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void recordsQuery.refetch()}
-            disabled={recordsQuery.isFetching}
-          >
-            <RefreshCw className={recordsQuery.isFetching ? 'animate-spin' : undefined} />
-            Refresh
-          </Button>
           <Button type="button" variant="outline" onClick={onChangeApiKey}>
-            <KeyRound />
-            Change key
+            <LogOut />
+            Log out
           </Button>
         </div>
       </header>
