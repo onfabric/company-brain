@@ -72,12 +72,6 @@ const PeopleResponseSchema = z.object({
   people: z.array(PersonDetailsSchema),
 });
 
-const MergePeopleResponseSchema = z.object({
-  person: PersonDetailsSchema,
-  moved_data_sources: z.number().int(),
-  moved_records: z.number().int(),
-});
-
 export class BrainApiError extends Error {
   constructor(
     message: string,
@@ -168,20 +162,6 @@ export async function updatePerson(id: string, input: PersonUpdateInput, apiKey:
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
-  });
-}
-
-export async function mergePeople(
-  input: { mergeFromId: string; mergeIntoId: string },
-  apiKey: string,
-) {
-  return await fetchBrain('/people/merge', MergePeopleResponseSchema, apiKey, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      merge_from_id: input.mergeFromId,
-      merge_into_id: input.mergeIntoId,
-    }),
   });
 }
 

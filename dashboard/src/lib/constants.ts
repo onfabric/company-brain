@@ -1,5 +1,6 @@
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_LIMIT = 20;
+export const PEOPLE_PAGE_SIZE = 25;
 export const API_MAX_LIMIT = 100;
 export const HTTP_UNAUTHORIZED = 401;
 export const COMPACT_LIMIT = 10;
