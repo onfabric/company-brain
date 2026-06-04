@@ -9,6 +9,7 @@ import {
 describe('records route search helpers', () => {
   it('normalizes unknown search params into dashboard defaults', () => {
     expect(normalizeRouteSearch({ page: 'bad', limit: 'bad' })).toEqual({
+      tab: undefined,
       q: undefined,
       dataSourceId: undefined,
       personId: undefined,
@@ -26,6 +27,7 @@ describe('records route search helpers', () => {
     expect(
       toRecordsQueryInput({
         q: 'roadmap',
+        tab: 'people',
         dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
         personId: '019e8882-07f1-77a0-b4cf-5798eafb4664',
         createdAfter: '2026-06-01',
@@ -53,6 +55,7 @@ describe('records route search helpers', () => {
     expect(
       cleanRouteSearch({
         q: '',
+        tab: 'records',
         dataSourceId: '',
         personId: '',
         createdAfter: '',
@@ -64,6 +67,7 @@ describe('records route search helpers', () => {
         selectedRecordId: '',
       }),
     ).toEqual({
+      tab: undefined,
       q: undefined,
       dataSourceId: undefined,
       personId: undefined,
@@ -75,6 +79,11 @@ describe('records route search helpers', () => {
       limit: 20,
       selectedRecordId: undefined,
     });
+  });
+
+  it('keeps the people tab in route search params', () => {
+    expect(normalizeRouteSearch({ tab: 'people' }).tab).toBe('people');
+    expect(cleanRouteSearch({ ...normalizeRouteSearch({ tab: 'people' }) }).tab).toBe('people');
   });
 
   it('derives day keys from ISO timestamps', () => {

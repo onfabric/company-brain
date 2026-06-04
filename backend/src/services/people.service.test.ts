@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   type MergeCounts,
   PeopleRepositoryContract,
+  type PersonFilters,
   type PersonIdentity,
   type PersonRow,
   type PersonUpdate,
@@ -12,6 +13,7 @@ const FROM_ID = '019e8882-07f1-771c-993e-f6825a9224bb';
 const INTO_ID = '019e8882-07f1-77a0-b4cf-5798eafb4664';
 
 class MockPeopleRepository extends PeopleRepositoryContract {
+  listCalls: PersonFilters[] = [];
   mergeCalls: Array<{ fromId: string; intoId: string }> = [];
   updateCalls: Array<{ id: string; updates: PersonUpdate }> = [];
 
@@ -23,7 +25,8 @@ class MockPeopleRepository extends PeopleRepositoryContract {
     super();
   }
 
-  listPeople(): Promise<PersonRow[]> {
+  listPeople(filters: PersonFilters = {}): Promise<PersonRow[]> {
+    this.listCalls.push(filters);
     return Promise.resolve([]);
   }
 
@@ -107,6 +110,23 @@ describe('PeopleService.mergePeople', () => {
       'merge_from person must have null name and email',
     );
     expect(repo.mergeCalls).toEqual([]);
+  });
+});
+
+describe('PeopleService.listPeople', () => {
+  it('forwards filters and sort options to the repository', async () => {
+    const repo = new MockPeopleRepository([]);
+    const service = new PeopleService(repo);
+
+    await service.listPeople({
+      isExternal: true,
+      sortBy: 'records_count',
+      sortOrder: 'desc',
+    });
+
+    expect(repo.listCalls).toEqual([
+      { isExternal: true, sortBy: 'records_count', sortOrder: 'desc' },
+    ]);
   });
 });
 

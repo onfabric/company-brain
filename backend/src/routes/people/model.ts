@@ -1,4 +1,19 @@
 import { t } from 'elysia';
+import { PERSON_SORT_FIELDS, PERSON_SORT_ORDERS } from '#repositories/people.repository.ts';
+
+const PersonSortFieldSchema = t.Union(
+  PERSON_SORT_FIELDS.map((field) => t.Literal(field)),
+  {
+    description: 'Field used to order people. Defaults to name.',
+  },
+);
+
+const PersonSortOrderSchema = t.Union(
+  PERSON_SORT_ORDERS.map((order) => t.Literal(order)),
+  {
+    description: 'Direction used for the selected sort field.',
+  },
+);
 
 export const PersonDataSourceSchema = t.Object({
   data_source_key: t.String({
@@ -31,6 +46,8 @@ export const ListPeopleQuerySchema = t.Object({
       description: 'Filter to only external (true) or only internal (false) people. Omit for all.',
     }),
   ),
+  sort_by: t.Optional(PersonSortFieldSchema),
+  sort_order: t.Optional(PersonSortOrderSchema),
 });
 
 export const ListPeopleResponseSchema = t.Object({

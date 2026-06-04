@@ -15,8 +15,18 @@ export type PersonIdentity = Pick<People, 'id' | 'name' | 'email'>;
 
 export type PersonUpdate = Partial<Pick<People, 'name' | 'email' | 'is_external'>>;
 
+export const PERSON_SORT_FIELDS = ['name', 'records_count'] as const;
+export const PERSON_SORT_ORDERS = ['asc', 'desc'] as const;
+export type PersonSortField = (typeof PERSON_SORT_FIELDS)[number];
+export type PersonSortOrder = (typeof PERSON_SORT_ORDERS)[number];
+
+const DEFAULT_PERSON_SORT_FIELD = 'name' satisfies PersonSortField;
+const DEFAULT_PERSON_SORT_ORDER = 'asc' satisfies PersonSortOrder;
+
 export type PersonFilters = {
   isExternal?: People['is_external'];
+  sortBy?: PersonSortField;
+  sortOrder?: PersonSortOrder;
 };
 
 export type MergeCounts = {
@@ -34,7 +44,11 @@ export abstract class PeopleRepositoryContract {
 
 export class PeopleRepository extends Repository implements PeopleRepositoryContract {
   listPeople(filters: PersonFilters = {}): Promise<PersonRow[]> {
-    return this.selectPeople({ isExternal: filters.isExternal });
+    return this.selectPeople({
+      isExternal: filters.isExternal,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder,
+    });
   }
 
   async getPerson(id: People['id']): Promise<PersonRow | null> {
@@ -102,9 +116,13 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
   private selectPeople({
     id,
     isExternal,
+    sortBy,
+    sortOrder,
   }: {
     id?: People['id'];
     isExternal?: People['is_external'];
+    sortBy?: PersonSortField;
+    sortOrder?: PersonSortOrder;
   } = {}): Promise<PersonRow[]> {
     const conditions = [];
     if (id !== undefined) {
@@ -116,6 +134,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     const where = conditions.length
       ? this.sql`WHERE ${conditions.reduce((acc, cond) => this.sql`${acc} AND ${cond}`)}`
       : this.sql``;
+    const orderBy = this.buildOrderBy(sortBy, sortOrder);
     return this.sql<PersonRow[]>`
       SELECT
         p.id,
@@ -138,7 +157,19 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
       LEFT JOIN brain.data_sources ds ON ds.id = pds.data_source_id
       ${where}
       GROUP BY p.id, p.name, p.email, p.is_external
-      ORDER BY p.name NULLS LAST, p.id
+      ${orderBy}
     `;
+  }
+
+  private buildOrderBy(sortBy?: PersonSortField, sortOrder?: PersonSortOrder) {
+    const field = sortBy ?? DEFAULT_PERSON_SORT_FIELD;
+    const direction =
+      (sortOrder ?? DEFAULT_PERSON_SORT_ORDER) === 'desc' ? this.sql`DESC` : this.sql`ASC`;
+
+    if (field === 'records_count') {
+      return this.sql`ORDER BY records_count ${direction}, p.name ASC NULLS LAST, p.id ASC`;
+    }
+
+    return this.sql`ORDER BY p.name ${direction} NULLS LAST, p.id ASC`;
   }
 }

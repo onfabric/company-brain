@@ -10,8 +10,14 @@ export const peopleController = new Elysia()
   .get(
     '/people',
     async ({ query, peopleService, logger, status }) => {
-      logger.info(`listing people is_external=${query.is_external ?? ''}`);
-      const result = await peopleService.listPeople({ isExternal: query.is_external });
+      logger.info(
+        `listing people is_external=${query.is_external ?? ''} sort=${query.sort_by ?? ''}:${query.sort_order ?? ''}`,
+      );
+      const result = await peopleService.listPeople({
+        isExternal: query.is_external,
+        sortBy: query.sort_by,
+        sortOrder: query.sort_order,
+      });
       return status(StatusMap.OK, result);
     },
     {
@@ -20,7 +26,7 @@ export const peopleController = new Elysia()
         tags: ['People'],
         summary: 'List people',
         description:
-          'Returns the people derived from ingested records, optionally filtered via query parameters.',
+          'Returns the people derived from ingested records, optionally filtered and sorted via query parameters.',
       },
       query: ListPeopleQuerySchema,
       response: {
