@@ -11,11 +11,6 @@ resource "random_password" "brain_db" {
   special = false # used inside a postgres:// URL, keep it URL-safe
 }
 
-resource "random_password" "dashboard" {
-  length  = 24
-  special = false
-}
-
 resource "random_uuid4" "brain_api_key" {}
 
 resource "aws_ssm_parameter" "db_password" {
@@ -34,18 +29,6 @@ resource "aws_ssm_parameter" "brain_api_key" {
   name  = "${var.ssm_secret_prefix}/brain_api_key"
   type  = "SecureString"
   value = random_uuid4.brain_api_key.result
-}
-
-resource "aws_ssm_parameter" "dashboard_username" {
-  name  = "${var.ssm_secret_prefix}/nango_dashboard_username"
-  type  = "String"
-  value = "admin"
-}
-
-resource "aws_ssm_parameter" "dashboard_password" {
-  name  = "${var.ssm_secret_prefix}/nango_dashboard_password"
-  type  = "SecureString"
-  value = random_password.dashboard.result
 }
 
 # Dozzle simple-auth users.yml. Can't be generated here (it holds a bcrypt
