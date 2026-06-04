@@ -95,6 +95,29 @@
       }
     },
     "get": {
+      "/v1/users": {
+        "response": {
+          "results": [
+            {
+              "object": "user",
+              "id": "user-1",
+              "type": "person",
+              "person": {
+                "email": "maya@example.com"
+              }
+            },
+            {
+              "object": "user",
+              "id": "user-2",
+              "type": "person",
+              "person": {
+                "email": "alex@example.com"
+              }
+            }
+          ],
+          "next_cursor": null
+        }
+      },
       "/v1/databases/66666666-6666-6666-6666-666666666666": {
         "response": {
           "object": "database",

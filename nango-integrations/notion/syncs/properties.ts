@@ -4,7 +4,7 @@ import type {
   RawRollupValue,
   RenderedRichText,
 } from './api-types.js';
-import type { SyncContext } from './context.js';
+import type { SyncContext, UserDirectory } from './context.js';
 import { mapFile, renderFileSummary } from './files.js';
 import type {
   NotionFile,
@@ -93,7 +93,7 @@ async function mapPropertyValue(
 
   switch (property.type) {
     case 'title': {
-      const richText = renderRichText(property.title);
+      const richText = renderRichText(property.title, ctx.userEmailsById);
       mergePropertyRichText(
         richText,
         links,
@@ -107,7 +107,7 @@ async function mapPropertyValue(
       break;
     }
     case 'rich_text': {
-      const richText = renderRichText(property.rich_text);
+      const richText = renderRichText(property.rich_text, ctx.userEmailsById);
       mergePropertyRichText(
         richText,
         links,
@@ -158,12 +158,16 @@ async function mapPropertyValue(
       value = property.phone_number ?? '';
       break;
     case 'people':
-      people.push(...(property.people ?? []).map(toPersonRef).filter(isPerson));
+      people.push(
+        ...(property.people ?? [])
+          .map((user) => toPersonRef(user, ctx.userEmailsById))
+          .filter(isPerson),
+      );
       value = people.map(renderPerson).join(', ');
       break;
     case 'created_by':
       if (property.created_by) {
-        const person = toPersonRef(property.created_by);
+        const person = toPersonRef(property.created_by, ctx.userEmailsById);
         if (person) {
           people.push(person);
           value = renderPerson(person);
@@ -172,7 +176,7 @@ async function mapPropertyValue(
       break;
     case 'last_edited_by':
       if (property.last_edited_by) {
-        const person = toPersonRef(property.last_edited_by);
+        const person = toPersonRef(property.last_edited_by, ctx.userEmailsById);
         if (person) {
           people.push(person);
           value = renderPerson(person);
@@ -215,7 +219,7 @@ async function mapPropertyValue(
       value = renderFormula(property.formula);
       break;
     case 'rollup':
-      value = renderRollup(property.rollup);
+      value = renderRollup(property.rollup, ctx.userEmailsById);
       break;
     case 'unique_id':
       value =
@@ -224,7 +228,7 @@ async function mapPropertyValue(
           : '';
       break;
     case 'verification':
-      value = renderVerification(property.verification);
+      value = renderVerification(property.verification, ctx.userEmailsById);
       break;
     default:
       value = '';
@@ -285,14 +289,17 @@ function renderFormula(formula: RawFormulaValue | undefined): string {
   }
 }
 
-function renderRollup(rollup: RawRollupValue | undefined): string {
+function renderRollup(rollup: RawRollupValue | undefined, directory: UserDirectory): string {
   if (!rollup) {
     return '';
   }
 
   switch (rollup.type) {
     case 'array':
-      return (rollup.array ?? []).map(renderSimplePropertyValue).filter(Boolean).join(', ');
+      return (rollup.array ?? [])
+        .map((item) => renderSimplePropertyValue(item, directory))
+        .filter(Boolean)
+        .join(', ');
     case 'number':
       return rollup.number === null || rollup.number === undefined ? '' : String(rollup.number);
     case 'date':
@@ -302,12 +309,12 @@ function renderRollup(rollup: RawRollupValue | undefined): string {
   }
 }
 
-function renderSimplePropertyValue(property: RawPageProperty): string {
+function renderSimplePropertyValue(property: RawPageProperty, directory: UserDirectory): string {
   switch (property.type) {
     case 'title':
-      return renderRichText(property.title).text;
+      return renderRichText(property.title, directory).text;
     case 'rich_text':
-      return renderRichText(property.rich_text).text;
+      return renderRichText(property.rich_text, directory).text;
     case 'number':
       return property.number === null || property.number === undefined
         ? ''
@@ -325,14 +332,19 @@ function renderSimplePropertyValue(property: RawPageProperty): string {
   }
 }
 
-function renderVerification(verification: RawPageProperty['verification']): string {
+function renderVerification(
+  verification: RawPageProperty['verification'],
+  directory: UserDirectory,
+): string {
   if (!verification) {
     return '';
   }
 
   return [
     verification.state,
-    verification.verified_by ? `by ${userName(verification.verified_by) ?? 'unknown'}` : undefined,
+    verification.verified_by
+      ? `by ${userName(verification.verified_by, directory) ?? 'unknown'}`
+      : undefined,
     renderDateRange(verification.date),
   ]
     .filter(isString)

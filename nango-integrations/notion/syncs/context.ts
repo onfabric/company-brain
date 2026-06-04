@@ -15,6 +15,8 @@ export type NangoApiResponse = {
 
 type MaybePromise<T> = T | Promise<T>;
 
+export type UserDirectory = ReadonlyMap<string, string>;
+
 export type NangoLike = {
   getMetadata(): Promise<unknown>;
   get(config: NangoRequest): Promise<NangoApiResponse>;
@@ -30,6 +32,7 @@ export type SyncContext = {
   dataSourceRefsById: Map<string, NotionReference>;
   dataSourcesById: Map<string, RawNotionDataSource>;
   databasesById: Map<string, RawNotionDatabase>;
+  userEmailsById: Map<string, string>;
 };
 
 export class WorkQueue {

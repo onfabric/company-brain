@@ -1,4 +1,5 @@
 import type { RawNotionUser, RawRichText, RenderedRichText } from './api-types.js';
+import type { UserDirectory } from './context.js';
 import type { NotionPerson } from './models.js';
 import {
   firstNonExpiringUrl,
@@ -7,7 +8,10 @@ import {
   withoutUndefined,
 } from './utils.js';
 
-export function renderRichText(richText: RawRichText[] | undefined): RenderedRichText {
+export function renderRichText(
+  richText: RawRichText[] | undefined,
+  directory?: UserDirectory,
+): RenderedRichText {
   const result: RenderedRichText = {
     text: '',
     links: [],
@@ -54,7 +58,7 @@ export function renderRichText(richText: RawRichText[] | undefined): RenderedRic
     }
 
     if (item.type === 'mention' && item.mention?.type === 'user') {
-      const person = toPersonRef(item.mention.user);
+      const person = toPersonRef(item.mention.user, directory);
       if (person) {
         result.mentionedPeople.push(person);
       }
@@ -79,8 +83,11 @@ export function renderRichText(richText: RawRichText[] | undefined): RenderedRic
   return result;
 }
 
-export function renderRichTextSync(richText: RawRichText[] | undefined): string | undefined {
-  const text = renderRichText(richText).text;
+export function renderRichTextSync(
+  richText: RawRichText[] | undefined,
+  directory?: UserDirectory,
+): string | undefined {
+  const text = renderRichText(richText, directory).text;
   return text || undefined;
 }
 
@@ -92,16 +99,23 @@ export function titleFromRichText(richText: RawRichText[] | undefined): string |
   return title || undefined;
 }
 
-export function userName(user: RawNotionUser | undefined | null): string | undefined {
-  return toPersonRef(user)?.identifier;
+export function userName(
+  user: RawNotionUser | undefined | null,
+  directory?: UserDirectory,
+): string | undefined {
+  return toPersonRef(user, directory)?.identifier;
 }
 
-export function toPersonRef(user: RawNotionUser | undefined | null): NotionPerson | undefined {
+export function toPersonRef(
+  user: RawNotionUser | undefined | null,
+  directory?: UserDirectory,
+): NotionPerson | undefined {
   if (!user) {
     return undefined;
   }
 
-  const identifier = user.person?.email ?? user.id;
+  const email = user.person?.email ?? (user.id ? directory?.get(user.id) : undefined);
+  const identifier = email ?? user.id;
   if (!identifier) {
     return undefined;
   }
