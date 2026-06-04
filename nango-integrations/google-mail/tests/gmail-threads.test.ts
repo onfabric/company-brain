@@ -5,6 +5,12 @@ import createSync, { type NangoSyncLocal } from '../syncs/threads.js';
 
 const GmailThreadModel = createSync.models.GmailThread;
 
+type BackendNotification = {
+  url: URL;
+  method?: string;
+  body?: string | null;
+};
+
 function asNango(mock: NangoSyncMock): NangoSyncLocal {
   return mock as unknown as NangoSyncLocal;
 }
@@ -21,6 +27,7 @@ describe('gmail thread sync tests', () => {
       batchSaveSpy: spyOn(nangoMock, 'batchSave'),
       batchDeleteSpy: spyOn(nangoMock, 'batchDelete'),
       saveCheckpointSpy: spyOn(nangoMock, 'saveCheckpoint'),
+      uncontrolledFetchSpy: spyOn(nangoMock, 'uncontrolledFetch'),
       getSpy: spyOn(nangoMock, 'get'),
     };
   };
@@ -31,7 +38,8 @@ describe('gmail thread sync tests', () => {
   });
 
   it('should build readable Gmail thread records', async () => {
-    const { nangoMock, batchSaveSpy, saveCheckpointSpy, getSpy } = createTestContext();
+    const { nangoMock, batchSaveSpy, saveCheckpointSpy, uncontrolledFetchSpy, getSpy } =
+      createTestContext();
 
     await createSync.exec(nangoMock);
 
@@ -43,6 +51,12 @@ describe('gmail thread sync tests', () => {
       ([config]) => config.endpoint === '/gmail/v1/users/me/threads',
     );
     const checkpointCalls = saveCheckpointSpy.mock.calls.map(([checkpoint]) => checkpoint);
+    const backendNotifications = uncontrolledFetchSpy.mock.calls.map(
+      ([options]) => options as BackendNotification,
+    );
+    const notificationBodies = backendNotifications.map((notification) =>
+      JSON.parse(notification.body ?? '{}'),
+    );
     const threadGetCall = getSpy.mock.calls.find(
       ([config]) => config.endpoint === '/gmail/v1/users/me/threads/thread-1',
     );
@@ -71,6 +85,29 @@ describe('gmail thread sync tests', () => {
       page_token: '',
       backfill_history_id: '',
     });
+    expect(backendNotifications).toHaveLength(batchSaveSpy.mock.calls.length);
+    expect(backendNotifications.map((notification) => notification.method)).toEqual([
+      'POST',
+      'POST',
+    ]);
+    expect(backendNotifications.map((notification) => notification.url.pathname)).toEqual([
+      '/webhooks/batch-save',
+      '/webhooks/batch-save',
+    ]);
+    expect(notificationBodies).toEqual([
+      {
+        nango_integration_id: 'test-provider',
+        connection_id: 1,
+        model: 'GmailThread',
+        ids: ['thread-1'],
+      },
+      {
+        nango_integration_id: 'test-provider',
+        connection_id: 1,
+        model: 'GmailThread',
+        ids: ['thread-2'],
+      },
+    ]);
     expectGmailThreadSchema(thread);
     expectGmailThreadSchema(secondPageThread);
     expect(secondPageThread).toMatchObject({
