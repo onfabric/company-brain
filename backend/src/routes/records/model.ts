@@ -48,9 +48,18 @@ export const RecordsQuerySchema = t.Object({
 export const RecordSchema = t.Object({
   id: t.String(),
   data_source_id: t.String({ format: 'uuid' }),
+  data_source_key: t.String(),
   created_at: t.String({ format: 'date-time' }),
   updated_at: t.String({ format: 'date-time' }),
   body: t.String({ description: 'Full textual content of the record.' }),
+  participants: t.Array(
+    t.Object({
+      id: t.String({ format: 'uuid' }),
+      name: t.Union([t.String(), t.Null()]),
+      email: t.Union([t.String(), t.Null()]),
+      is_external: t.Boolean(),
+    }),
+  ),
 });
 
 export const RecordHitSchema = t.Composite([

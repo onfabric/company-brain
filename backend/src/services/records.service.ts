@@ -19,9 +19,16 @@ type Source = {
 type Record = {
   id: string;
   data_source_id: string;
+  data_source_key: string;
   created_at: string;
   updated_at: string;
   body: string;
+  participants: Array<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    is_external: boolean;
+  }>;
 };
 
 type SearchHit = Record & {
@@ -94,9 +101,11 @@ export class RecordsService extends Service {
     return {
       id: row.id,
       data_source_id: row.data_source_id,
+      data_source_key: row.data_source_key,
       created_at: row.created_at.toISOString(),
       updated_at: row.updated_at.toISOString(),
       body: row.body,
+      participants: row.participants,
     };
   }
 

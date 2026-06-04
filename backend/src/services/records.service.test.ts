@@ -111,9 +111,18 @@ describe('RecordsService', () => {
         {
           id: 'rec-1',
           data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+          data_source_key: 'slack',
           created_at: new Date('2026-01-01T00:00:00Z'),
           updated_at: new Date('2026-01-02T00:00:00Z'),
           body: 'hello world',
+          participants: [
+            {
+              id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+              name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              is_external: false,
+            },
+          ],
           score: 4.2,
           snippet: '<b>hello</b> world',
         },
@@ -138,11 +147,20 @@ describe('RecordsService', () => {
         {
           id: 'rec-1',
           data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+          data_source_key: 'slack',
           created_at: '2026-01-01T00:00:00.000Z',
           updated_at: '2026-01-02T00:00:00.000Z',
           score: 4.2,
           snippet: '<b>hello</b> world',
           body: 'hello world',
+          participants: [
+            {
+              id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+              name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              is_external: false,
+            },
+          ],
         },
       ],
     });
@@ -178,9 +196,11 @@ describe('RecordsService', () => {
       {
         id: '019e8882-07f1-771c-993e-f6825a9224bb',
         data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+        data_source_key: 'github',
         created_at: new Date('2026-01-01T00:00:00Z'),
         updated_at: new Date('2026-01-02T00:00:00Z'),
         body: 'hello world',
+        participants: [],
       },
     );
     const service = new RecordsService(repo);
@@ -191,9 +211,11 @@ describe('RecordsService', () => {
     expect(record).toEqual({
       id: '019e8882-07f1-771c-993e-f6825a9224bb',
       data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+      data_source_key: 'github',
       created_at: '2026-01-01T00:00:00.000Z',
       updated_at: '2026-01-02T00:00:00.000Z',
       body: 'hello world',
+      participants: [],
     });
   });
 
