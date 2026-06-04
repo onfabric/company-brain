@@ -3,6 +3,7 @@ import type {
   RawNotionDatabase,
   RawNotionDataSource,
   RawNotionPage,
+  RawNotionUser,
 } from './api-types.js';
 import type { SyncContext, WorkQueue } from './context.js';
 import { titleFromRichText } from './rich-text.js';
@@ -206,6 +207,35 @@ export async function tryFetchDataSource(
   } catch {
     return undefined;
   }
+}
+
+// Notion inlines only partial user objects (id, no email) on most page payloads,
+// so a person referenced as created_by/last_edited_by/mention would otherwise be
+// keyed by UUID. One pass over /v1/users gives a stable id->email directory used to
+// resolve every reference back to the email. Empty emails (bots, guests, or a missing
+// "read user information including email" capability) are skipped and fall back to id.
+export async function loadUserDirectory(ctx: SyncContext): Promise<void> {
+  let cursor: string | undefined;
+
+  do {
+    const response = await ctx.nango.get({
+      endpoint: '/v1/users',
+      params: notionPaginationParams(ctx.metadata, cursor),
+      headers: notionHeaders(),
+      retries: PROXY_RETRIES,
+    });
+    const data = asPaginatedResponse(response.data);
+
+    for (const result of arrayValue(data.results)) {
+      const user = result as RawNotionUser;
+      const email = user.person?.email;
+      if (typeof user.id === 'string' && email) {
+        ctx.userEmailsById.set(user.id, email);
+      }
+    }
+
+    cursor = typeof data.next_cursor === 'string' ? data.next_cursor : undefined;
+  } while (cursor);
 }
 
 async function searchObjects(ctx: SyncContext, object: 'page' | 'data_source'): Promise<unknown[]> {

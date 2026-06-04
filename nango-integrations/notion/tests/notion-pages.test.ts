@@ -54,21 +54,21 @@ describe('notion pages sync', () => {
     expect(root.body).toContain('- [x] QA nested toggles');
     expect(root.body).toContain('```typescript\nconst ready = true;\n```');
     expect(root.created_at).toBe('2026-01-01T10:00:00.000Z');
-    expect(root.created_by).toStrictEqual({ identifier: 'user-1' });
-    expect(root.updated_by).toStrictEqual({ identifier: 'user-2' });
+    expect(root.created_by).toStrictEqual({ identifier: 'maya@example.com' });
+    expect(root.updated_by).toStrictEqual({ identifier: 'alex@example.com' });
     expect(root.people).toEqual(
       expect.arrayContaining([
         { identifier: 'maya@example.com' },
-        { identifier: 'user-1' },
-        { identifier: 'user-2' },
+        { identifier: 'alex@example.com' },
       ]),
     );
     expect(root.mentioned_people).toStrictEqual([{ identifier: 'alex@example.com' }]);
     expect(root.body).toContain('## People');
     expect(root.body).toContain('## Mentioned people');
     expect(root.body).toContain('maya@example.com');
-    expect(root.body).toContain('user-1');
     expect(root.body).toContain('alex@example.com');
+    expect(root.body).not.toContain('user-1');
+    expect(root.body).not.toContain('user-2');
     expect(root.body).toContain(
       '[Nested Plan](https://www.notion.so/33333333333333333333333333333333)',
     );
