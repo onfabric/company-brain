@@ -1,0 +1,137 @@
+{
+  "nango": {
+    "getMetadata": {},
+    "getCheckpoint": null
+  },
+  "api": {
+    "get": {
+      "/gmail/v1/users/me/profile": {
+        "response": {
+          "emailAddress": "me@example.com",
+          "historyId": "900"
+        }
+      },
+      "/gmail/v1/users/me/labels": {
+        "response": {
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "SENT",
+              "name": "SENT"
+            },
+            {
+              "id": "Label_1",
+              "name": "Projects/Launch"
+            }
+          ]
+        }
+      },
+      "/gmail/v1/users/me/threads": {
+        "response": {
+          "threads": [
+            {
+              "id": "thread-1",
+              "historyId": "901"
+            }
+          ]
+        }
+      },
+      "/gmail/v1/users/me/threads/thread-1": {
+        "response": {
+          "id": "thread-1",
+          "historyId": "901",
+          "messages": [
+            {
+              "id": "msg-1",
+              "threadId": "thread-1",
+              "labelIds": ["INBOX", "Label_1"],
+              "snippet": "Hi team, Here are the launch docs",
+              "historyId": "901",
+              "internalDate": "1761989400000",
+              "payload": {
+                "mimeType": "multipart/mixed",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "Alice Example <alice@example.com>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "Me <me@example.com>"
+                  },
+                  {
+                    "name": "Cc",
+                    "value": "Bob Example <bob@example.com>"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Launch docs"
+                  }
+                ],
+                "parts": [
+                  {
+                    "partId": "0",
+                    "mimeType": "text/plain",
+                    "body": {
+                      "size": 64,
+                      "data": "SGkgdGVhbSwKSGVyZSBhcmUgdGhlIGxhdW5jaCBkb2NzOiBodHRwczovL2NvbXBhbnkuZXhhbXBsZS9sYXVuY2gK"
+                    }
+                  },
+                  {
+                    "partId": "1",
+                    "mimeType": "application/pdf",
+                    "filename": "launch-plan.pdf",
+                    "body": {
+                      "attachmentId": "ATTACHMENT_SHOULD_NOT_BE_SAVED",
+                      "size": 4567
+                    }
+                  }
+                ]
+              },
+              "sizeEstimate": 8192
+            },
+            {
+              "id": "msg-2",
+              "threadId": "thread-1",
+              "labelIds": ["SENT", "Label_1"],
+              "snippet": "Thanks Alice. I added notes.",
+              "historyId": "902",
+              "internalDate": "1761991200000",
+              "payload": {
+                "mimeType": "multipart/alternative",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "me@example.com"
+                  },
+                  {
+                    "name": "To",
+                    "value": "Alice Example <alice@example.com>, Bob Example <bob@example.com>"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "Re: Launch docs"
+                  }
+                ],
+                "parts": [
+                  {
+                    "partId": "0",
+                    "mimeType": "text/html",
+                    "body": {
+                      "size": 41,
+                      "data": "PHA-VGhhbmtzIEFsaWNlLjwvcD48cD5JIGFkZGVkIG5vdGVzLjwvcD4"
+                    }
+                  }
+                ]
+              },
+              "sizeEstimate": 4096
+            }
+          ]
+        }
+      }
+    }
+  }
+}

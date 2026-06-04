@@ -1,0 +1,104 @@
+{
+  "nango": {
+    "getMetadata": {},
+    "getCheckpoint": {
+      "phase": "history",
+      "history_id": "900",
+      "page_token": "",
+      "backfill_history_id": ""
+    }
+  },
+  "api": {
+    "get": {
+      "/gmail/v1/users/me/profile": {
+        "response": {
+          "emailAddress": "me@example.com",
+          "historyId": "903"
+        }
+      },
+      "/gmail/v1/users/me/labels": {
+        "response": {
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            }
+          ]
+        }
+      },
+      "/gmail/v1/users/me/history": {
+        "response": {
+          "historyId": "903",
+          "history": [
+            {
+              "id": "902",
+              "messagesAdded": [
+                {
+                  "message": {
+                    "id": "msg-3",
+                    "threadId": "thread-2"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "903",
+              "labelsRemoved": [
+                {
+                  "message": {
+                    "id": "msg-4",
+                    "threadId": "thread-3"
+                  },
+                  "labelIds": ["INBOX"]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "/gmail/v1/users/me/threads/thread-2": {
+        "response": {
+          "id": "thread-2",
+          "historyId": "902",
+          "messages": [
+            {
+              "id": "msg-3",
+              "threadId": "thread-2",
+              "labelIds": ["INBOX"],
+              "snippet": "History refresh",
+              "historyId": "902",
+              "internalDate": "1761994800000",
+              "payload": {
+                "mimeType": "text/plain",
+                "headers": [
+                  {
+                    "name": "From",
+                    "value": "Carol <carol@example.com>"
+                  },
+                  {
+                    "name": "To",
+                    "value": "me@example.com"
+                  },
+                  {
+                    "name": "Subject",
+                    "value": "History refresh"
+                  }
+                ],
+                "body": {
+                  "data": "SGlzdG9yeSByZWZyZXNo"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "/gmail/v1/users/me/threads/thread-3": {
+        "response": {
+          "id": "thread-3",
+          "historyId": "903",
+          "messages": []
+        }
+      }
+    }
+  }
+}

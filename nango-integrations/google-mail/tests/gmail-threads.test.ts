@@ -1,0 +1,156 @@
+import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test';
+
+import { NangoSyncMock } from '../../test-support/nango-sync-mock.js';
+import createSync, { type NangoSyncLocal } from '../syncs/threads.js';
+
+const GmailThreadModel = createSync.models.GmailThread;
+
+function asNango(mock: NangoSyncMock): NangoSyncLocal {
+  return mock as unknown as NangoSyncLocal;
+}
+
+describe('gmail thread sync tests', () => {
+  const createTestContext = (name = 'threads') => {
+    const nangoMock = new NangoSyncMock({
+      dirname: __dirname,
+      name,
+    });
+
+    return {
+      nangoMock: asNango(nangoMock),
+      batchSaveSpy: spyOn(nangoMock, 'batchSave'),
+      batchDeleteSpy: spyOn(nangoMock, 'batchDelete'),
+      getSpy: spyOn(nangoMock, 'get'),
+    };
+  };
+
+  afterEach(() => {
+    mock.clearAllMocks();
+    mock.restore();
+  });
+
+  it('should build readable Gmail thread records', async () => {
+    const { nangoMock, batchSaveSpy, getSpy } = createTestContext();
+
+    await createSync.exec(nangoMock);
+
+    const savedThreads = batchSaveSpy.mock.calls.flatMap((call) =>
+      call[1] === 'GmailThread' ? call[0] : [],
+    );
+    const [thread] = JSON.parse(JSON.stringify(savedThreads));
+    const threadListCall = getSpy.mock.calls.find(
+      ([config]) => config.endpoint === '/gmail/v1/users/me/threads',
+    );
+    const threadGetCall = getSpy.mock.calls.find(
+      ([config]) => config.endpoint === '/gmail/v1/users/me/threads/thread-1',
+    );
+
+    expect(savedThreads).toHaveLength(1);
+    expect(threadListCall?.[0].params).toMatchObject({ includeSpamTrash: 'true' });
+    expect(threadGetCall?.[0].params).toMatchObject({ format: 'full' });
+    expectGmailThreadSchema(thread);
+    expect(thread).toStrictEqual({
+      id: 'thread-1',
+      body:
+        '# Gmail thread: Launch docs\n' +
+        '\n' +
+        '- Mailbox: me@example.com\n' +
+        '- Started: 2025-11-01T09:30:00.000Z\n' +
+        '- Last activity: 2025-11-01T10:00:00.000Z\n' +
+        '- Labels: INBOX, Projects/Launch, SENT\n' +
+        '- Participants: alice@example.com, bob@example.com, me@example.com\n' +
+        '\n' +
+        '## 2025-11-01T09:30:00.000Z - alice@example.com\n' +
+        '\n' +
+        'To: me@example.com\n' +
+        'Cc: bob@example.com\n' +
+        'Subject: Launch docs\n' +
+        'Labels: INBOX, Projects/Launch\n' +
+        '\n' +
+        'Hi team,\n' +
+        'Here are the launch docs: https://company.example/launch\n' +
+        '\n' +
+        'Attachments:\n' +
+        '- launch-plan.pdf - application/pdf - 4567 bytes\n' +
+        '\n' +
+        '## 2025-11-01T10:00:00.000Z - me@example.com\n' +
+        '\n' +
+        'To: alice@example.com, bob@example.com\n' +
+        'Subject: Re: Launch docs\n' +
+        'Labels: Projects/Launch, SENT\n' +
+        '\n' +
+        'Thanks Alice.\n' +
+        'I added notes.',
+      mailbox: 'me@example.com',
+      subject: 'Launch docs',
+      labels: ['INBOX', 'Projects/Launch', 'SENT'],
+      created_at: '2025-11-01T09:30:00.000Z',
+      updated_at: '2025-11-01T10:00:00.000Z',
+      participants: ['alice@example.com', 'bob@example.com', 'me@example.com'],
+      messages: [
+        {
+          sent_at: '2025-11-01T09:30:00.000Z',
+          from: 'alice@example.com',
+          to: ['me@example.com'],
+          cc: ['bob@example.com'],
+          subject: 'Launch docs',
+          labels: ['INBOX', 'Projects/Launch'],
+          text: 'Hi team,\nHere are the launch docs: https://company.example/launch',
+          attachments: [
+            {
+              filename: 'launch-plan.pdf',
+              mime_type: 'application/pdf',
+              size: 4567,
+            },
+          ],
+        },
+        {
+          sent_at: '2025-11-01T10:00:00.000Z',
+          from: 'me@example.com',
+          to: ['alice@example.com', 'bob@example.com'],
+          subject: 'Re: Launch docs',
+          labels: ['Projects/Launch', 'SENT'],
+          text: 'Thanks Alice.\nI added notes.',
+        },
+      ],
+    });
+
+    const recordJson = JSON.stringify(thread);
+    expect(recordJson.includes('ATTACHMENT_SHOULD_NOT_BE_SAVED')).toBe(false);
+    expect(recordJson.includes('payload')).toBe(false);
+    expect(recordJson.includes('historyId')).toBe(false);
+    expect(recordJson.includes('threadId')).toBe(false);
+    expect(recordJson.includes('sizeEstimate')).toBe(false);
+    expect(recordJson.includes('SGkgdGV')).toBe(false);
+  });
+
+  it('should refresh changed threads from Gmail history', async () => {
+    const { nangoMock, batchSaveSpy, batchDeleteSpy, getSpy } = createTestContext('history');
+
+    await createSync.exec(nangoMock);
+
+    const savedThreads = batchSaveSpy.mock.calls.flatMap((call) =>
+      call[1] === 'GmailThread' ? call[0] : [],
+    );
+    const deletedThreads = batchDeleteSpy.mock.calls.flatMap((call) =>
+      call[1] === 'GmailThread' ? call[0] : [],
+    );
+    const requestedEndpoints = getSpy.mock.calls.map(([config]) => config.endpoint);
+
+    expect(savedThreads).toHaveLength(1);
+    expect(savedThreads[0]).toMatchObject({
+      id: 'thread-2',
+      subject: 'History refresh',
+      participants: ['carol@example.com', 'me@example.com'],
+    });
+    expect(deletedThreads).toEqual([{ id: 'thread-3' }]);
+    expect(requestedEndpoints).toContain('/gmail/v1/users/me/history');
+    expect(requestedEndpoints).toContain('/gmail/v1/users/me/threads/thread-2');
+    expect(requestedEndpoints).toContain('/gmail/v1/users/me/threads/thread-3');
+  });
+});
+
+function expectGmailThreadSchema(value: unknown): void {
+  const parsed = GmailThreadModel.parse(value);
+  expect(parsed).toStrictEqual(value as typeof parsed);
+}

@@ -40,13 +40,13 @@ Deploy order matters on a fresh environment:
 
 1. Run `bun run bootstrap:integrations dev --update-existing`.
 2. Run `bun run bootstrap:connections dev`.
-3. Create one OAuth dashboard connection for each integration: `notion`, `slack`, and `github`. Nango may assign generated UUID connection IDs for these manual connections.
+3. Create one OAuth dashboard connection for each integration: `notion`, `slack`, `github`, and `google-mail`. Nango may assign generated UUID connection IDs for these manual connections.
 4. Run `bun run check:connections dev`.
 5. Run `bun run deploy dev`.
 
 On a fresh hosted `dev` environment, the first CD run deploys Nango and then stops before bootstrapping integrations when the repository secret `NANGO_SECRET_KEY_DEV` is missing. Sign up in the Nango dashboard, copy the generated `dev` API key, add it as the repository secret `NANGO_SECRET_KEY_DEV`, and rerun CD.
 
-After that, CD bootstraps integrations and non-OAuth connections, then intentionally stops before deploying syncs while required OAuth connections are missing. Create the dashboard connections for `notion`, `slack`, and `github`, then rerun CD.
+After that, CD bootstraps integrations and non-OAuth connections, then intentionally stops before deploying syncs while required OAuth connections are missing. Create the dashboard connections for `notion`, `slack`, `github`, and `google-mail`, then rerun CD.
 
 Required environment:
 
@@ -59,12 +59,14 @@ SLACK_CLIENT_ID=...
 SLACK_CLIENT_SECRET=...
 GH_OAUTH_CLIENT_ID=...
 GH_OAUTH_CLIENT_SECRET=...
+GMAIL_CLIENT_ID=...
+GMAIL_CLIENT_SECRET=...
 AGENT_SYNC_WEBHOOK_SECRET=...
 ```
 
-Scopes default to the lists below. Override them with GitHub Actions variables `SLACK_SCOPES` and `GH_OAUTH_SCOPES` when needed.
+Scopes default to the lists below. Override them with GitHub Actions variables `SLACK_SCOPES`, `GH_OAUTH_SCOPES`, and `GMAIL_SCOPES` when needed.
 
-The connection gate checks configured connection IDs first, then accepts any existing dashboard connection for the OAuth integrations. Set `NOTION_CONNECTION_ID`, `SLACK_CONNECTION_ID`, or `GH_CONNECTION_ID` only when you want the gate to prefer a specific manual connection. The `agent-conversations` connection is provisioned by CI and defaults to `local-agent-sync`; override it with `AGENT_CONVERSATIONS_CONNECTION_ID` only if the webhook sender uses a different connection ID.
+The connection gate checks configured connection IDs first, then accepts any existing dashboard connection for the OAuth integrations. Set `NOTION_CONNECTION_ID`, `SLACK_CONNECTION_ID`, `GH_CONNECTION_ID`, or `GMAIL_CONNECTION_ID` only when you want the gate to prefer a specific manual connection. The `agent-conversations` connection is provisioned by CI and defaults to `local-agent-sync`; override it with `AGENT_CONVERSATIONS_CONNECTION_ID` only if the webhook sender uses a different connection ID.
 
 Slack is configured with:
 
@@ -76,4 +78,10 @@ GitHub is configured with:
 
 ```txt
 public_repo,read:org,read:user,repo,user:email,user
+```
+
+Gmail is configured with:
+
+```txt
+https://www.googleapis.com/auth/gmail.readonly
 ```

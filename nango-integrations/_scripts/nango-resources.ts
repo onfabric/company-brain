@@ -57,6 +57,8 @@ export const GITHUB_SCOPES = [
   'user',
 ].join(',');
 
+export const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'].join(',');
+
 export const INTEGRATIONS: IntegrationSpec[] = [
   {
     id: 'notion',
@@ -93,6 +95,18 @@ export const INTEGRATIONS: IntegrationSpec[] = [
     },
   },
   {
+    id: 'google-mail',
+    provider: 'google-mail',
+    displayName: 'Gmail',
+    forwardWebhooks: false,
+    oauth: {
+      clientIdEnv: 'GMAIL_CLIENT_ID',
+      clientSecretEnv: 'GMAIL_CLIENT_SECRET',
+      scopesEnv: 'GMAIL_SCOPES',
+      scopes: GMAIL_SCOPES,
+    },
+  },
+  {
     id: 'agent-conversations',
     provider: 'unauthenticated',
     displayName: 'Agent Conversations',
@@ -115,6 +129,11 @@ export const REQUIRED_CONNECTIONS: ConnectionSpec[] = [
     integrationId: 'github',
     connectionIdEnv: 'GH_CONNECTION_ID',
     defaultConnectionId: 'github',
+  },
+  {
+    integrationId: 'google-mail',
+    connectionIdEnv: 'GMAIL_CONNECTION_ID',
+    defaultConnectionId: 'gmail',
   },
   {
     integrationId: 'agent-conversations',
