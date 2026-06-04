@@ -10,7 +10,7 @@ export const dataSourcesController = new Elysia()
   .get(
     '/data-sources',
     async ({ recordsService, logger, status }) => {
-      logger.info('listing data sources and models');
+      logger.info('listing data sources');
       const result = await recordsService.listSources();
       return status(StatusMap.OK, result);
     },
@@ -19,8 +19,7 @@ export const dataSourcesController = new Elysia()
       detail: {
         tags: ['Data Sources'],
         summary: 'List data sources',
-        description:
-          'Returns each data source that has ingested records, broken down by model with per-model counts and timestamps.',
+        description: 'Returns each data source that has ingested records.',
       },
       response: {
         [StatusMap.OK]: ListSourcesResponseSchema,

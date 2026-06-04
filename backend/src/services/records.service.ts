@@ -7,19 +7,13 @@ import type {
 } from '#repositories/records.repository.ts';
 import { Service } from '#services/service.ts';
 
-type SourceModel = {
-  model: string;
-  count: number;
-  oldest_created_at: string;
-  newest_created_at: string;
-  newest_updated_at: string;
-};
-
 type Source = {
   data_source_id: string;
   data_source_key: string;
   count: number;
-  models: SourceModel[];
+  oldest_created_at: string;
+  newest_created_at: string;
+  newest_updated_at: string;
 };
 
 type Record = {
@@ -52,31 +46,17 @@ export class RecordsService extends Service {
   }
 
   async listSources(): Promise<{ sources: Source[] }> {
-    const rows = await this.recordsRepo.listSourceModels();
-    const sources = new Map<string, Source>();
-
-    for (const row of rows) {
-      let source = sources.get(row.data_source_id);
-      if (!source) {
-        source = {
-          data_source_id: row.data_source_id,
-          data_source_key: row.data_source_key,
-          count: 0,
-          models: [],
-        };
-        sources.set(row.data_source_id, source);
-      }
-      source.count += row.count;
-      source.models.push({
-        model: row.nango_model,
+    const rows = await this.recordsRepo.listSources();
+    return {
+      sources: rows.map((row) => ({
+        data_source_id: row.data_source_id,
+        data_source_key: row.data_source_key,
         count: row.count,
         oldest_created_at: row.oldest_created_at.toISOString(),
         newest_created_at: row.newest_created_at.toISOString(),
         newest_updated_at: row.newest_updated_at.toISOString(),
-      });
-    }
-
-    return { sources: [...sources.values()] };
+      })),
+    };
   }
 
   async search(
