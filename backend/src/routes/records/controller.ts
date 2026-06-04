@@ -1,17 +1,17 @@
 import { Elysia, StatusMap } from 'elysia';
 import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
-import { SearchQuerySchema, SearchResponseSchema } from '#routes/records/search/model.ts';
+import { RecordsQuerySchema, RecordsResponseSchema } from '#routes/records/model.ts';
 import { loggerPlugin, RecordsServicePlugin } from '#services/plugins.ts';
 
 const DEFAULT_LIMIT = 20;
 const DEFAULT_OFFSET = 0;
 
-export const recordsSearchController = new Elysia()
-  .use(loggerPlugin('recordsSearchController'))
+export const recordsController = new Elysia()
+  .use(loggerPlugin('recordsController'))
   .use(RecordsServicePlugin)
   .use(apiKeyAuth)
   .get(
-    '/records/search',
+    '/records',
     async ({ query, recordsService, logger, status }) => {
       logger.info(
         `searching records: q=${query.q ?? ''} source=${query.data_source_id ?? ''} people=${query.person_id?.length ?? 0}`,
@@ -34,13 +34,13 @@ export const recordsSearchController = new Elysia()
       [REQUIRE_API_KEY_MACRO_NAME]: true,
       detail: {
         tags: ['Records'],
-        summary: 'Search records',
+        summary: 'List and search records',
         description:
-          'Full-text search over ingested records, with optional filtering by data source, person, model, and time range. Results are paginated.',
+          'Full-text search over ingested records, with optional filtering by data source, person, model, and time range. Omit the query to list records matching the filters. Results are paginated.',
       },
-      query: SearchQuerySchema,
+      query: RecordsQuerySchema,
       response: {
-        [StatusMap.OK]: SearchResponseSchema,
+        [StatusMap.OK]: RecordsResponseSchema,
       },
     },
   );
