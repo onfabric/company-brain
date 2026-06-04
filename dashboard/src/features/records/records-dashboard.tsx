@@ -147,11 +147,16 @@ function AuthenticatedRecordsDashboard({
     const sourceLabels = new Map(
       sources.map((source) => [source.data_source_id, source.data_source_key]),
     );
+    const dataSourcesByPerson = new Map(people.map((person) => [person.id, person.data_sources]));
     return (recordsQuery.data?.results ?? []).map((record) => ({
       ...record,
       data_source_key: sourceLabels.get(record.data_source_id) ?? record.data_source_key,
+      participants: record.participants.map((participant) => ({
+        ...participant,
+        data_sources: dataSourcesByPerson.get(participant.id) ?? [],
+      })),
     }));
-  }, [recordsQuery.data?.results, sources]);
+  }, [recordsQuery.data?.results, sources, people]);
   const selectedRecord = selectedRecordFor(records, search.selectedRecordId);
   const total = recordsQuery.data?.total ?? EMPTY_COUNT;
   const limit = recordsQuery.data?.limit ?? search.limit ?? DEFAULT_LIMIT;
