@@ -3,7 +3,6 @@ import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import { Badge } from '#/components/ui/badge.tsx';
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card.tsx';
-import { ScrollArea } from '#/components/ui/scroll-area.tsx';
 import { Separator } from '#/components/ui/separator.tsx';
 import { formatDateTime, participantLabel, recordTitle } from '#/features/records/record-format.ts';
 import type { RecordHit } from '#/lib/brain-functions.ts';
@@ -42,13 +41,13 @@ export function RecordPreview({ record }: RecordPreviewProps) {
       </CardHeader>
       <Separator />
       <CardContent className="min-h-0 flex-1 p-0">
-        <ScrollArea className="h-full px-5 py-4">
-          <div className="prose prose-neutral max-w-none prose-headings:scroll-m-20 prose-pre:whitespace-pre-wrap prose-a:text-primary">
+        <div className="h-full overflow-auto px-5 py-4">
+          <div className="prose prose-neutral max-w-none prose-headings:scroll-m-20 prose-a:text-primary">
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
               {record.body}
             </ReactMarkdown>
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );
