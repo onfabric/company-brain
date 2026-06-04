@@ -19,7 +19,7 @@
 }
 
 {$BRAIN_HOSTNAME} {
-	@public path /health /people /people/* /records /records/* /openapi /openapi/*
+	@public path /data-sources /data-sources/* /health /people /people/* /records /records/* /openapi /openapi/*
 	handle @public {
 		reverse_proxy brain:3010 {
 			# Retry dial failures to ride out the container recreate gap on deploy.
