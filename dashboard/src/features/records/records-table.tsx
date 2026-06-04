@@ -38,8 +38,8 @@ const columns: Array<ColumnDef<RecordHit>> = [
     id: 'record',
     header: 'Record',
     cell: ({ row }) => (
-      <div className="grid max-w-[44rem] gap-1">
-        <div className="font-medium text-foreground">{recordTitle(row.original)}</div>
+      <div className="grid min-w-0 gap-1">
+        <div className="truncate font-medium text-foreground">{recordTitle(row.original)}</div>
         <div className="line-clamp-2 text-muted-foreground text-xs">
           {recordPreview(row.original)}
         </div>
@@ -136,7 +136,7 @@ export function RecordsTable({ records, selectedRecordId, onSelectRecord }: Reco
                       <Button
                         type="button"
                         variant="ghost"
-                        className="h-auto justify-start p-0 text-left font-normal hover:bg-transparent"
+                        className="h-auto w-full min-w-0 justify-start p-0 text-left font-normal hover:bg-transparent"
                         onClick={() => onSelectRecord(row.original.id)}
                       >
                         <FileText />
