@@ -28,6 +28,7 @@ type Record = {
     name: string | null;
     email: string | null;
     is_external: boolean;
+    handle: string | null;
   }>;
 };
 

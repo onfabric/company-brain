@@ -76,6 +76,10 @@ export const RecordSchema = t.Object({
       name: t.Union([t.String(), t.Null()]),
       email: t.Union([t.String(), t.Null()]),
       is_external: t.Boolean(),
+      handle: t.Union([t.String(), t.Null()], {
+        description:
+          'A representative per-source identifier, for display when name and email are absent.',
+      }),
     }),
   ),
 });

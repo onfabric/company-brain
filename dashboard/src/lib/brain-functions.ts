@@ -20,6 +20,10 @@ const PersonSchema = z.object({
   is_external: z.boolean(),
 });
 
+const ParticipantSchema = PersonSchema.extend({
+  handle: z.string().nullable(),
+});
+
 const RecordHitSchema = z
   .object({
     id: z.uuid(),
@@ -28,7 +32,7 @@ const RecordHitSchema = z
     created_at: z.iso.datetime(),
     updated_at: z.iso.datetime(),
     body: z.string(),
-    participants: z.array(PersonSchema).default([]),
+    participants: z.array(ParticipantSchema).default([]),
     score: z.number().nullable(),
     snippet: z.string().nullable(),
   })
