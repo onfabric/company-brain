@@ -3,11 +3,11 @@ import { Elysia } from 'elysia';
 import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
+import { dataSourcesController } from '#routes/data-sources/controller.ts';
 import { healthController } from '#routes/health/controller.ts';
 import { peopleController } from '#routes/people/controller.ts';
 import { peopleMergeController } from '#routes/people/merge/controller.ts';
 import { recordsController } from '#routes/records/controller.ts';
-import { recordsSourcesController } from '#routes/records/sources/controller.ts';
 import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
 
 export function createApp() {
@@ -28,7 +28,11 @@ export function createApp() {
             },
             {
               name: 'Records',
-              description: 'Search ingested records and inspect their data sources.',
+              description: 'Search ingested records.',
+            },
+            {
+              name: 'Data Sources',
+              description: 'Inspect the data sources that have ingested records.',
             },
           ],
           components: {
@@ -40,7 +44,7 @@ export function createApp() {
     .use(healthController)
     .use(peopleController)
     .use(peopleMergeController)
-    .use(recordsSourcesController)
+    .use(dataSourcesController)
     .use(recordsController)
     .use(batchSaveController);
 }
