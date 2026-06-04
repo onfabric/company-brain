@@ -5,6 +5,7 @@ type ApiMethod = 'get' | 'post';
 
 interface ProxyConfig {
   endpoint: string;
+  params?: Record<string, unknown>;
   paginate?: {
     response_path?: string;
   };
