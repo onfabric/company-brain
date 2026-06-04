@@ -9,7 +9,7 @@ export type IngestBatch = {
   externalIds: string[];
 };
 
-export type SourceModelRow = Pick<Records, 'data_source_id' | 'nango_model'> & {
+export type SourceRow = Pick<Records, 'data_source_id'> & {
   data_source_key: DataSources['nango_integration_id'];
   count: number;
   oldest_created_at: Date;
@@ -46,7 +46,7 @@ export type SearchPage = {
 
 export abstract class RecordsRepositoryContract {
   abstract ingestBatch(batch: IngestBatch): Promise<number>;
-  abstract listSourceModels(): Promise<SourceModelRow[]>;
+  abstract listSources(): Promise<SourceRow[]>;
   abstract search(params: SearchParams): Promise<SearchPage>;
   abstract getById(id: Records['id']): Promise<RecordRow | null>;
 }
@@ -202,20 +202,19 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     `;
   }
 
-  listSourceModels(): Promise<SourceModelRow[]> {
-    return this.sql<SourceModelRow[]>`
+  listSources(): Promise<SourceRow[]> {
+    return this.sql<SourceRow[]>`
       SELECT
         r.data_source_id,
         ds.nango_integration_id AS data_source_key,
-        r.nango_model,
         COUNT(*)::int AS count,
         MIN(r.created_at) AS oldest_created_at,
         MAX(r.created_at) AS newest_created_at,
         MAX(r.updated_at) AS newest_updated_at
       FROM brain.records r
       JOIN brain.data_sources ds ON ds.id = r.data_source_id
-      GROUP BY r.data_source_id, ds.nango_integration_id, r.nango_model
-      ORDER BY ds.nango_integration_id, r.nango_model
+      GROUP BY r.data_source_id, ds.nango_integration_id
+      ORDER BY ds.nango_integration_id
     `;
   }
 
