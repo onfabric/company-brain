@@ -40,7 +40,7 @@ export const recordsController = new Elysia()
         tags: ['Records'],
         summary: 'List and search records',
         description:
-          'Full-text search over ingested records, with optional filtering by data source, person, and time range. Omit the query to list records matching the filters. Results are paginated.',
+          'Full-text search over ingested records, with optional filtering via query parameters. Omit the query to list records matching the filters. Results are paginated.',
       },
       query: RecordsQuerySchema,
       response: {
