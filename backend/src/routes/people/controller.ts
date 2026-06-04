@@ -20,7 +20,7 @@ export const peopleController = new Elysia()
         tags: ['People'],
         summary: 'List people',
         description:
-          'Returns the people derived from ingested records, optionally filtered by whether they are external to the company.',
+          'Returns the people derived from ingested records, optionally filtered via query parameters.',
       },
       query: ListPeopleQuerySchema,
       response: {
