@@ -1,6 +1,6 @@
 import { t } from 'elysia';
 
-export const SearchQuerySchema = t.Object({
+export const RecordsQuerySchema = t.Object({
   q: t.Optional(
     t.String({
       minLength: 1,
@@ -51,7 +51,7 @@ export const SearchQuerySchema = t.Object({
   ),
 });
 
-export const SearchHitSchema = t.Object({
+export const RecordHitSchema = t.Object({
   id: t.String(),
   data_source_id: t.String({ format: 'uuid' }),
   model: t.String({ description: 'The record model (record type) this hit belongs to.' }),
@@ -66,11 +66,11 @@ export const SearchHitSchema = t.Object({
   body: t.String({ description: 'Full textual content of the record.' }),
 });
 
-export const SearchResponseSchema = t.Object({
+export const RecordsResponseSchema = t.Object({
   total: t.Integer({
     description: 'Total number of records matching the filters, ignoring pagination.',
   }),
   limit: t.Integer(),
   offset: t.Integer(),
-  results: t.Array(SearchHitSchema),
+  results: t.Array(RecordHitSchema),
 });
