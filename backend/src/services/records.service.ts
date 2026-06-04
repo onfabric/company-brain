@@ -1,6 +1,7 @@
-import { BadRequestError } from '#lib/errors.ts';
+import { BadRequestError, NotFoundError } from '#lib/errors.ts';
 import type {
   IngestBatch,
+  RecordRow,
   RecordsRepositoryContract,
   SearchParams,
 } from '#repositories/records.repository.ts';
@@ -21,15 +22,18 @@ type Source = {
   models: SourceModel[];
 };
 
-type SearchHit = {
+type Record = {
   id: string;
   data_source_id: string;
   model: string;
   created_at: string;
   updated_at: string;
+  body: string;
+};
+
+type SearchHit = Record & {
   score: number | null;
   snippet: string | null;
-  body: string;
 };
 
 export class RecordsService extends Service {
@@ -92,15 +96,29 @@ export class RecordsService extends Service {
       limit: params.limit,
       offset: params.offset,
       results: results.map((row) => ({
-        id: row.id,
-        data_source_id: row.data_source_id,
-        model: row.nango_model,
-        created_at: row.created_at.toISOString(),
-        updated_at: row.updated_at.toISOString(),
+        ...this.toRecord(row),
         score: row.score,
         snippet: row.snippet,
-        body: row.body,
       })),
+    };
+  }
+
+  async getRecord(id: string): Promise<Record> {
+    const row = await this.recordsRepo.getById(id);
+    if (!row) {
+      throw new NotFoundError(`Record not found: ${id}`);
+    }
+    return this.toRecord(row);
+  }
+
+  private toRecord(row: RecordRow): Record {
+    return {
+      id: row.id,
+      data_source_id: row.data_source_id,
+      model: row.nango_model,
+      created_at: row.created_at.toISOString(),
+      updated_at: row.updated_at.toISOString(),
+      body: row.body,
     };
   }
 

@@ -30,10 +30,12 @@ export type SearchParams = {
   offset: number;
 };
 
-export type SearchResultRow = Pick<
+export type RecordRow = Pick<
   Records,
   'id' | 'data_source_id' | 'nango_model' | 'created_at' | 'updated_at' | 'body'
-> & {
+>;
+
+export type SearchResultRow = RecordRow & {
   score: number | null;
   snippet: string | null;
 };
@@ -47,6 +49,7 @@ export abstract class RecordsRepositoryContract {
   abstract ingestBatch(batch: IngestBatch): Promise<number>;
   abstract listSourceModels(): Promise<SourceModelRow[]>;
   abstract search(params: SearchParams): Promise<SearchPage>;
+  abstract getById(id: Records['id']): Promise<RecordRow | null>;
 }
 
 export class RecordsRepository extends Repository implements RecordsRepositoryContract {
@@ -247,6 +250,15 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     `;
 
     return { total: countRow?.total ?? 0, results };
+  }
+
+  async getById(id: Records['id']): Promise<RecordRow | null> {
+    const [row] = await this.sql<RecordRow[]>`
+      SELECT id, data_source_id, nango_model, created_at, updated_at, body
+      FROM brain.records
+      WHERE id = ${id}
+    `;
+    return row ?? null;
   }
 
   // Most conditions target bm25 fast fields and are pushed down into the index

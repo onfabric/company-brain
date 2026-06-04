@@ -51,20 +51,32 @@ export const RecordsQuerySchema = t.Object({
   ),
 });
 
-export const RecordHitSchema = t.Object({
+export const RecordSchema = t.Object({
   id: t.String(),
   data_source_id: t.String({ format: 'uuid' }),
-  model: t.String({ description: 'The record model (record type) this hit belongs to.' }),
+  model: t.String({ description: 'The record model (record type) this record belongs to.' }),
   created_at: t.String({ format: 'date-time' }),
   updated_at: t.String({ format: 'date-time' }),
-  score: t.Union([t.Number(), t.Null()], {
-    description: 'Relevance score for the full-text query; null when no query was given.',
-  }),
-  snippet: t.Union([t.String(), t.Null()], {
-    description: 'Highlighted excerpt of the match; null when no query was given.',
-  }),
   body: t.String({ description: 'Full textual content of the record.' }),
 });
+
+export const RecordHitSchema = t.Composite([
+  RecordSchema,
+  t.Object({
+    score: t.Union([t.Number(), t.Null()], {
+      description: 'Relevance score for the full-text query; null when no query was given.',
+    }),
+    snippet: t.Union([t.String(), t.Null()], {
+      description: 'Highlighted excerpt of the match; null when no query was given.',
+    }),
+  }),
+]);
+
+export const RecordParamsSchema = t.Object({
+  id: t.String({ format: 'uuid' }),
+});
+
+export const RecordResponseSchema = RecordSchema;
 
 export const RecordsResponseSchema = t.Object({
   total: t.Integer({
