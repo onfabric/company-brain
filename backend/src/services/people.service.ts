@@ -34,9 +34,20 @@ export class PeopleService extends Service {
     this.peopleRepo = peopleRepo;
   }
 
-  async listPeople(filters: PersonFilters = {}): Promise<{ people: Person[] }> {
-    const people = await this.peopleRepo.listPeople(filters);
-    return { people };
+  async listPeople(filters: PersonFilters = {}): Promise<{ total: number; people: Person[] }> {
+    const [total, people] = await Promise.all([
+      this.peopleRepo.countPeople(filters),
+      this.peopleRepo.listPeople(filters),
+    ]);
+    return { total, people };
+  }
+
+  async getPerson(id: string): Promise<Person> {
+    const person = await this.peopleRepo.getPerson(id);
+    if (!person) {
+      throw new NotFoundError(`Person not found: ${id}`);
+    }
+    return person;
   }
 
   async updatePerson(id: string, updates: PersonUpdate): Promise<Person> {

@@ -28,6 +28,7 @@ type Record = {
     name: string | null;
     email: string | null;
     is_external: boolean;
+    handle: string | null;
   }>;
 };
 
@@ -68,7 +69,7 @@ export class RecordsService extends Service {
 
   async search(
     params: SearchParams,
-  ): Promise<{ total: number; limit: number; offset: number; results: SearchHit[] }> {
+  ): Promise<{ total: number | null; limit: number; offset: number; results: SearchHit[] }> {
     if (params.sortBy === 'relevance' && !params.query) {
       throw new BadRequestError('sort_by=relevance requires q');
     }

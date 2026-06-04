@@ -11,29 +11,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '#/components/ui/select.tsx';
-import { participantLabel } from '#/features/records/record-format.ts';
-import type { Person, Source } from '#/lib/brain-functions.ts';
-import {
-  DEFAULT_LIMIT,
-  EMPTY_COUNT,
-  EMPTY_OPTION_VALUE,
-  FIRST_PAGE,
-  LIMIT_OPTIONS,
-} from '#/lib/constants.ts';
+import { ParticipantFilter } from '#/features/records/participant-filter.tsx';
+import type { Source } from '#/lib/brain-functions.ts';
+import { DEFAULT_LIMIT, EMPTY_COUNT, EMPTY_OPTION_VALUE, LIMIT_OPTIONS } from '#/lib/constants.ts';
 import type { RecordsRouteSearch } from '#/lib/records-search.ts';
 
 type RecordsFiltersProps = {
   search: RecordsRouteSearch;
   sources: Source[];
-  people: Person[];
+  apiKey: string;
   isFetching: boolean;
-  onChange: (next: Partial<RecordsRouteSearch>, resetPage?: boolean) => void;
+  onChange: (next: Partial<RecordsRouteSearch>) => void;
 };
 
 export function RecordsFilters({
   search,
   sources,
-  people,
+  apiKey,
   isFetching,
   onChange,
 }: RecordsFiltersProps) {
@@ -56,7 +50,7 @@ export function RecordsFilters({
       className="grid gap-3 border-b bg-background/95 px-4 py-4 lg:grid-cols-[minmax(18rem,2fr)_repeat(5,minmax(9rem,1fr))_auto] lg:items-end"
       onSubmit={(event) => {
         event.preventDefault();
-        onChange({ q: draft || undefined, page: FIRST_PAGE });
+        onChange({ q: draft || undefined });
       }}
     >
       <div className="grid gap-2">
@@ -81,7 +75,6 @@ export function RecordsFilters({
           onValueChange={(value) =>
             onChange({
               dataSourceId: value === EMPTY_OPTION_VALUE ? undefined : value,
-              page: FIRST_PAGE,
             })
           }
         >
@@ -99,30 +92,11 @@ export function RecordsFilters({
         </Select>
       </div>
 
-      <div className="grid gap-2">
-        <Label>Participant</Label>
-        <Select
-          value={search.personId ?? EMPTY_OPTION_VALUE}
-          onValueChange={(value) =>
-            onChange({
-              personId: value === EMPTY_OPTION_VALUE ? undefined : value,
-              page: FIRST_PAGE,
-            })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="All people" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={EMPTY_OPTION_VALUE}>All people</SelectItem>
-            {people.map((person) => (
-              <SelectItem key={person.id} value={person.id}>
-                {participantLabel(person)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <ParticipantFilter
+        apiKey={apiKey}
+        personId={search.personId}
+        onSelect={(personId) => onChange({ personId })}
+      />
 
       <div className="grid gap-2">
         <Label htmlFor="created-after">From</Label>
@@ -130,9 +104,7 @@ export function RecordsFilters({
           id="created-after"
           type="date"
           value={search.createdAfter ?? ''}
-          onChange={(event) =>
-            onChange({ createdAfter: event.target.value || undefined, page: FIRST_PAGE })
-          }
+          onChange={(event) => onChange({ createdAfter: event.target.value || undefined })}
         />
       </div>
 
@@ -142,17 +114,15 @@ export function RecordsFilters({
           id="created-before"
           type="date"
           value={search.createdBefore ?? ''}
-          onChange={(event) =>
-            onChange({ createdBefore: event.target.value || undefined, page: FIRST_PAGE })
-          }
+          onChange={(event) => onChange({ createdBefore: event.target.value || undefined })}
         />
       </div>
 
       <div className="grid gap-2">
-        <Label>Page Size</Label>
+        <Label>Load Size</Label>
         <Select
           value={String(search.limit || DEFAULT_LIMIT)}
-          onValueChange={(value) => onChange({ limit: Number(value), page: FIRST_PAGE })}
+          onValueChange={(value) => onChange({ limit: Number(value) })}
         >
           <SelectTrigger>
             <SelectValue />
@@ -184,7 +154,6 @@ export function RecordsFilters({
               personId: undefined,
               createdAfter: undefined,
               createdBefore: undefined,
-              page: FIRST_PAGE,
             })
           }
         >

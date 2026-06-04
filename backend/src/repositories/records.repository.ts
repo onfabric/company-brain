@@ -1,5 +1,5 @@
 import type { SQL } from 'bun';
-import type { DataSources, People, Records } from '#db/tables.ts';
+import type { DataSources, People, PeopleDataSources, Records } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
 
 export type IngestBatch = {
@@ -45,7 +45,11 @@ export type RecordRow = Pick<
   'id' | 'data_source_id' | 'created_at' | 'updated_at' | 'body'
 > & {
   data_source_key: DataSources['nango_integration_id'];
-  participants: Array<Pick<People, 'id' | 'name' | 'email' | 'is_external'>>;
+  participants: Array<
+    Pick<People, 'id' | 'name' | 'email' | 'is_external'> & {
+      handle: PeopleDataSources['data_source_user_id'] | null;
+    }
+  >;
 };
 
 export type SearchResultRow = RecordRow & {
@@ -54,7 +58,9 @@ export type SearchResultRow = RecordRow & {
 };
 
 export type SearchPage = {
-  total: number;
+  // Computed only on the first page (offset 0) so scrolling does not re-run a
+  // full count for every page; null on subsequent pages.
+  total: number | null;
   results: SearchResultRow[];
 };
 
@@ -267,7 +273,14 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
               'id', p.id,
               'name', p.name,
               'email', p.email,
-              'is_external', p.is_external
+              'is_external', p.is_external,
+              'handle', (
+                SELECT pds.data_source_user_id
+                FROM brain.people_data_sources pds
+                WHERE pds.person_id = p.id
+                ORDER BY pds.data_source_id, pds.data_source_user_id
+                LIMIT 1
+              )
             )
             ORDER BY p.name NULLS LAST, p.email NULLS LAST, p.id
           ) FILTER (WHERE p.id IS NOT NULL),
@@ -288,6 +301,10 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
         page.snippet
       ${pageOrderBy}
     `;
+
+    if (params.offset > 0) {
+      return { total: null, results };
+    }
 
     const [countRow] = await this.sql<{ total: number }[]>`
       SELECT COUNT(*)::int AS total FROM brain.records ${where}
@@ -335,7 +352,14 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
               'id', p.id,
               'name', p.name,
               'email', p.email,
-              'is_external', p.is_external
+              'is_external', p.is_external,
+              'handle', (
+                SELECT pds.data_source_user_id
+                FROM brain.people_data_sources pds
+                WHERE pds.person_id = p.id
+                ORDER BY pds.data_source_id, pds.data_source_user_id
+                LIMIT 1
+              )
             )
             ORDER BY p.name NULLS LAST, p.email NULLS LAST, p.id
           ) FILTER (WHERE p.id IS NOT NULL),

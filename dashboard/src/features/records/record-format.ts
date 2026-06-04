@@ -39,11 +39,13 @@ export function participantLabel(participant: {
   name: string | null;
   email: string | null;
   id: string;
+  handle?: string | null;
   data_sources?: Array<{ data_source_user_id: string }>;
 }) {
   return (
     participant.name ??
     participant.email ??
+    participant.handle ??
     participant.data_sources?.[EMPTY_COUNT]?.data_source_user_id ??
     participant.id
   );

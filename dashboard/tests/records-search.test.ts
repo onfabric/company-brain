@@ -8,7 +8,7 @@ import {
 
 describe('records route search helpers', () => {
   it('normalizes unknown search params into dashboard defaults', () => {
-    expect(normalizeRouteSearch({ page: 'bad', limit: 'bad' })).toEqual({
+    expect(normalizeRouteSearch({ limit: 'bad' })).toEqual({
       tab: undefined,
       q: undefined,
       dataSourceId: undefined,
@@ -17,7 +17,6 @@ describe('records route search helpers', () => {
       createdBefore: undefined,
       sortBy: undefined,
       sortOrder: undefined,
-      page: 1,
       limit: 20,
       selectedRecordId: undefined,
     });
@@ -34,7 +33,6 @@ describe('records route search helpers', () => {
         createdBefore: '2026-06-04',
         sortBy: 'created_at',
         sortOrder: 'desc',
-        page: 2,
         limit: 50,
         selectedRecordId: '019e8882-07f1-77e9-93cd-084f3e8491b2',
       }),
@@ -46,7 +44,6 @@ describe('records route search helpers', () => {
       createdBefore: '2026-06-04',
       sortBy: 'created_at',
       sortOrder: 'desc',
-      page: 2,
       limit: 50,
     });
   });
@@ -62,7 +59,6 @@ describe('records route search helpers', () => {
         createdBefore: '',
         sortBy: undefined,
         sortOrder: undefined,
-        page: 1,
         limit: 20,
         selectedRecordId: '',
       }),
@@ -75,7 +71,6 @@ describe('records route search helpers', () => {
       createdBefore: undefined,
       sortBy: undefined,
       sortOrder: undefined,
-      page: 1,
       limit: 20,
       selectedRecordId: undefined,
     });

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, KeyRound, Pencil, Save, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { KeyRound, Loader2, Pencil, Save, X } from 'lucide-react';
+import { useState } from 'react';
 import { Badge } from '#/components/ui/badge.tsx';
 import { Button } from '#/components/ui/button.tsx';
 import { Card, CardContent } from '#/components/ui/card.tsx';
@@ -22,13 +22,18 @@ import {
   type PersonUpdateInput,
   updatePerson,
 } from '#/lib/brain-functions.ts';
-import { EMPTY_COUNT, FIRST_PAGE, HTTP_UNAUTHORIZED, PEOPLE_PAGE_SIZE } from '#/lib/constants.ts';
+import { EMPTY_COUNT, HTTP_UNAUTHORIZED } from '#/lib/constants.ts';
+import { useInfiniteScroll } from '#/lib/use-infinite-scroll.ts';
 
 type PeopleManagerProps = {
   apiKey: string;
   people: Person[];
+  total: number;
   isLoading: boolean;
   isFetching: boolean;
+  isFetchingNextPage: boolean;
+  hasNextPage: boolean;
+  fetchNextPage: () => void;
   error: Error | null;
   onChangeApiKey: () => void;
 };
@@ -40,7 +45,6 @@ type PersonDraft = {
 };
 
 const SOURCE_BADGE_LIMIT = 3;
-const PAGE_RANGE_OFFSET = FIRST_PAGE;
 const LOADING_ROW_KEYS = [
   'people-loading-row-a',
   'people-loading-row-b',
@@ -53,27 +57,21 @@ const LOADING_ROW_KEYS = [
 export function PeopleManager({
   apiKey,
   people,
+  total,
   isLoading,
   isFetching,
+  isFetchingNextPage,
+  hasNextPage,
+  fetchNextPage,
   error,
   onChangeApiKey,
 }: PeopleManagerProps) {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string>();
   const [draft, setDraft] = useState<PersonDraft>();
-  const [page, setPage] = useState(FIRST_PAGE);
   const [statusMessage, setStatusMessage] = useState<string>();
 
-  const total = people.length;
-  const totalPages = Math.max(FIRST_PAGE, Math.ceil(total / PEOPLE_PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const pageStart = (currentPage - FIRST_PAGE) * PEOPLE_PAGE_SIZE;
-  const pagePeople = useMemo(
-    () => people.slice(pageStart, pageStart + PEOPLE_PAGE_SIZE),
-    [people, pageStart],
-  );
-  const rangeStart = total > EMPTY_COUNT ? pageStart + PAGE_RANGE_OFFSET : EMPTY_COUNT;
-  const rangeEnd = Math.min(pageStart + PEOPLE_PAGE_SIZE, total);
+  const sentinelRef = useInfiniteScroll({ hasNextPage, isFetchingNextPage, fetchNextPage });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: PersonUpdateInput }) =>
@@ -83,15 +81,11 @@ export function PeopleManager({
       setDraft(undefined);
       setStatusMessage(`Saved ${participantLabel(person)}.`);
       void queryClient.invalidateQueries({ queryKey: ['people'] });
+      void queryClient.invalidateQueries({ queryKey: ['people-search'] });
+      void queryClient.invalidateQueries({ queryKey: ['person', person.id] });
       void queryClient.invalidateQueries({ queryKey: ['records'] });
     },
   });
-
-  const goToPage = (next: number) => {
-    setEditingId(undefined);
-    setDraft(undefined);
-    setPage(next);
-  };
 
   if (isLoading) {
     return (
@@ -138,7 +132,7 @@ export function PeopleManager({
         ) : (
           <>
             <PeopleTable
-              people={pagePeople}
+              people={people}
               editingId={editingId}
               draft={draft}
               savingId={updateMutation.isPending ? updateMutation.variables?.id : undefined}
@@ -156,40 +150,21 @@ export function PeopleManager({
                 updateMutation.mutate({ id: person.id, updates: updateFromDraft(nextDraft) });
               }}
             />
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm">
+            <div ref={sentinelRef} />
+            {isFetchingNextPage ? (
+              <div className="flex items-center justify-center gap-2 border-t py-4 text-muted-foreground text-sm">
+                <Loader2 className="size-4 animate-spin" />
+                Loading more...
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between gap-3 border-t px-4 py-3 text-sm">
               <StatusLine
                 isFetching={isFetching}
                 statusMessage={statusMessage}
                 error={updateMutation.error}
-                rangeStart={rangeStart}
-                rangeEnd={rangeEnd}
+                loaded={people.length}
                 total={total}
               />
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage <= FIRST_PAGE}
-                  onClick={() => goToPage(currentPage - FIRST_PAGE)}
-                >
-                  <ChevronLeft />
-                  Previous
-                </Button>
-                <span className="min-w-24 text-center text-muted-foreground">
-                  Page {currentPage.toLocaleString()} of {totalPages.toLocaleString()}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => goToPage(currentPage + FIRST_PAGE)}
-                >
-                  Next
-                  <ChevronRight />
-                </Button>
-              </div>
             </div>
           </>
         )}
@@ -411,15 +386,13 @@ function StatusLine({
   isFetching,
   statusMessage,
   error,
-  rangeStart,
-  rangeEnd,
+  loaded,
   total,
 }: {
   isFetching: boolean;
   statusMessage?: string;
   error: Error | null;
-  rangeStart: number;
-  rangeEnd: number;
+  loaded: number;
   total: number;
 }) {
   if (error) {
@@ -436,7 +409,7 @@ function StatusLine({
 
   return (
     <span className="text-muted-foreground">
-      {rangeStart.toLocaleString()}-{rangeEnd.toLocaleString()} of {total.toLocaleString()}
+      Showing {loaded.toLocaleString()} of {total.toLocaleString()}
     </span>
   );
 }

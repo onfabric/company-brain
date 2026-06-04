@@ -76,6 +76,10 @@ export const RecordSchema = t.Object({
       name: t.Union([t.String(), t.Null()]),
       email: t.Union([t.String(), t.Null()]),
       is_external: t.Boolean(),
+      handle: t.Union([t.String(), t.Null()], {
+        description:
+          'A representative per-source identifier, for display when name and email are absent.',
+      }),
     }),
   ),
 });
@@ -93,8 +97,9 @@ export const RecordHitSchema = t.Composite([
 ]);
 
 export const RecordsResponseSchema = t.Object({
-  total: t.Integer({
-    description: 'Total number of records matching the filters, ignoring pagination.',
+  total: t.Union([t.Integer(), t.Null()], {
+    description:
+      'Total number of records matching the filters, ignoring pagination. Returned on the first page (offset 0); null on later pages to avoid recounting while scrolling.',
   }),
   limit: t.Integer(),
   offset: t.Integer(),
