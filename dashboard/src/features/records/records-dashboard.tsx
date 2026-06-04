@@ -1,14 +1,6 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import {
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  KeyRound,
-  LogOut,
-  RefreshCw,
-  Users,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, KeyRound, LogOut, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card, CardContent } from '#/components/ui/card.tsx';
@@ -167,7 +159,6 @@ function AuthenticatedRecordsDashboard({
       ? (currentPage - FIRST_PAGE) * limit + PAGE_WINDOW_LABEL_OFFSET
       : EMPTY_OFFSET;
   const rangeEnd = Math.min(currentPage * limit, total);
-  const activeQuery = activeTab === 'people' ? peopleQuery : recordsQuery;
   const headerDescription =
     activeTab === 'people'
       ? `${people.length.toLocaleString()} people ranked by records`
@@ -217,15 +208,6 @@ function AuthenticatedRecordsDashboard({
               People
             </Button>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void activeQuery.refetch()}
-            disabled={activeQuery.isFetching}
-          >
-            <RefreshCw className={activeQuery.isFetching ? 'animate-spin' : undefined} />
-            Refresh
-          </Button>
           <Button type="button" variant="outline" onClick={onChangeApiKey}>
             <LogOut />
             Log out
