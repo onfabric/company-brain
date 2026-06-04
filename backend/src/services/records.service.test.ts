@@ -141,7 +141,6 @@ describe('RecordsService', () => {
         {
           id: 'rec-1',
           data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
-          nango_model: 'SlackThread',
           created_at: new Date('2026-01-01T00:00:00Z'),
           updated_at: new Date('2026-01-02T00:00:00Z'),
           body: 'hello world',
@@ -169,7 +168,6 @@ describe('RecordsService', () => {
         {
           id: 'rec-1',
           data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
-          model: 'SlackThread',
           created_at: '2026-01-01T00:00:00.000Z',
           updated_at: '2026-01-02T00:00:00.000Z',
           score: 4.2,
@@ -210,7 +208,6 @@ describe('RecordsService', () => {
       {
         id: '019e8882-07f1-771c-993e-f6825a9224bb',
         data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
-        nango_model: 'SlackThread',
         created_at: new Date('2026-01-01T00:00:00Z'),
         updated_at: new Date('2026-01-02T00:00:00Z'),
         body: 'hello world',
@@ -224,7 +221,6 @@ describe('RecordsService', () => {
     expect(record).toEqual({
       id: '019e8882-07f1-771c-993e-f6825a9224bb',
       data_source_id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
-      model: 'SlackThread',
       created_at: '2026-01-01T00:00:00.000Z',
       updated_at: '2026-01-02T00:00:00.000Z',
       body: 'hello world',

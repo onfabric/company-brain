@@ -25,7 +25,6 @@ export const recordsController = new Elysia()
         query: query.q,
         dataSourceId: query.data_source_id,
         personIds: query.person_id,
-        model: query.model,
         createdAfter: query.created_after,
         createdBefore: query.created_before,
         updatedAfter: query.updated_after,
@@ -41,7 +40,7 @@ export const recordsController = new Elysia()
         tags: ['Records'],
         summary: 'List and search records',
         description:
-          'Full-text search over ingested records, with optional filtering by data source, person, model, and time range. Omit the query to list records matching the filters. Results are paginated.',
+          'Full-text search over ingested records, with optional filtering via query parameters. Omit the query to list records matching the filters. Results are paginated.',
       },
       query: RecordsQuerySchema,
       response: {
