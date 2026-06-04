@@ -5,8 +5,10 @@ import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
 import { dataSourcesController } from '#routes/data-sources/controller.ts';
 import { healthController } from '#routes/health/controller.ts';
+import { peopleIdController } from '#routes/people/[id]/controller.ts';
 import { peopleController } from '#routes/people/controller.ts';
 import { peopleMergeController } from '#routes/people/merge/controller.ts';
+import { recordsIdController } from '#routes/records/[id]/controller.ts';
 import { recordsController } from '#routes/records/controller.ts';
 import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
 
@@ -43,8 +45,10 @@ export function createApp() {
     )
     .use(healthController)
     .use(peopleController)
+    .use(peopleIdController)
     .use(peopleMergeController)
     .use(dataSourcesController)
     .use(recordsController)
+    .use(recordsIdController)
     .use(batchSaveController);
 }
