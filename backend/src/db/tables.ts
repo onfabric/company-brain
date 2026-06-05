@@ -51,6 +51,8 @@ export type KnowledgeTypes = {
 
 export type Knowledge = {
   id: string;
+  created_at: Date;
+  updated_at: Date;
   knowledge_type_id: KnowledgeTypes['id'];
   title: string;
   body: string;

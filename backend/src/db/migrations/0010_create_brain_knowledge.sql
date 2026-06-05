@@ -5,10 +5,15 @@ CREATE TABLE brain.knowledge_types (
 
 CREATE TABLE brain.knowledge (
   id                uuid PRIMARY KEY DEFAULT uuidv7(),
+  created_at        timestamptz GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+  updated_at        timestamptz NOT NULL DEFAULT now(),
   knowledge_type_id uuid NOT NULL REFERENCES brain.knowledge_types (id) ON DELETE RESTRICT ON UPDATE CASCADE,
   title             text NOT NULL,
   body              text NOT NULL
 );
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON brain.knowledge
+  FOR EACH ROW EXECUTE FUNCTION brain.set_updated_at();
 
 CREATE INDEX knowledge_type_id_idx ON brain.knowledge (knowledge_type_id);
 
