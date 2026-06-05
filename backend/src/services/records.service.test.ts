@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  type BrowseRecordsPage,
+  type BrowseRecordsParams,
   type IngestBatch,
   type RecordRow,
   RecordsRepositoryContract,
@@ -12,6 +14,7 @@ import { RecordsService } from '#services/records.service.ts';
 class MockRecordsRepository extends RecordsRepositoryContract {
   readonly calls: IngestBatch[] = [];
   searchCalls: SearchParams[] = [];
+  browseCalls: BrowseRecordsParams[] = [];
   getByIdCalls: string[] = [];
 
   constructor(
@@ -19,6 +22,13 @@ class MockRecordsRepository extends RecordsRepositoryContract {
     private readonly sources: SourceRow[] = [],
     private readonly page: SearchPage = { total: 0, results: [] },
     private readonly record: RecordRow | null = null,
+    private readonly browsePage: BrowseRecordsPage = {
+      source: null,
+      participant: null,
+      total: 0,
+      folders: [],
+      records: [],
+    },
   ) {
     super();
   }
@@ -35,6 +45,11 @@ class MockRecordsRepository extends RecordsRepositoryContract {
   search(params: SearchParams): Promise<SearchPage> {
     this.searchCalls.push(params);
     return Promise.resolve(this.page);
+  }
+
+  browse(params: BrowseRecordsParams): Promise<BrowseRecordsPage> {
+    this.browseCalls.push(params);
+    return Promise.resolve(this.browsePage);
   }
 
   getById(id: string): Promise<RecordRow | null> {
@@ -179,6 +194,177 @@ describe('RecordsService', () => {
     await service.search({ personIds, limit: 20, offset: 0 });
 
     expect(repo.searchCalls[0]?.personIds).toEqual(personIds);
+  });
+
+  it('browses filesystem folders with normalized day ranges', async () => {
+    const repo = new MockRecordsRepository(0, [], { total: 0, results: [] }, null, {
+      source: {
+        data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_key: 'slack',
+      },
+      participant: null,
+      total: 3,
+      folders: [
+        {
+          type: 'participant',
+          id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+          name: 'Ada Lovelace',
+          count: 3,
+        },
+      ],
+      records: [],
+    });
+    const service = new RecordsService(repo);
+
+    const result = await service.browse({
+      dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
+      day: '2026-06-05',
+      limit: 20,
+      offset: 0,
+    });
+
+    expect(repo.browseCalls[0]).toEqual({
+      dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
+      day: {
+        key: '2026-06-05',
+        start: '2026-06-05T00:00:00.000Z',
+        end: '2026-06-06T00:00:00.000Z',
+      },
+      personId: undefined,
+      limit: 20,
+      offset: 0,
+    });
+    expect(result).toEqual({
+      path: {
+        data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_key: 'slack',
+        day: '2026-06-05',
+        person_id: undefined,
+        participant_name: undefined,
+      },
+      total: 3,
+      limit: 20,
+      offset: 0,
+      folders: [
+        {
+          type: 'participant',
+          id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+          name: 'Ada Lovelace',
+          count: 3,
+        },
+      ],
+      records: [],
+    });
+  });
+
+  it('maps filesystem records from participant folders', async () => {
+    const repo = new MockRecordsRepository(0, [], { total: 0, results: [] }, null, {
+      source: {
+        data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_key: 'google-mail',
+      },
+      participant: {
+        id: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+        name: null,
+        email: 'ada@example.com',
+        is_external: false,
+        handle: 'ada@example.com',
+      },
+      total: 1,
+      folders: [],
+      records: [
+        {
+          id: '019e8882-07f1-77e9-93cd-084f3e8491b2',
+          data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+          data_source_key: 'google-mail',
+          created_at: new Date('2026-06-05T12:00:00Z'),
+          updated_at: new Date('2026-06-05T12:30:00Z'),
+          body: '# Hello',
+          participants: [],
+          score: null,
+          snippet: null,
+        },
+      ],
+    });
+    const service = new RecordsService(repo);
+
+    const result = await service.browse({
+      dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
+      day: '2026-06-05',
+      personId: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+      limit: 20,
+      offset: 0,
+    });
+
+    expect(result.path.participant_name).toBe('ada@example.com');
+    expect(result.records).toEqual([
+      {
+        id: '019e8882-07f1-77e9-93cd-084f3e8491b2',
+        data_source_id: '019e8882-07f1-771c-993e-f6825a9224bb',
+        data_source_key: 'google-mail',
+        created_at: '2026-06-05T12:00:00.000Z',
+        updated_at: '2026-06-05T12:30:00.000Z',
+        body: '# Hello',
+        participants: [],
+        score: null,
+        snippet: null,
+      },
+    ]);
+  });
+
+  it('labels the synthetic no-participants filesystem folder', async () => {
+    const repo = new MockRecordsRepository(0);
+    const service = new RecordsService(repo);
+
+    const result = await service.browse({
+      dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
+      day: '2026-06-05',
+      personId: 'none',
+      limit: 20,
+      offset: 0,
+    });
+
+    expect(result.path.participant_name).toBe('No participants');
+  });
+
+  it('rejects incomplete filesystem paths', async () => {
+    const repo = new MockRecordsRepository(0);
+    const service = new RecordsService(repo);
+
+    await expect(service.browse({ day: '2026-06-05', limit: 20, offset: 0 })).rejects.toThrow(
+      'day requires data_source_id',
+    );
+    await expect(
+      service.browse({
+        dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
+        personId: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+        limit: 20,
+        offset: 0,
+      }),
+    ).rejects.toThrow('person_id requires data_source_id and day');
+  });
+
+  it('rejects invalid filesystem days and participants', async () => {
+    const repo = new MockRecordsRepository(0);
+    const service = new RecordsService(repo);
+
+    await expect(
+      service.browse({
+        dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
+        day: '2026-99-99',
+        limit: 20,
+        offset: 0,
+      }),
+    ).rejects.toThrow('Invalid day: 2026-99-99');
+    await expect(
+      service.browse({
+        dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
+        day: '2026-06-05',
+        personId: 'bad',
+        limit: 20,
+        offset: 0,
+      }),
+    ).rejects.toThrow('Invalid person_id: bad');
   });
 
   it('forwards record sort params to the repository', async () => {

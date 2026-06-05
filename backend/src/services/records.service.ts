@@ -1,10 +1,12 @@
 import { BadRequestError, NotFoundError } from '#lib/errors.ts';
 import type {
+  BrowseRecordsParams,
   IngestBatch,
   RecordRow,
   RecordsRepositoryContract,
   SearchParams,
 } from '#repositories/records.repository.ts';
+import { NO_PARTICIPANTS_PERSON_ID } from '#repositories/records.repository.ts';
 import { Service } from '#services/service.ts';
 
 type Source = {
@@ -37,6 +39,38 @@ type SearchHit = Record & {
   snippet: string | null;
 };
 
+type RecordFolder = {
+  type: 'provider' | 'day' | 'participant';
+  id: string;
+  name: string;
+  count: number;
+};
+
+type BrowseParams = {
+  dataSourceId?: string;
+  day?: string;
+  personId?: string;
+  limit: number;
+  offset: number;
+};
+
+type BrowseResponse = {
+  path: {
+    data_source_id?: string;
+    data_source_key?: string;
+    day?: string;
+    person_id?: string;
+    participant_name?: string;
+  };
+  total: number;
+  limit: number;
+  offset: number;
+  folders: RecordFolder[];
+  records: SearchHit[];
+};
+
+const UUID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
 export class RecordsService extends Service {
   private readonly recordsRepo: RecordsRepositoryContract;
 
@@ -63,6 +97,46 @@ export class RecordsService extends Service {
         oldest_created_at: row.oldest_created_at.toISOString(),
         newest_created_at: row.newest_created_at.toISOString(),
         newest_updated_at: row.newest_updated_at.toISOString(),
+      })),
+    };
+  }
+
+  async browse(params: BrowseParams): Promise<BrowseResponse> {
+    if (params.day && !params.dataSourceId) {
+      throw new BadRequestError('day requires data_source_id');
+    }
+    if (params.personId && (!params.dataSourceId || !params.day)) {
+      throw new BadRequestError('person_id requires data_source_id and day');
+    }
+    if (params.personId && !this.isBrowserPersonId(params.personId)) {
+      throw new BadRequestError(`Invalid person_id: ${params.personId}`);
+    }
+
+    const browseParams: BrowseRecordsParams = {
+      dataSourceId: params.dataSourceId,
+      day: params.day ? this.toDayFilter(params.day) : undefined,
+      personId: params.personId,
+      limit: params.limit,
+      offset: params.offset,
+    };
+    const page = await this.recordsRepo.browse(browseParams);
+
+    return {
+      path: {
+        data_source_id: params.dataSourceId,
+        data_source_key: page.source?.data_source_key,
+        day: browseParams.day?.key,
+        person_id: params.personId,
+        participant_name: this.browserParticipantName(params.personId, page.participant),
+      },
+      total: page.total,
+      limit: params.limit,
+      offset: params.offset,
+      folders: page.folders,
+      records: page.records.map((row) => ({
+        ...this.toRecord(row),
+        score: row.score,
+        snippet: row.snippet,
       })),
     };
   }
@@ -123,5 +197,41 @@ export class RecordsService extends Service {
       throw new BadRequestError(`Invalid ${label} timestamp: ${value}`);
     }
     return parsed.toISOString();
+  }
+
+  private toDayFilter(value: string) {
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+      Number.isNaN(parsed.getTime()) ||
+      parsed.toISOString().slice(0, 10) !== value
+    ) {
+      throw new BadRequestError(`Invalid day: ${value}`);
+    }
+
+    const end = new Date(parsed);
+    end.setUTCDate(end.getUTCDate() + 1);
+    return {
+      key: value,
+      start: parsed.toISOString(),
+      end: end.toISOString(),
+    };
+  }
+
+  private isBrowserPersonId(value: string) {
+    return value === NO_PARTICIPANTS_PERSON_ID || UUID_PATTERN.test(value);
+  }
+
+  private browserParticipantName(
+    personId: string | undefined,
+    participant: { name: string | null; email: string | null; handle: string | null } | null,
+  ) {
+    if (!personId) {
+      return undefined;
+    }
+    if (personId === NO_PARTICIPANTS_PERSON_ID) {
+      return 'No participants';
+    }
+    return participant?.name ?? participant?.email ?? participant?.handle ?? personId;
   }
 }

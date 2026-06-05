@@ -22,7 +22,7 @@ export const PEOPLE_SORT_ORDERS = ['asc', 'desc'] as const;
 export const DEFAULT_PEOPLE_SORT_FIELD =
   'records_count' satisfies (typeof PEOPLE_SORT_FIELDS)[number];
 export const DEFAULT_PEOPLE_SORT_ORDER = 'desc' satisfies (typeof PEOPLE_SORT_ORDERS)[number];
-export const DASHBOARD_TABS = ['records', 'people'] as const;
+export const DASHBOARD_TABS = ['records', 'filesystem', 'people'] as const;
 export const DATE_TIME_FORMAT_OPTIONS = {
   dateStyle: 'medium',
   timeStyle: 'short',

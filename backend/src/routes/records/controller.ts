@@ -1,6 +1,11 @@
 import { Elysia, StatusMap } from 'elysia';
 import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
-import { RecordsQuerySchema, RecordsResponseSchema } from '#routes/records/model.ts';
+import {
+  RecordsFilesystemQuerySchema,
+  RecordsFilesystemResponseSchema,
+  RecordsQuerySchema,
+  RecordsResponseSchema,
+} from '#routes/records/model.ts';
 import { loggerPlugin, RecordsServicePlugin } from '#services/plugins.ts';
 
 const DEFAULT_LIMIT = 20;
@@ -10,6 +15,35 @@ export const recordsController = new Elysia()
   .use(loggerPlugin('recordsController'))
   .use(RecordsServicePlugin)
   .use(apiKeyAuth)
+  .get(
+    '/records/filesystem',
+    async ({ query, recordsService, logger, status }) => {
+      logger.info(
+        `browsing record filesystem: source=${query.data_source_id ?? ''} day=${query.day ?? ''} person=${query.person_id ?? ''}`,
+      );
+      const result = await recordsService.browse({
+        dataSourceId: query.data_source_id,
+        day: query.day,
+        personId: query.person_id,
+        limit: query.limit ?? DEFAULT_LIMIT,
+        offset: query.offset ?? DEFAULT_OFFSET,
+      });
+      return status(StatusMap.OK, result);
+    },
+    {
+      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      detail: {
+        tags: ['Records'],
+        summary: 'Browse records as a filesystem',
+        description:
+          'Lists provider, day, and participant folders, then paginates records in the selected participant folder.',
+      },
+      query: RecordsFilesystemQuerySchema,
+      response: {
+        [StatusMap.OK]: RecordsFilesystemResponseSchema,
+      },
+    },
+  )
   .get(
     '/records',
     async ({ query, recordsService, logger, status }) => {

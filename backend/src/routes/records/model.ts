@@ -105,3 +105,58 @@ export const RecordsResponseSchema = t.Object({
   offset: t.Integer(),
   results: t.Array(RecordHitSchema),
 });
+
+export const RecordsFilesystemQuerySchema = t.Object({
+  data_source_id: t.Optional(
+    t.String({ format: 'uuid', description: 'Open a provider folder by data source id.' }),
+  ),
+  day: t.Optional(
+    t.String({
+      pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+      description: 'Open a UTC day folder within a provider, formatted as YYYY-MM-DD.',
+    }),
+  ),
+  person_id: t.Optional(
+    t.String({
+      minLength: 1,
+      description: 'Open a participant folder by person id, or "none" for records without people.',
+    }),
+  ),
+  limit: t.Optional(
+    t.Integer({
+      minimum: 1,
+      maximum: 100,
+      default: 20,
+      description: 'Maximum number of record files to return from a participant folder.',
+    }),
+  ),
+  offset: t.Optional(
+    t.Integer({
+      minimum: 0,
+      default: 0,
+      description: 'Number of record files to skip in a participant folder.',
+    }),
+  ),
+});
+
+export const RecordFilesystemFolderSchema = t.Object({
+  type: t.Union([t.Literal('provider'), t.Literal('day'), t.Literal('participant')]),
+  id: t.String(),
+  name: t.String(),
+  count: t.Integer(),
+});
+
+export const RecordsFilesystemResponseSchema = t.Object({
+  path: t.Object({
+    data_source_id: t.Optional(t.String({ format: 'uuid' })),
+    data_source_key: t.Optional(t.String()),
+    day: t.Optional(t.String()),
+    person_id: t.Optional(t.String()),
+    participant_name: t.Optional(t.String()),
+  }),
+  total: t.Integer(),
+  limit: t.Integer(),
+  offset: t.Integer(),
+  folders: t.Array(RecordFilesystemFolderSchema),
+  records: t.Array(RecordHitSchema),
+});

@@ -3,6 +3,7 @@ import {
   cleanRouteSearch,
   dayKey,
   normalizeRouteSearch,
+  toRecordFilesystemInput,
   toRecordsQueryInput,
 } from '../src/lib/records-search.ts';
 
@@ -19,6 +20,9 @@ describe('records route search helpers', () => {
       sortOrder: undefined,
       limit: 20,
       selectedRecordId: undefined,
+      fsDataSourceId: undefined,
+      fsDay: undefined,
+      fsPersonId: undefined,
     });
   });
 
@@ -35,6 +39,9 @@ describe('records route search helpers', () => {
         sortOrder: 'desc',
         limit: 50,
         selectedRecordId: '019e8882-07f1-77e9-93cd-084f3e8491b2',
+        fsDataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
+        fsDay: '2026-06-05',
+        fsPersonId: '019e8882-07f1-77a0-b4cf-5798eafb4664',
       }),
     ).toEqual({
       q: 'roadmap',
@@ -44,6 +51,23 @@ describe('records route search helpers', () => {
       createdBefore: '2026-06-04',
       sortBy: 'created_at',
       sortOrder: 'desc',
+      limit: 50,
+    });
+  });
+
+  it('maps route state to the records filesystem API input', () => {
+    expect(
+      toRecordFilesystemInput({
+        tab: 'filesystem',
+        fsDataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
+        fsDay: '2026-06-05',
+        fsPersonId: '019e8882-07f1-77a0-b4cf-5798eafb4664',
+        limit: 50,
+      }),
+    ).toEqual({
+      dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
+      day: '2026-06-05',
+      personId: '019e8882-07f1-77a0-b4cf-5798eafb4664',
       limit: 50,
     });
   });
@@ -61,6 +85,9 @@ describe('records route search helpers', () => {
         sortOrder: undefined,
         limit: 20,
         selectedRecordId: '',
+        fsDataSourceId: '',
+        fsDay: '',
+        fsPersonId: '',
       }),
     ).toEqual({
       tab: undefined,
@@ -73,12 +100,19 @@ describe('records route search helpers', () => {
       sortOrder: undefined,
       limit: 20,
       selectedRecordId: undefined,
+      fsDataSourceId: undefined,
+      fsDay: undefined,
+      fsPersonId: undefined,
     });
   });
 
-  it('keeps the people tab in route search params', () => {
+  it('keeps non-record tabs in route search params', () => {
     expect(normalizeRouteSearch({ tab: 'people' }).tab).toBe('people');
     expect(cleanRouteSearch({ ...normalizeRouteSearch({ tab: 'people' }) }).tab).toBe('people');
+    expect(normalizeRouteSearch({ tab: 'filesystem' }).tab).toBe('filesystem');
+    expect(cleanRouteSearch({ ...normalizeRouteSearch({ tab: 'filesystem' }) }).tab).toBe(
+      'filesystem',
+    );
   });
 
   it('derives day keys from ISO timestamps', () => {

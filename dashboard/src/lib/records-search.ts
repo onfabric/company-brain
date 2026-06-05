@@ -1,4 +1,4 @@
-import type { RecordsQueryInput } from '#/lib/brain-functions.ts';
+import type { RecordFilesystemInput, RecordsQueryInput } from '#/lib/brain-functions.ts';
 import {
   API_MAX_LIMIT,
   DASHBOARD_TABS,
@@ -25,6 +25,9 @@ export type RecordsRouteSearch = {
   sortOrder?: RecordSortOrder;
   limit: number;
   selectedRecordId?: string;
+  fsDataSourceId?: string;
+  fsDay?: string;
+  fsPersonId?: string;
 };
 
 export function normalizeRouteSearch(search: Record<string, unknown>): RecordsRouteSearch {
@@ -39,6 +42,9 @@ export function normalizeRouteSearch(search: Record<string, unknown>): RecordsRo
     sortOrder: sortOrderValue(search.sortOrder),
     limit: limitValue(search.limit),
     selectedRecordId: stringValue(search.selectedRecordId),
+    fsDataSourceId: stringValue(search.fsDataSourceId),
+    fsDay: stringValue(search.fsDay),
+    fsPersonId: stringValue(search.fsPersonId),
   };
 }
 
@@ -55,9 +61,20 @@ export function toRecordsQueryInput(search: RecordsRouteSearch): Omit<RecordsQue
   };
 }
 
+export function toRecordFilesystemInput(
+  search: RecordsRouteSearch,
+): Omit<RecordFilesystemInput, 'offset'> {
+  return {
+    dataSourceId: search.fsDataSourceId,
+    day: search.fsDay,
+    personId: search.fsPersonId,
+    limit: search.limit,
+  };
+}
+
 export function cleanRouteSearch(search: RecordsRouteSearch): RecordsRouteSearch {
   return {
-    tab: search.tab === 'people' ? search.tab : undefined,
+    tab: search.tab && search.tab !== 'records' ? search.tab : undefined,
     q: search.q || undefined,
     dataSourceId: search.dataSourceId || undefined,
     personId: search.personId || undefined,
@@ -67,6 +84,9 @@ export function cleanRouteSearch(search: RecordsRouteSearch): RecordsRouteSearch
     sortOrder: search.sortOrder || undefined,
     limit: search.limit,
     selectedRecordId: search.selectedRecordId || undefined,
+    fsDataSourceId: search.fsDataSourceId || undefined,
+    fsDay: search.fsDay || undefined,
+    fsPersonId: search.fsPersonId || undefined,
   };
 }
 

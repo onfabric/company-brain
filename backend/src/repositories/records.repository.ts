@@ -17,6 +17,7 @@ export type SourceRow = Pick<Records, 'data_source_id'> & {
   newest_updated_at: Date;
 };
 
+export const NO_PARTICIPANTS_PERSON_ID = 'none';
 export const RECORD_SORT_FIELDS = ['created_at', 'updated_at', 'relevance'] as const;
 export const RECORD_SORT_ORDERS = ['asc', 'desc'] as const;
 export const DEFAULT_RECORD_SORT_FIELD: RecordSortField = 'created_at';
@@ -40,6 +41,20 @@ export type SearchParams = {
   offset: number;
 };
 
+export type BrowseDayFilter = {
+  key: string;
+  start: string;
+  end: string;
+};
+
+export type BrowseRecordsParams = {
+  dataSourceId?: string;
+  day?: BrowseDayFilter;
+  personId?: string;
+  limit: number;
+  offset: number;
+};
+
 export type RecordRow = Pick<
   Records,
   'id' | 'data_source_id' | 'created_at' | 'updated_at' | 'body'
@@ -57,6 +72,21 @@ export type SearchResultRow = RecordRow & {
   snippet: string | null;
 };
 
+export type RecordFolderType = 'provider' | 'day' | 'participant';
+
+export type RecordFolderRow = {
+  type: RecordFolderType;
+  id: string;
+  name: string;
+  count: number;
+};
+
+export type SourceIdentity = Pick<SourceRow, 'data_source_id' | 'data_source_key'>;
+
+export type ParticipantIdentity = Pick<People, 'id' | 'name' | 'email' | 'is_external'> & {
+  handle: PeopleDataSources['data_source_user_id'] | null;
+};
+
 export type SearchPage = {
   // Computed only on the first page (offset 0) so scrolling does not re-run a
   // full count for every page; null on subsequent pages.
@@ -64,9 +94,18 @@ export type SearchPage = {
   results: SearchResultRow[];
 };
 
+export type BrowseRecordsPage = {
+  source: SourceIdentity | null;
+  participant: ParticipantIdentity | null;
+  total: number;
+  folders: RecordFolderRow[];
+  records: SearchResultRow[];
+};
+
 export abstract class RecordsRepositoryContract {
   abstract ingestBatch(batch: IngestBatch): Promise<number>;
   abstract listSources(): Promise<SourceRow[]>;
+  abstract browse(params: BrowseRecordsParams): Promise<BrowseRecordsPage>;
   abstract search(params: SearchParams): Promise<SearchPage>;
   abstract getById(id: Records['id']): Promise<RecordRow | null>;
 }
@@ -235,6 +274,36 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     `;
   }
 
+  async browse(params: BrowseRecordsParams): Promise<BrowseRecordsPage> {
+    const [source, participant] = await Promise.all([
+      params.dataSourceId ? this.findSource(params.dataSourceId) : Promise.resolve(null),
+      params.personId && params.personId !== NO_PARTICIPANTS_PERSON_ID
+        ? this.findParticipant(params.personId, params.dataSourceId)
+        : Promise.resolve(null),
+    ]);
+
+    if (!params.dataSourceId) {
+      const folders = await this.listProviderFolders();
+      return { source, participant, total: this.folderTotal(folders), folders, records: [] };
+    }
+
+    if (!params.day) {
+      const folders = await this.listDayFolders(params.dataSourceId);
+      return { source, participant, total: this.folderTotal(folders), folders, records: [] };
+    }
+
+    if (!params.personId) {
+      const folders = await this.listParticipantFolders(params.dataSourceId, params.day);
+      return { source, participant, total: this.folderTotal(folders), folders, records: [] };
+    }
+
+    const [records, total] = await Promise.all([
+      this.listBrowserRecords(params),
+      this.countBrowserRecords(params),
+    ]);
+    return { source, participant, total, folders: [], records };
+  }
+
   async search(params: SearchParams): Promise<SearchPage> {
     const where = this.buildWhere(params);
 
@@ -375,6 +444,201 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     return row ?? null;
   }
 
+  private findSource(dataSourceId: string): Promise<SourceIdentity | null> {
+    return this.sql<SourceIdentity[]>`
+      SELECT
+        id AS data_source_id,
+        nango_integration_id AS data_source_key
+      FROM brain.data_sources
+      WHERE id = ${dataSourceId}
+    `.then((rows) => rows[0] ?? null);
+  }
+
+  private findParticipant(
+    personId: string,
+    dataSourceId: string | undefined,
+  ): Promise<ParticipantIdentity | null> {
+    return this.sql<ParticipantIdentity[]>`
+      SELECT
+        p.id,
+        p.name,
+        p.email,
+        p.is_external,
+        pds_handle.data_source_user_id AS handle
+      FROM brain.people p
+      LEFT JOIN LATERAL (
+        SELECT pds.data_source_user_id
+        FROM brain.people_data_sources pds
+        WHERE pds.person_id = p.id
+        ORDER BY
+          CASE WHEN ${dataSourceId ?? null}::uuid IS NOT NULL AND pds.data_source_id = ${dataSourceId ?? null}::uuid THEN 0 ELSE 1 END,
+          pds.data_source_id,
+          pds.data_source_user_id
+        LIMIT 1
+      ) pds_handle ON TRUE
+      WHERE p.id = ${personId}
+    `.then((rows) => rows[0] ?? null);
+  }
+
+  private listProviderFolders(): Promise<RecordFolderRow[]> {
+    return this.sql<RecordFolderRow[]>`
+      SELECT
+        'provider' AS type,
+        ds.id AS id,
+        ds.nango_integration_id AS name,
+        COUNT(*)::int AS count
+      FROM brain.records r
+      JOIN brain.data_sources ds ON ds.id = r.data_source_id
+      GROUP BY ds.id, ds.nango_integration_id
+      ORDER BY ds.nango_integration_id
+    `;
+  }
+
+  private listDayFolders(dataSourceId: string): Promise<RecordFolderRow[]> {
+    return this.sql<RecordFolderRow[]>`
+      WITH record_days AS (
+        SELECT to_char(r.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day
+        FROM brain.records r
+        WHERE r.data_source_id = ${dataSourceId}
+      )
+      SELECT
+        'day' AS type,
+        day AS id,
+        day AS name,
+        COUNT(*)::int AS count
+      FROM record_days
+      GROUP BY day
+      ORDER BY day DESC
+    `;
+  }
+
+  private listParticipantFolders(
+    dataSourceId: string,
+    day: BrowseDayFilter,
+  ): Promise<RecordFolderRow[]> {
+    return this.sql<RecordFolderRow[]>`
+      WITH scoped_records AS (
+        SELECT r.id
+        FROM brain.records r
+        WHERE r.data_source_id = ${dataSourceId}
+          AND r.created_at >= ${day.start}
+          AND r.created_at < ${day.end}
+      ),
+      participant_folders AS (
+        SELECT
+          'participant' AS type,
+          p.id::text AS id,
+          COALESCE(p.name, p.email, pds_handle.data_source_user_id, p.id::text) AS name,
+          COUNT(DISTINCT sr.id)::int AS count
+        FROM scoped_records sr
+        JOIN brain.records_people rp ON rp.record_id = sr.id
+        JOIN brain.people p ON p.id = rp.person_id
+        LEFT JOIN LATERAL (
+          SELECT pds.data_source_user_id
+          FROM brain.people_data_sources pds
+          WHERE pds.person_id = p.id
+          ORDER BY
+            CASE WHEN pds.data_source_id = ${dataSourceId} THEN 0 ELSE 1 END,
+            pds.data_source_id,
+            pds.data_source_user_id
+          LIMIT 1
+        ) pds_handle ON TRUE
+        GROUP BY p.id, p.name, p.email, pds_handle.data_source_user_id
+      ),
+      no_participants_folder AS (
+        SELECT
+          'participant' AS type,
+          ${NO_PARTICIPANTS_PERSON_ID} AS id,
+          'No participants' AS name,
+          COUNT(*)::int AS count
+        FROM scoped_records sr
+        WHERE NOT EXISTS (
+          SELECT 1 FROM brain.records_people rp WHERE rp.record_id = sr.id
+        )
+      )
+      SELECT type, id, name, count
+      FROM (
+        SELECT * FROM participant_folders
+        UNION ALL
+        SELECT * FROM no_participants_folder WHERE count > 0
+      ) folders
+      ORDER BY
+        CASE WHEN id = ${NO_PARTICIPANTS_PERSON_ID} THEN 1 ELSE 0 END,
+        lower(name),
+        id
+    `;
+  }
+
+  private listBrowserRecords(params: BrowseRecordsParams): Promise<SearchResultRow[]> {
+    const where = this.buildBrowseWhere(params);
+    return this.sql<SearchResultRow[]>`
+      WITH page AS (
+        SELECT
+          id,
+          data_source_id,
+          created_at,
+          updated_at,
+          body,
+          NULL::real AS score,
+          NULL::text AS snippet
+        FROM brain.records
+        ${where}
+        ORDER BY created_at DESC, updated_at DESC, id DESC
+        LIMIT ${params.limit} OFFSET ${params.offset}
+      )
+      SELECT
+        page.id,
+        page.data_source_id,
+        ds.nango_integration_id AS data_source_key,
+        page.created_at,
+        page.updated_at,
+        page.body,
+        page.score,
+        page.snippet,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', p.id,
+              'name', p.name,
+              'email', p.email,
+              'is_external', p.is_external,
+              'handle', (
+                SELECT pds.data_source_user_id
+                FROM brain.people_data_sources pds
+                WHERE pds.person_id = p.id
+                ORDER BY pds.data_source_id, pds.data_source_user_id
+                LIMIT 1
+              )
+            )
+            ORDER BY p.name NULLS LAST, p.email NULLS LAST, p.id
+          ) FILTER (WHERE p.id IS NOT NULL),
+          '[]'
+        ) AS participants
+      FROM page
+      JOIN brain.data_sources ds ON ds.id = page.data_source_id
+      LEFT JOIN brain.records_people rp ON rp.record_id = page.id
+      LEFT JOIN brain.people p ON p.id = rp.person_id
+      GROUP BY
+        page.id,
+        page.data_source_id,
+        ds.nango_integration_id,
+        page.created_at,
+        page.updated_at,
+        page.body,
+        page.score,
+        page.snippet
+      ORDER BY page.created_at DESC, page.updated_at DESC, page.id DESC
+    `;
+  }
+
+  private async countBrowserRecords(params: BrowseRecordsParams): Promise<number> {
+    const where = this.buildBrowseWhere(params);
+    const [row] = await this.sql<{ total: number }[]>`
+      SELECT COUNT(*)::int AS total FROM brain.records ${where}
+    `;
+    return row?.total ?? 0;
+  }
+
   // Most conditions target bm25 fast fields and are pushed down into the index
   // whether or not a full-text `query` is present. The person filter is a
   // relational semi-join on brain.records_people, applied as a filter above the
@@ -401,5 +665,36 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
       where = index === 0 ? this.sql`WHERE ${condition}` : this.sql`${where} AND ${condition}`;
     });
     return where;
+  }
+
+  private buildBrowseWhere(params: BrowseRecordsParams) {
+    const conditions = [
+      params.dataSourceId ? this.sql`data_source_id = ${params.dataSourceId}` : null,
+      params.day ? this.sql`created_at >= ${params.day.start}` : null,
+      params.day ? this.sql`created_at < ${params.day.end}` : null,
+      params.personId === NO_PARTICIPANTS_PERSON_ID
+        ? this.sql`NOT EXISTS (
+            SELECT 1 FROM brain.records_people rp
+            WHERE rp.record_id = brain.records.id
+          )`
+        : null,
+      params.personId && params.personId !== NO_PARTICIPANTS_PERSON_ID
+        ? this.sql`EXISTS (
+            SELECT 1 FROM brain.records_people rp
+            WHERE rp.record_id = brain.records.id
+              AND rp.person_id = ${params.personId}
+          )`
+        : null,
+    ].filter((condition) => condition !== null);
+
+    let where = this.sql``;
+    conditions.forEach((condition, index) => {
+      where = index === 0 ? this.sql`WHERE ${condition}` : this.sql`${where} AND ${condition}`;
+    });
+    return where;
+  }
+
+  private folderTotal(folders: RecordFolderRow[]) {
+    return folders.reduce((sum, folder) => sum + folder.count, 0);
   }
 }

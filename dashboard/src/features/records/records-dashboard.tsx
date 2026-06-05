@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { FileText, KeyRound, Loader2, LogOut, Users } from 'lucide-react';
+import { FileText, FolderTree, KeyRound, Loader2, LogOut, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card } from '#/components/ui/card.tsx';
@@ -13,6 +13,7 @@ import { Skeleton } from '#/components/ui/skeleton.tsx';
 import { PeopleManager } from '#/features/people/people-manager.tsx';
 import { ApiKeyGate } from '#/features/records/api-key-gate.tsx';
 import { RecordPreview } from '#/features/records/record-preview.tsx';
+import { RecordsFileBrowser } from '#/features/records/records-file-browser.tsx';
 import { RecordsFilters } from '#/features/records/records-filters.tsx';
 import { RecordsTable } from '#/features/records/records-table.tsx';
 import {
@@ -179,7 +180,9 @@ function AuthenticatedRecordsDashboard({
   const headerDescription =
     activeTab === 'people'
       ? `${peopleTotal.toLocaleString()} people ranked by records`
-      : `${total.toLocaleString()} records matching current filters`;
+      : activeTab === 'filesystem'
+        ? 'Provider / day / participant filesystem'
+        : `${total.toLocaleString()} records matching current filters`;
 
   const updateSearch = (next: Partial<RecordsRouteSearch>) => {
     void navigate({
@@ -211,6 +214,17 @@ function AuthenticatedRecordsDashboard({
             >
               <FileText />
               Records
+            </Button>
+            <Button
+              type="button"
+              role="tab"
+              size="sm"
+              variant={activeTab === 'filesystem' ? 'secondary' : 'ghost'}
+              aria-selected={activeTab === 'filesystem'}
+              onClick={() => updateSearch({ tab: 'filesystem' })}
+            >
+              <FolderTree />
+              Filesystem
             </Button>
             <Button
               type="button"
@@ -274,6 +288,14 @@ function AuthenticatedRecordsDashboard({
             <RecordPreview record={selectedRecord} />
           </section>
         </>
+      ) : activeTab === 'filesystem' ? (
+        <RecordsFileBrowser
+          apiKey={apiKey}
+          apiKeyVersion={apiKeyVersion}
+          search={search}
+          onChange={updateSearch}
+          onChangeApiKey={onChangeApiKey}
+        />
       ) : (
         <PeopleManager
           apiKey={apiKey}
