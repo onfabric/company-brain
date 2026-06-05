@@ -34,6 +34,13 @@ export class NotFoundError extends AppError {
   }
 }
 
+export class ConflictError extends AppError {
+  constructor(message = 'Conflict') {
+    super(StatusMap.Conflict, message);
+    this.name = 'ConflictError';
+  }
+}
+
 type ErrorHandlerOptions = Parameters<ErrorHandler>[0];
 type ErrorHandlerResult = ReturnType<ErrorHandler>;
 
