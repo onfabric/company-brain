@@ -22,6 +22,7 @@ CREATE TABLE brain.knowledge_people (
   PRIMARY KEY (knowledge_id, person_id)
 );
 
+-- Reverse of the PK: lookups by person (the PK only covers knowledge_id first).
 CREATE INDEX knowledge_people_person_id_knowledge_id_idx ON brain.knowledge_people (person_id, knowledge_id);
 
 CREATE TABLE brain.knowledge_records (
@@ -30,4 +31,5 @@ CREATE TABLE brain.knowledge_records (
   PRIMARY KEY (knowledge_id, record_id)
 );
 
+-- Reverse of the PK: lookups by record (the PK only covers knowledge_id first).
 CREATE INDEX knowledge_records_record_id_knowledge_id_idx ON brain.knowledge_records (record_id, knowledge_id);
