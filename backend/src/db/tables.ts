@@ -43,3 +43,31 @@ export type RecordsPeople = {
   created_at: Date;
   updated_at: Date;
 };
+
+export type KnowledgeTypes = {
+  id: string;
+  name: string;
+};
+
+export type Knowledge = {
+  id: string;
+  created_at: Date;
+  updated_at: Date;
+  knowledge_type_id: KnowledgeTypes['id'];
+  title: string;
+  body: string;
+};
+
+export type KnowledgePeople = {
+  knowledge_id: Knowledge['id'];
+  person_id: People['id'];
+  created_at: Date;
+  updated_at: Date;
+};
+
+export type KnowledgeRecords = {
+  knowledge_id: Knowledge['id'];
+  record_id: Records['id'];
+  created_at: Date;
+  updated_at: Date;
+};
