@@ -17,7 +17,7 @@ CREATE INDEX knowledge_bm25_idx ON brain.knowledge
   WITH (key_field = 'id');
 
 CREATE TABLE brain.knowledge_people (
-  knowledge_id uuid NOT NULL REFERENCES brain.knowledge (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  knowledge_id uuid NOT NULL REFERENCES brain.knowledge (id) ON DELETE RESTRICT ON UPDATE CASCADE,
   person_id    uuid NOT NULL REFERENCES brain.people (id) ON DELETE RESTRICT ON UPDATE CASCADE,
   PRIMARY KEY (knowledge_id, person_id)
 );
@@ -25,7 +25,7 @@ CREATE TABLE brain.knowledge_people (
 CREATE INDEX knowledge_people_person_id_knowledge_id_idx ON brain.knowledge_people (person_id, knowledge_id);
 
 CREATE TABLE brain.knowledge_records (
-  knowledge_id uuid NOT NULL REFERENCES brain.knowledge (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  knowledge_id uuid NOT NULL REFERENCES brain.knowledge (id) ON DELETE RESTRICT ON UPDATE CASCADE,
   record_id    uuid NOT NULL REFERENCES brain.records (id) ON DELETE CASCADE ON UPDATE CASCADE,
   PRIMARY KEY (knowledge_id, record_id)
 );
