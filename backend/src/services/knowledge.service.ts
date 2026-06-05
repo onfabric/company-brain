@@ -6,6 +6,14 @@ import type {
 } from '#repositories/knowledge.repository.ts';
 import { Service } from '#services/service.ts';
 
+export type CreateKnowledge = {
+  title: string;
+  body: string;
+  knowledge_type_id: string;
+  person_ids: string[];
+  record_ids: string[];
+};
+
 type KnowledgeType = {
   id: string;
   name: string;
@@ -70,6 +78,33 @@ export class KnowledgeService extends Service {
       throw new NotFoundError(`Knowledge not found: ${id}`);
     }
     return this.toItem(row);
+  }
+
+  async create(input: CreateKnowledge): Promise<KnowledgeItem> {
+    const result = await this.knowledgeRepo.create({
+      title: input.title,
+      body: input.body,
+      knowledge_type_id: input.knowledge_type_id,
+      personIds: [...new Set(input.person_ids)],
+      recordIds: [...new Set(input.record_ids)],
+    });
+
+    if (!result.ok) {
+      const problems: string[] = [];
+      if (result.missingType) {
+        problems.push(`unknown knowledge_type_id: ${input.knowledge_type_id}`);
+      }
+      if (result.missingPersonIds.length > 0) {
+        problems.push(`unknown person_ids: ${result.missingPersonIds.join(', ')}`);
+      }
+      if (result.missingRecordIds.length > 0) {
+        problems.push(`unknown record_ids: ${result.missingRecordIds.join(', ')}`);
+      }
+      throw new BadRequestError(problems.join('; '));
+    }
+
+    this.logger.info(`created knowledge ${result.id}`);
+    return this.getKnowledge(result.id);
   }
 
   private toItem(row: KnowledgeRow): KnowledgeItem {

@@ -60,6 +60,24 @@ export const KnowledgeQuerySchema = t.Object({
   ),
 });
 
+export const CreateKnowledgeBodySchema = t.Object({
+  title: t.String({ minLength: 1, description: 'Short title of the knowledge.' }),
+  body: t.String({ minLength: 1, description: 'Full distilled content of the knowledge.' }),
+  knowledge_type_id: t.String({ format: 'uuid' }),
+  person_ids: t.Optional(
+    t.Array(t.String({ format: 'uuid' }), {
+      default: [],
+      description: 'Participants of this knowledge.',
+    }),
+  ),
+  record_ids: t.Optional(
+    t.Array(t.String({ format: 'uuid' }), {
+      default: [],
+      description: 'Source records this knowledge was distilled from.',
+    }),
+  ),
+});
+
 export const KnowledgeTypeRefSchema = t.Object({
   id: t.String({ format: 'uuid' }),
   name: t.String(),

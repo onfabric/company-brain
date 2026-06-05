@@ -1,6 +1,11 @@
 import { Elysia, StatusMap } from 'elysia';
 import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
-import { KnowledgeQuerySchema, KnowledgeResponseSchema } from '#routes/knowledge/model.ts';
+import {
+  CreateKnowledgeBodySchema,
+  KnowledgeQuerySchema,
+  KnowledgeResponseSchema,
+  KnowledgeSchema,
+} from '#routes/knowledge/model.ts';
 import { KnowledgeServicePlugin, loggerPlugin } from '#services/plugins.ts';
 
 const DEFAULT_LIMIT = 20;
@@ -39,6 +44,36 @@ export const knowledgeController = new Elysia()
       query: KnowledgeQuerySchema,
       response: {
         [StatusMap.OK]: KnowledgeResponseSchema,
+      },
+    },
+  )
+  .post(
+    '/knowledge',
+    async ({ body, knowledgeService, logger, status }) => {
+      logger.info(
+        `creating knowledge: type=${body.knowledge_type_id} people=${body.person_ids?.length ?? 0} records=${body.record_ids?.length ?? 0}`,
+      );
+      const created = await knowledgeService.create({
+        title: body.title,
+        body: body.body,
+        knowledge_type_id: body.knowledge_type_id,
+        person_ids: body.person_ids ?? [],
+        record_ids: body.record_ids ?? [],
+      });
+      return status(StatusMap.Created, created);
+    },
+    {
+      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      parse: 'json',
+      detail: {
+        tags: ['Knowledge'],
+        summary: 'Create knowledge',
+        description:
+          'Creates a distilled knowledge item, linking it to a knowledge type, participants, and the source records it was distilled from. Unknown referenced ids are rejected with 400.',
+      },
+      body: CreateKnowledgeBodySchema,
+      response: {
+        [StatusMap.Created]: KnowledgeSchema,
       },
     },
   );

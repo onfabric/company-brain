@@ -48,9 +48,24 @@ export type KnowledgeSearchPage = {
   results: KnowledgeHitRow[];
 };
 
+export type CreateKnowledgeInput = Pick<Knowledge, 'title' | 'body' | 'knowledge_type_id'> & {
+  personIds: People['id'][];
+  recordIds: Records['id'][];
+};
+
+export type CreateKnowledgeResult =
+  | { ok: true; id: Knowledge['id'] }
+  | {
+      ok: false;
+      missingType: boolean;
+      missingPersonIds: People['id'][];
+      missingRecordIds: Records['id'][];
+    };
+
 export abstract class KnowledgeRepositoryContract {
   abstract search(params: KnowledgeSearchParams): Promise<KnowledgeSearchPage>;
   abstract getById(id: Knowledge['id']): Promise<KnowledgeRow | null>;
+  abstract create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult>;
 }
 
 export class KnowledgeRepository extends Repository implements KnowledgeRepositoryContract {
@@ -119,6 +134,68 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
       WHERE k.id = ${id}
     `;
     return row ?? null;
+  }
+
+  create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult> {
+    return this.sql.begin(async (tx) => {
+      const [type] = await tx<{ exists: true }[]>`
+        SELECT true AS exists FROM brain.knowledge_types WHERE id = ${input.knowledge_type_id}
+      `;
+      const missingPersonIds = await this.missingPeople(tx, input.personIds);
+      const missingRecordIds = await this.missingRecords(tx, input.recordIds);
+
+      if (!type || missingPersonIds.length > 0 || missingRecordIds.length > 0) {
+        return { ok: false, missingType: !type, missingPersonIds, missingRecordIds };
+      }
+
+      const [created] = await tx<Pick<Knowledge, 'id'>[]>`
+        INSERT INTO brain.knowledge (knowledge_type_id, title, body)
+        VALUES (${input.knowledge_type_id}, ${input.title}, ${input.body})
+        RETURNING id
+      `;
+      if (!created) {
+        throw new Error('failed to insert knowledge');
+      }
+
+      if (input.personIds.length > 0) {
+        await tx`
+          INSERT INTO brain.knowledge_people ${tx(
+            input.personIds.map((person_id) => ({ knowledge_id: created.id, person_id })),
+          )}
+        `;
+      }
+      if (input.recordIds.length > 0) {
+        await tx`
+          INSERT INTO brain.knowledge_records ${tx(
+            input.recordIds.map((record_id) => ({ knowledge_id: created.id, record_id })),
+          )}
+        `;
+      }
+
+      return { ok: true, id: created.id };
+    });
+  }
+
+  private async missingPeople(tx: SQL, ids: People['id'][]): Promise<People['id'][]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const present = await tx<Pick<People, 'id'>[]>`
+      SELECT id FROM brain.people WHERE id IN ${tx(ids)}
+    `;
+    const found = new Set(present.map((row) => row.id));
+    return ids.filter((id) => !found.has(id));
+  }
+
+  private async missingRecords(tx: SQL, ids: Records['id'][]): Promise<Records['id'][]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const present = await tx<Pick<Records, 'id'>[]>`
+      SELECT id FROM brain.records WHERE id IN ${tx(ids)}
+    `;
+    const found = new Set(present.map((row) => row.id));
+    return ids.filter((id) => !found.has(id));
   }
 
   // Each M2M is aggregated as a correlated subquery rather than a join so the
