@@ -13,9 +13,11 @@ const dashboardDir = existsSync(sourceDashboardDir)
 const indexPath = join(dashboardDir, 'index.html');
 
 export const dashboardController = new Elysia()
-  .get('/dashboard', () => serveIndex())
-  .get('/dashboard/', () => serveIndex())
-  .get('/dashboard/*', ({ params }) => serveDashboardPath(params['*']));
+  .get('/dashboard', () => serveIndex(), { detail: { hide: true } })
+  .get('/dashboard/', () => serveIndex(), { detail: { hide: true } })
+  .get('/dashboard/*', ({ params }) => serveDashboardPath(params['*']), {
+    detail: { hide: true },
+  });
 
 function serveDashboardPath(path: string | undefined) {
   const assetPath = resolveDashboardPath(path ?? '');
