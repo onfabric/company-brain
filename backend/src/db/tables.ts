@@ -61,9 +61,13 @@ export type Knowledge = {
 export type KnowledgePeople = {
   knowledge_id: Knowledge['id'];
   person_id: People['id'];
+  created_at: Date;
+  updated_at: Date;
 };
 
 export type KnowledgeRecords = {
   knowledge_id: Knowledge['id'];
   record_id: Records['id'];
+  created_at: Date;
+  updated_at: Date;
 };

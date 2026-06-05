@@ -24,8 +24,13 @@ CREATE INDEX knowledge_bm25_idx ON brain.knowledge
 CREATE TABLE brain.knowledge_people (
   knowledge_id uuid NOT NULL REFERENCES brain.knowledge (id) ON DELETE RESTRICT ON UPDATE CASCADE,
   person_id    uuid NOT NULL REFERENCES brain.people (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (knowledge_id, person_id)
 );
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON brain.knowledge_people
+  FOR EACH ROW EXECUTE FUNCTION brain.set_updated_at();
 
 -- Reverse of the PK: lookups by person (the PK only covers knowledge_id first).
 CREATE INDEX knowledge_people_person_id_knowledge_id_idx ON brain.knowledge_people (person_id, knowledge_id);
@@ -33,8 +38,13 @@ CREATE INDEX knowledge_people_person_id_knowledge_id_idx ON brain.knowledge_peop
 CREATE TABLE brain.knowledge_records (
   knowledge_id uuid NOT NULL REFERENCES brain.knowledge (id) ON DELETE RESTRICT ON UPDATE CASCADE,
   record_id    uuid NOT NULL REFERENCES brain.records (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (knowledge_id, record_id)
 );
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON brain.knowledge_records
+  FOR EACH ROW EXECUTE FUNCTION brain.set_updated_at();
 
 -- Reverse of the PK: lookups by record (the PK only covers knowledge_id first).
 CREATE INDEX knowledge_records_record_id_knowledge_id_idx ON brain.knowledge_records (record_id, knowledge_id);
