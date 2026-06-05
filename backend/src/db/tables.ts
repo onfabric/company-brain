@@ -4,6 +4,8 @@
 export type DataSources = {
   id: string;
   nango_integration_id: string;
+  created_at: Date;
+  updated_at: Date;
 };
 
 export type Records = {
@@ -22,6 +24,8 @@ export type People = {
   name: string | null;
   email: string | null;
   is_external: boolean;
+  created_at: Date;
+  updated_at: Date;
 };
 
 export type PeopleDataSources = {
@@ -29,9 +33,13 @@ export type PeopleDataSources = {
   person_id: People['id'];
   data_source_id: DataSources['id'];
   data_source_user_id: string;
+  created_at: Date;
+  updated_at: Date;
 };
 
 export type RecordsPeople = {
   record_id: Records['id'];
   person_id: People['id'];
+  created_at: Date;
+  updated_at: Date;
 };
