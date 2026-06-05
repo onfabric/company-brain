@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { BadRequestError, NotFoundError } from '#lib/errors.ts';
 import {
+  type CreateKnowledgeInput,
+  type CreateKnowledgeResult,
   KnowledgeRepositoryContract,
   type KnowledgeRow,
   type KnowledgeSearchPage,
@@ -26,10 +28,12 @@ const ROW: KnowledgeRow = {
 
 class MockKnowledgeRepository extends KnowledgeRepositoryContract {
   searchCalls: KnowledgeSearchParams[] = [];
+  createCalls: CreateKnowledgeInput[] = [];
 
   constructor(
     private readonly page: KnowledgeSearchPage = { total: 0, results: [] },
     private readonly row: KnowledgeRow | null = null,
+    private readonly createResult: CreateKnowledgeResult = { ok: true, id: ROW.id },
   ) {
     super();
   }
@@ -41,6 +45,11 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
 
   getById(): Promise<KnowledgeRow | null> {
     return Promise.resolve(this.row);
+  }
+
+  create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult> {
+    this.createCalls.push(input);
+    return Promise.resolve(this.createResult);
   }
 }
 
@@ -82,5 +91,41 @@ describe('KnowledgeService', () => {
     const item = await service.getKnowledge(ROW.id);
     expect(item.title).toBe('Q1 pricing decision');
     expect(item.knowledge_type.name).toBe('decision');
+  });
+
+  it('dedupes link ids before creating and returns the created item', async () => {
+    const repo = new MockKnowledgeRepository(undefined, ROW, { ok: true, id: ROW.id });
+    const service = new KnowledgeService(repo);
+
+    const item = await service.create({
+      title: ROW.title,
+      body: ROW.body,
+      knowledge_type_id: ROW.knowledge_type_id,
+      person_ids: ['019e9000-0000-7000-8000-00000000000a', '019e9000-0000-7000-8000-00000000000a'],
+      record_ids: [],
+    });
+
+    expect(repo.createCalls[0]?.personIds).toEqual(['019e9000-0000-7000-8000-00000000000a']);
+    expect(item.id).toBe(ROW.id);
+  });
+
+  it('rejects unknown referenced ids with a 400', async () => {
+    const repo = new MockKnowledgeRepository(undefined, null, {
+      ok: false,
+      missingType: true,
+      missingPersonIds: [],
+      missingRecordIds: ['019e7000-0000-7000-8000-000000000099'],
+    });
+    const service = new KnowledgeService(repo);
+
+    await expect(
+      service.create({
+        title: 'x',
+        body: 'y',
+        knowledge_type_id: '019e8000-0000-7000-8000-0000000000ff',
+        person_ids: [],
+        record_ids: ['019e7000-0000-7000-8000-000000000099'],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestError);
   });
 });
