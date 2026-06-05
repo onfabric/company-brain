@@ -6,6 +6,8 @@ import { requestResponsePlugin } from '#lib/request-response.ts';
 import { dashboardController } from '#routes/dashboard/controller.ts';
 import { dataSourcesController } from '#routes/data-sources/controller.ts';
 import { healthController } from '#routes/health/controller.ts';
+import { knowledgeIdController } from '#routes/knowledge/[id]/controller.ts';
+import { knowledgeController } from '#routes/knowledge/controller.ts';
 import { knowledgeTypesIdController } from '#routes/knowledge-types/[id]/controller.ts';
 import { knowledgeTypesController } from '#routes/knowledge-types/controller.ts';
 import { peopleIdController } from '#routes/people/[id]/controller.ts';
@@ -40,6 +42,10 @@ export function createApp() {
               description: 'Inspect the data sources that have ingested records.',
             },
             {
+              name: 'Knowledge',
+              description: 'Search and read knowledge distilled from records.',
+            },
+            {
               name: 'Knowledge Types',
               description: 'Manage the controlled vocabulary of knowledge types.',
             },
@@ -56,6 +62,8 @@ export function createApp() {
     .use(peopleIdController)
     .use(peopleMergeController)
     .use(dataSourcesController)
+    .use(knowledgeController)
+    .use(knowledgeIdController)
     .use(knowledgeTypesController)
     .use(knowledgeTypesIdController)
     .use(recordsController)
