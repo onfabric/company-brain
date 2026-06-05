@@ -228,6 +228,31 @@ describe('slack threads tests', () => {
       ],
     });
   });
+
+  it('re-reads the resync window on incremental runs, not just messages since the last sync', async () => {
+    const { nangoMock } = createTestContext();
+
+    // Mark the only channel as already synced at a far-future timestamp so the
+    // resync window (now - N days) is unambiguously the earlier of the two bounds.
+    const farFutureLastSync = '9999999999';
+    spyOn(nangoMock, 'getCheckpoint').mockResolvedValue({
+      channelsLastSyncDateJson: JSON.stringify({ C123: farFutureLastSync }),
+      lastSyncDate: '2024-01-01T00:00:00.000Z',
+    });
+    const getSpy = spyOn(nangoMock, 'get');
+
+    await createSync.exec(nangoMock);
+
+    const historyCall = getSpy.mock.calls.find(
+      ([config]) => (config as { endpoint?: string }).endpoint === 'conversations.history',
+    );
+    expect(historyCall).toBeDefined();
+    const oldest = Number((historyCall?.[0] as { params?: { oldest?: string } }).params?.oldest);
+    // The lookback must reach back before the last sync; otherwise threads whose
+    // root predates the previous run are never re-read, so new replies/edits and
+    // backfilled fields on older threads are missed.
+    expect(oldest).toBeLessThan(Number(farFutureLastSync));
+  });
 });
 
 function expectSlackThreadSchema(value: unknown): void {

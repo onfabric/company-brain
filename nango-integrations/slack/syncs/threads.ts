@@ -398,7 +398,13 @@ async function processChannel(
   // a wider backfill catches the root again. TODO: add Slack Events API webhook
   // handling so message_changed, message_deleted, reaction, and new-reply events
   // rebuild the affected SlackThread immediately by channel_id + thread_ts.
-  const oldest = lastSync ? Math.max(Number(lastSync), Number(ctx.resyncWindowTs)) : 0;
+  //
+  // lastSync is persisted at the run's upper bound (~now), so it is always more
+  // recent than resyncWindowTs. Take the earlier bound so each run re-reads the
+  // full resync window (and any longer gap since lastSync), not just messages
+  // newer than the previous run. Setting a large resyncWindowDays re-reads all
+  // history, which is how historical threads get backfilled with new fields.
+  const oldest = lastSync ? Math.min(Number(lastSync), Number(ctx.resyncWindowTs)) : 0;
   const channel = mapChannel(rawChannel);
 
   const maxSeenTs = await processRootMessagePages(
