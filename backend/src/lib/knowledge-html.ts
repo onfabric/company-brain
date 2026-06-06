@@ -139,6 +139,40 @@ export function renderKnowledgeHtmlPage(item: KnowledgeHtmlItem): string {
         margin-top: 4rem; padding-top: 1.25rem; border-top: 1px solid var(--border);
         font-family: var(--mono); font-size: 0.78rem; color: var(--muted);
       }
+
+      /* Component kit — opt-in via class, used by richer knowledge entries. */
+      article hr.rule { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+      article .lede { font-size: 1.2rem; line-height: 1.6; color: var(--text); margin: 0 0 0.6rem; }
+      article .meta-line { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); margin: 0.2rem 0 0; }
+      article .muted { color: var(--muted); }
+
+      .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.85rem; margin: 1.75rem 0; }
+      .stat { border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem; background: var(--surface); }
+      .stat .k { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+      .stat .v { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin: 0.4rem 0 0.2rem; }
+      .stat .d { font-size: 0.84rem; color: var(--muted); line-height: 1.45; }
+      .stat.accent .v { color: var(--accent-ink); }
+      .stat.warn .v { color: #b91c1c; }
+
+      ol.timeline, ul.timeline { list-style: none; padding: 0; margin: 1.5rem 0 0; }
+      .timeline > li { position: relative; padding: 0 0 1.7rem 1.6rem; border-left: 2px solid var(--border); margin-left: 5px; }
+      .timeline > li:last-child { padding-bottom: 0.2rem; }
+      .timeline > li::before { content: ""; position: absolute; left: -7px; top: 0.3rem; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+      .timeline > li.is-start::before { border-color: #2563eb; }
+      .timeline > li.is-end::before { border-color: #dc2626; }
+      .timeline .t-title { font-weight: 650; font-size: 1.05rem; margin: 0.35rem 0; }
+      .timeline .t-body { margin: 0.2rem 0; }
+
+      .tag { display: inline-block; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.18em 0.55em; border-radius: 999px; background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--accent-ink); vertical-align: middle; white-space: nowrap; }
+      .tag.blue { background: #dbeafe; color: #1d4ed8; }
+      .tag.red { background: #fee2e2; color: #b91c1c; }
+      .tag.gray { background: #f0f0f0; color: var(--muted); }
+
+      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+      .card { border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.2rem; background: var(--surface); }
+      .card h3 { margin: 0.1rem 0 0.5rem; font-size: 1.05rem; border: none; padding: 0; }
+      .card p { margin: 0.3rem 0; font-size: 0.95rem; }
+      .card .sub { font-size: 0.84rem; color: var(--muted); }
     </style>
   </head>
   <body>
