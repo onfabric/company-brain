@@ -5,11 +5,12 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { FileText, KeyRound, Loader2, LogOut, Users } from 'lucide-react';
+import { BookOpen, FileText, KeyRound, Loader2, LogOut, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card } from '#/components/ui/card.tsx';
 import { Skeleton } from '#/components/ui/skeleton.tsx';
+import { KnowledgeExplorer } from '#/features/knowledge/knowledge-explorer.tsx';
 import { PeopleManager } from '#/features/people/people-manager.tsx';
 import { ApiKeyGate } from '#/features/records/api-key-gate.tsx';
 import { RecordPreview } from '#/features/records/record-preview.tsx';
@@ -176,10 +177,7 @@ function AuthenticatedRecordsDashboard({
     isFetchingNextPage: recordsQuery.isFetchingNextPage,
     fetchNextPage: recordsQuery.fetchNextPage,
   });
-  const headerDescription =
-    activeTab === 'people'
-      ? `${peopleTotal.toLocaleString()} people ranked by records`
-      : `${total.toLocaleString()} records matching current filters`;
+  const headerDescription = descriptionForTab(activeTab, peopleTotal, total);
 
   const updateSearch = (next: Partial<RecordsRouteSearch>) => {
     void navigate({
@@ -222,6 +220,17 @@ function AuthenticatedRecordsDashboard({
             >
               <Users />
               People
+            </Button>
+            <Button
+              type="button"
+              role="tab"
+              size="sm"
+              variant={activeTab === 'knowledge' ? 'secondary' : 'ghost'}
+              aria-selected={activeTab === 'knowledge'}
+              onClick={() => updateSearch({ tab: 'knowledge' })}
+            >
+              <BookOpen />
+              Knowledge
             </Button>
           </div>
           <Button type="button" variant="outline" onClick={onChangeApiKey}>
@@ -274,7 +283,9 @@ function AuthenticatedRecordsDashboard({
             <RecordPreview record={selectedRecord} />
           </section>
         </>
-      ) : (
+      ) : null}
+
+      {activeTab === 'people' ? (
         <PeopleManager
           apiKey={apiKey}
           people={people}
@@ -287,9 +298,30 @@ function AuthenticatedRecordsDashboard({
           error={peopleQuery.error}
           onChangeApiKey={onChangeApiKey}
         />
-      )}
+      ) : null}
+
+      {activeTab === 'knowledge' ? (
+        <KnowledgeExplorer
+          apiKey={apiKey}
+          apiKeyVersion={apiKeyVersion}
+          search={search}
+          onChange={updateSearch}
+          onChangeApiKey={onChangeApiKey}
+        />
+      ) : null}
     </main>
   );
+}
+
+function descriptionForTab(activeTab: string, peopleTotal: number, recordsTotal: number) {
+  switch (activeTab) {
+    case 'people':
+      return `${peopleTotal.toLocaleString()} people ranked by records`;
+    case 'knowledge':
+      return 'Knowledge pages';
+    default:
+      return `${recordsTotal.toLocaleString()} records matching current filters`;
+  }
 }
 
 function selectedRecordFor(records: RecordHit[], selectedRecordId: string | undefined) {

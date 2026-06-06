@@ -19,6 +19,8 @@ describe('records route search helpers', () => {
       sortOrder: undefined,
       limit: 20,
       selectedRecordId: undefined,
+      knowledgeQ: undefined,
+      selectedKnowledgeId: undefined,
     });
   });
 
@@ -35,6 +37,8 @@ describe('records route search helpers', () => {
         sortOrder: 'desc',
         limit: 50,
         selectedRecordId: '019e8882-07f1-77e9-93cd-084f3e8491b2',
+        knowledgeQ: 'pricing',
+        selectedKnowledgeId: '019e8882-07f1-771c-993e-f6825a9224bd',
       }),
     ).toEqual({
       q: 'roadmap',
@@ -61,6 +65,8 @@ describe('records route search helpers', () => {
         sortOrder: undefined,
         limit: 20,
         selectedRecordId: '',
+        knowledgeQ: '',
+        selectedKnowledgeId: '',
       }),
     ).toEqual({
       tab: undefined,
@@ -73,12 +79,18 @@ describe('records route search helpers', () => {
       sortOrder: undefined,
       limit: 20,
       selectedRecordId: undefined,
+      knowledgeQ: undefined,
+      selectedKnowledgeId: undefined,
     });
   });
 
-  it('keeps the people tab in route search params', () => {
+  it('keeps non-default tabs in route search params', () => {
     expect(normalizeRouteSearch({ tab: 'people' }).tab).toBe('people');
     expect(cleanRouteSearch({ ...normalizeRouteSearch({ tab: 'people' }) }).tab).toBe('people');
+    expect(normalizeRouteSearch({ tab: 'knowledge' }).tab).toBe('knowledge');
+    expect(cleanRouteSearch({ ...normalizeRouteSearch({ tab: 'knowledge' }) }).tab).toBe(
+      'knowledge',
+    );
   });
 
   it('derives day keys from ISO timestamps', () => {

@@ -76,6 +76,18 @@ const PeopleResponseSchema = z.object({
   people: z.array(PersonDetailsSchema),
 });
 
+const KnowledgePreviewSchema = z.object({
+  id: z.uuid(),
+  title: z.string(),
+});
+
+const KnowledgePreviewResponseSchema = z.object({
+  total: z.number().int().nullable(),
+  limit: z.number().int(),
+  offset: z.number().int(),
+  results: z.array(KnowledgePreviewSchema),
+});
+
 export class BrainApiError extends Error {
   constructor(
     message: string,
@@ -104,12 +116,19 @@ export type RecordsResponse = z.infer<typeof RecordsResponseSchema>;
 export type RecordsQueryInput = z.infer<typeof RecordsQueryInputSchema>;
 export type Source = z.infer<typeof SourceSchema>;
 export type Person = z.infer<typeof PersonDetailsSchema>;
+export type KnowledgePreview = z.infer<typeof KnowledgePreviewSchema>;
+export type KnowledgePreviewResponse = z.infer<typeof KnowledgePreviewResponseSchema>;
 export type PersonUpdateInput = Partial<Pick<Person, 'name' | 'email' | 'is_external'>>;
 export type ListPeopleInput = {
   isExternal?: boolean;
   sortBy?: PeopleSortField;
   sortOrder?: PeopleSortOrder;
   query?: string;
+  limit?: number;
+  offset?: number;
+};
+export type ListKnowledgeInput = {
+  q?: string;
   limit?: number;
   offset?: number;
 };
@@ -172,6 +191,42 @@ export async function listPeople(apiKey: string, input: ListPeopleInput = {}) {
   }
   const query = params.toString();
   return await fetchBrain(`/people${query ? `?${query}` : ''}`, PeopleResponseSchema, apiKey);
+}
+
+export async function listKnowledge(apiKey: string, input: ListKnowledgeInput = {}) {
+  const params = new URLSearchParams({ view: 'preview' });
+  const search = input.q?.trim();
+  if (search) {
+    params.set('q', search);
+  }
+  if (input.limit !== undefined) {
+    params.set('limit', String(input.limit));
+  }
+  if (input.offset !== undefined) {
+    params.set('offset', String(input.offset));
+  }
+  return await fetchBrain(
+    `/knowledge?${params.toString()}`,
+    KnowledgePreviewResponseSchema,
+    apiKey,
+  );
+}
+
+export async function createKnowledgeBrowserSession(apiKey: string) {
+  const headers = new Headers();
+  headers.set('api-key', apiKey);
+  const response = await fetch('/sessions', {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new BrainApiError(errorMessage(response.status, message), response.status);
+  }
+
+  return true;
 }
 
 export async function getPerson(id: string, apiKey: string) {

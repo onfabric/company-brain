@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  KNOWLEDGE_HTML_HEADERS,
   knowledgePagePath,
   renderKnowledgeHtmlPage,
   sanitizeKnowledgeHtml,
@@ -34,6 +35,11 @@ describe('knowledge HTML', () => {
     expect(html).toContain('<!doctype html>');
     expect(html).toContain('Pricing &lt;Decision&gt;');
     expect(html).toContain(`/knowledge/pages/${LINKED_KNOWLEDGE_ID}`);
+    expect(html).toContain('target="_self"');
     expect(html).not.toContain('javascript:');
+  });
+
+  it('allows same-origin dashboard embedding', () => {
+    expect(KNOWLEDGE_HTML_HEADERS['content-security-policy']).toContain("frame-ancestors 'self'");
   });
 });
