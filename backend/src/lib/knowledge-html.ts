@@ -57,7 +57,7 @@ export function renderKnowledgeHtmlPage(item: KnowledgeHtmlItem): string {
     <title>${title}</title>
     <style>
       :root {
-        color-scheme: light dark;
+        color-scheme: light;
         --bg: #fafafa;
         --surface: #ffffff;
         --text: #171717;
@@ -68,18 +68,6 @@ export function renderKnowledgeHtmlPage(item: KnowledgeHtmlItem): string {
         --code-bg: #f5f5f5;
         --sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         --mono: ui-monospace, "Geist Mono", SFMono-Regular, Menlo, Consolas, monospace;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #0a0a0a;
-          --surface: #111312;
-          --text: #fafafa;
-          --muted: #a1a1a1;
-          --border: #262626;
-          --accent: #94e3a4;
-          --accent-ink: #94e3a4;
-          --code-bg: #171717;
-        }
       }
       * { box-sizing: border-box; }
       body {
