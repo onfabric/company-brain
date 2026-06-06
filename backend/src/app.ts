@@ -8,6 +8,7 @@ import { dataSourcesController } from '#routes/data-sources/controller.ts';
 import { healthController } from '#routes/health/controller.ts';
 import { knowledgeIdController } from '#routes/knowledge/[id]/controller.ts';
 import { knowledgeController } from '#routes/knowledge/controller.ts';
+import { knowledgePagesIdController } from '#routes/knowledge/pages/[id]/controller.ts';
 import { knowledgeTypesIdController } from '#routes/knowledge-types/[id]/controller.ts';
 import { knowledgeTypesController } from '#routes/knowledge-types/controller.ts';
 import { peopleIdController } from '#routes/people/[id]/controller.ts';
@@ -15,6 +16,7 @@ import { peopleController } from '#routes/people/controller.ts';
 import { peopleMergeController } from '#routes/people/merge/controller.ts';
 import { recordsIdController } from '#routes/records/[id]/controller.ts';
 import { recordsController } from '#routes/records/controller.ts';
+import { sessionsController } from '#routes/sessions/controller.ts';
 import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
 
 export function createApp() {
@@ -49,6 +51,10 @@ export function createApp() {
               name: 'Knowledge Types',
               description: 'Manage the controlled vocabulary of knowledge types.',
             },
+            {
+              name: 'Sessions',
+              description: 'Mint browser session cookies for navigable knowledge pages.',
+            },
           ],
           components: {
             securitySchemes: apiKeySecuritySchemes,
@@ -64,9 +70,11 @@ export function createApp() {
     .use(dataSourcesController)
     .use(knowledgeController)
     .use(knowledgeIdController)
+    .use(knowledgePagesIdController)
     .use(knowledgeTypesController)
     .use(knowledgeTypesIdController)
     .use(recordsController)
     .use(recordsIdController)
+    .use(sessionsController)
     .use(batchSaveController);
 }
