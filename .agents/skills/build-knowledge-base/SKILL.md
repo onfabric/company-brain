@@ -39,6 +39,8 @@ One iteration adds (or enriches) exactly one entity, with the user in the loop. 
 
 ### 3. Gather everything about the chosen entity
 
+Treat this as a deep-research project, not a lookup — the goal is a complete picture of the entity, reached by following leads until they stop changing it. The companion skill [research-knowledge-entity](../research-knowledge-entity/SKILL.md) is the playbook for this step (and step 5): how to mine every source and alias, what to look for per entity type, and how to know when the picture is complete. Read it before researching.
+
 - Search `records` and `people` exhaustively for the entity: every spelling, handle, email, and alias. Read the strongest records in full rather than skimming snippets.
 - Pull structured facts (role, dates, relationships, decisions, numbers) and keep the source `record` ids and `person` ids — you will link the entry to them.
 - Cross-reference existing knowledge: what do current entries already say about this entity, and which existing entries should this one connect to?
@@ -49,6 +51,8 @@ One iteration adds (or enriches) exactly one entity, with the user in the loop. 
 - If nothing fits the entity well (e.g. the records reveal a recurring kind of thing the current schema can't express), **suggest a new knowledge type to the user and let them approve it** before creating it. Keep types broad and reusable (a category like "Company" or "Decision"), not one-off labels.
 
 ### 5. Write the entry as HTML
+
+The body should read as a cohesive, complete *story* of the entity centered on that entity — not a Q&A or a filled-in form. See [research-knowledge-entity](../research-knowledge-entity/SKILL.md) for how to synthesize the research into a focused, Wikipedia-style narrative that links out to other entities instead of re-explaining them.
 
 - The body is an **HTML fragment** (just the content — the renderer supplies the page shell, heading, and styling). There is no required schema — choose whatever representation best fits this specific knowledge: prose, bullet lists, a definition list of facts, a table, a timeline (`<time>` + lists), `<details>`/`<summary>`, `<figure>`. A person might be a fact list + timeline; a company a fact table + relationships; a decision a short narrative with context and outcome.
 - **Write for the sanitizer.** Bodies are sanitized to an allowlist on save, and anything outside it is silently dropped. Use semantic tags and `class`/`id` for structure; do **not** rely on inline `style`, `<style>`, `<script>`, or inline SVG — they are stripped, and a body that sanitizes to nothing is rejected. When unsure what survives, confirm against the sanitizer rather than guessing. Keep it clean and content-first: no boilerplate, no provider/source plumbing, no restating what the title already says.
