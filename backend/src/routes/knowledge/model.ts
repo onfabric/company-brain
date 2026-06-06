@@ -1,5 +1,7 @@
 import { t } from 'elysia';
 import {
+  DEFAULT_KNOWLEDGE_RESULT_VIEW,
+  KNOWLEDGE_RESULT_VIEWS,
   KNOWLEDGE_SORT_FIELDS,
   KNOWLEDGE_SORT_ORDERS,
 } from '#repositories/knowledge.repository.ts';
@@ -16,6 +18,15 @@ const KnowledgeSortOrderSchema = t.Union(
   KNOWLEDGE_SORT_ORDERS.map((order) => t.Literal(order)),
   {
     description: 'Direction used for the selected sort field.',
+  },
+);
+
+const KnowledgeResultViewSchema = t.Union(
+  KNOWLEDGE_RESULT_VIEWS.map((view) => t.Literal(view)),
+  {
+    default: DEFAULT_KNOWLEDGE_RESULT_VIEW,
+    description:
+      'Response shape for results. preview returns only id and title; full returns complete knowledge items with search metadata.',
   },
 );
 
@@ -43,6 +54,7 @@ export const KnowledgeQuerySchema = t.Object({
   ),
   sort_by: t.Optional(KnowledgeSortFieldSchema),
   sort_order: t.Optional(KnowledgeSortOrderSchema),
+  view: t.Optional(KnowledgeResultViewSchema),
   limit: t.Optional(
     t.Integer({
       minimum: 1,
@@ -97,8 +109,16 @@ export const KnowledgeParticipantSchema = t.Object({
   }),
 });
 
+const KnowledgeIdSchema = t.String();
+const KnowledgeTitleSchema = t.String();
+
+export const KnowledgePreviewSchema = t.Object({
+  id: KnowledgeIdSchema,
+  title: KnowledgeTitleSchema,
+});
+
 export const KnowledgeSchema = t.Object({
-  id: t.String(),
+  id: KnowledgeIdSchema,
   created_at: t.String({
     format: 'date-time',
     description: 'Derived from the uuidv7 id; the moment the knowledge was distilled.',
@@ -107,7 +127,7 @@ export const KnowledgeSchema = t.Object({
     format: 'date-time',
     description: 'Last time the knowledge was modified.',
   }),
-  title: t.String(),
+  title: KnowledgeTitleSchema,
   body: t.String({
     description: 'Sanitized HTML fragment containing the full distilled content of the knowledge.',
   }),
@@ -133,12 +153,26 @@ export const KnowledgeHitSchema = t.Composite([
   }),
 ]);
 
-export const KnowledgeResponseSchema = t.Object({
+const KnowledgePageFields = {
   total: t.Union([t.Integer(), t.Null()], {
     description:
       'Total number of knowledge matching the filters, ignoring pagination. Returned on the first page (offset 0); null on later pages to avoid recounting while scrolling.',
   }),
   limit: t.Integer(),
   offset: t.Integer(),
+};
+
+export const KnowledgePreviewResponseSchema = t.Object({
+  ...KnowledgePageFields,
+  results: t.Array(KnowledgePreviewSchema),
+});
+
+export const KnowledgeFullResponseSchema = t.Object({
+  ...KnowledgePageFields,
   results: t.Array(KnowledgeHitSchema),
 });
+
+export const KnowledgeResponseSchema = t.Union([
+  KnowledgePreviewResponseSchema,
+  KnowledgeFullResponseSchema,
+]);

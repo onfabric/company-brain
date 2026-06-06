@@ -3,9 +3,10 @@ import { BadRequestError, NotFoundError } from '#lib/errors.ts';
 import {
   type CreateKnowledgeInput,
   type CreateKnowledgeResult,
+  type KnowledgeFullSearchPage,
+  type KnowledgePreviewSearchPage,
   KnowledgeRepositoryContract,
   type KnowledgeRow,
-  type KnowledgeSearchPage,
   type KnowledgeSearchParams,
 } from '#repositories/knowledge.repository.ts';
 import { KnowledgeService } from '#services/knowledge.service.ts';
@@ -27,20 +28,41 @@ const ROW: KnowledgeRow = {
 };
 
 class MockKnowledgeRepository extends KnowledgeRepositoryContract {
-  searchCalls: KnowledgeSearchParams[] = [];
+  previewSearchCalls: KnowledgeSearchParams[] = [];
+  fullSearchCalls: KnowledgeSearchParams[] = [];
   createCalls: CreateKnowledgeInput[] = [];
 
-  constructor(
-    private readonly page: KnowledgeSearchPage = { total: 0, results: [] },
-    private readonly row: KnowledgeRow | null = null,
-    private readonly createResult: CreateKnowledgeResult = { ok: true, id: ROW.id },
-  ) {
+  private readonly previewPage: KnowledgePreviewSearchPage;
+  private readonly fullPage: KnowledgeFullSearchPage;
+  private readonly row: KnowledgeRow | null;
+  private readonly createResult: CreateKnowledgeResult;
+
+  constructor({
+    previewPage = { total: 0, results: [] },
+    fullPage = { total: 0, results: [] },
+    row = null,
+    createResult = { ok: true, id: ROW.id },
+  }: {
+    previewPage?: KnowledgePreviewSearchPage;
+    fullPage?: KnowledgeFullSearchPage;
+    row?: KnowledgeRow | null;
+    createResult?: CreateKnowledgeResult;
+  } = {}) {
     super();
+    this.previewPage = previewPage;
+    this.fullPage = fullPage;
+    this.row = row;
+    this.createResult = createResult;
   }
 
-  search(params: KnowledgeSearchParams): Promise<KnowledgeSearchPage> {
-    this.searchCalls.push(params);
-    return Promise.resolve(this.page);
+  searchPreview(params: KnowledgeSearchParams): Promise<KnowledgePreviewSearchPage> {
+    this.previewSearchCalls.push(params);
+    return Promise.resolve(this.previewPage);
+  }
+
+  searchFull(params: KnowledgeSearchParams): Promise<KnowledgeFullSearchPage> {
+    this.fullSearchCalls.push(params);
+    return Promise.resolve(this.fullPage);
   }
 
   getById(): Promise<KnowledgeRow | null> {
@@ -61,33 +83,59 @@ describe('KnowledgeService', () => {
     ).rejects.toBeInstanceOf(BadRequestError);
   });
 
-  it('echoes pagination and maps the timestamp columns to ISO strings', async () => {
+  it('returns preview hits by default', async () => {
     const repo = new MockKnowledgeRepository({
-      total: 1,
-      results: [{ ...ROW, score: HIT_SCORE, snippet: 'starter tier free' }],
+      previewPage: {
+        total: 1,
+        results: [ROW],
+      },
     });
     const service = new KnowledgeService(repo);
 
     const result = await service.search({ query: 'pricing', limit: 10, offset: 0 });
 
+    expect(result).toEqual({
+      total: 1,
+      limit: 10,
+      offset: 0,
+      results: [{ id: ROW.id, title: ROW.title }],
+    });
+    expect(repo.previewSearchCalls).toHaveLength(1);
+    expect(repo.fullSearchCalls).toHaveLength(0);
+  });
+
+  it('echoes pagination and maps the timestamp columns to ISO strings', async () => {
+    const repo = new MockKnowledgeRepository({
+      fullPage: {
+        total: 1,
+        results: [{ ...ROW, score: HIT_SCORE, snippet: 'starter tier free' }],
+      },
+    });
+    const service = new KnowledgeService(repo);
+
+    const result = await service.search({ query: 'pricing', view: 'full', limit: 10, offset: 0 });
+
     expect(result.total).toBe(1);
     expect(result.limit).toBe(10);
     expect(result.offset).toBe(0);
     const [hit] = result.results;
-    expect(hit?.created_at).toBe(CREATED_AT.toISOString());
-    expect(hit?.updated_at).toBe(UPDATED_AT.toISOString());
-    expect(hit?.knowledge_type).toEqual({ id: ROW.knowledge_type_id, name: 'decision' });
-    expect(hit?.score).toBe(HIT_SCORE);
-    expect(hit?.source_record_ids).toEqual(ROW.source_record_ids);
+    expect(hit).toMatchObject({
+      created_at: CREATED_AT.toISOString(),
+      updated_at: UPDATED_AT.toISOString(),
+      knowledge_type: { id: ROW.knowledge_type_id, name: 'decision' },
+      score: HIT_SCORE,
+      source_record_ids: ROW.source_record_ids,
+    });
+    expect(repo.fullSearchCalls).toHaveLength(1);
   });
 
   it('throws when the knowledge item is missing', async () => {
-    const service = new KnowledgeService(new MockKnowledgeRepository(undefined, null));
+    const service = new KnowledgeService(new MockKnowledgeRepository());
     await expect(service.getKnowledge(ROW.id)).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('maps a found knowledge item', async () => {
-    const service = new KnowledgeService(new MockKnowledgeRepository(undefined, ROW));
+    const service = new KnowledgeService(new MockKnowledgeRepository({ row: ROW }));
     const item = await service.getKnowledge(ROW.id);
     expect(item.title).toBe('Q1 pricing decision');
     expect(item.html_url).toBe(`/knowledge/pages/${ROW.id}`);
@@ -95,7 +143,7 @@ describe('KnowledgeService', () => {
   });
 
   it('dedupes link ids before creating and returns the created item', async () => {
-    const repo = new MockKnowledgeRepository(undefined, ROW, { ok: true, id: ROW.id });
+    const repo = new MockKnowledgeRepository({ row: ROW, createResult: { ok: true, id: ROW.id } });
     const service = new KnowledgeService(repo);
 
     const item = await service.create({
@@ -111,7 +159,7 @@ describe('KnowledgeService', () => {
   });
 
   it('sanitizes HTML before creating knowledge', async () => {
-    const repo = new MockKnowledgeRepository(undefined, ROW, { ok: true, id: ROW.id });
+    const repo = new MockKnowledgeRepository({ row: ROW, createResult: { ok: true, id: ROW.id } });
     const service = new KnowledgeService(repo);
 
     await service.create({
@@ -141,9 +189,11 @@ describe('KnowledgeService', () => {
 
   it('renders knowledge as a sanitized HTML page', async () => {
     const service = new KnowledgeService(
-      new MockKnowledgeRepository(undefined, {
-        ...ROW,
-        body: '<p>See <a href="knowledge:019e8882-07f1-771c-993e-f6825a9224bc">next</a></p><script>alert("x")</script>',
+      new MockKnowledgeRepository({
+        row: {
+          ...ROW,
+          body: '<p>See <a href="knowledge:019e8882-07f1-771c-993e-f6825a9224bc">next</a></p><script>alert("x")</script>',
+        },
       }),
     );
 
@@ -154,11 +204,13 @@ describe('KnowledgeService', () => {
   });
 
   it('rejects unknown referenced ids with a 400', async () => {
-    const repo = new MockKnowledgeRepository(undefined, null, {
-      ok: false,
-      missingType: true,
-      missingPersonIds: [],
-      missingRecordIds: ['019e7000-0000-7000-8000-000000000099'],
+    const repo = new MockKnowledgeRepository({
+      createResult: {
+        ok: false,
+        missingType: true,
+        missingPersonIds: [],
+        missingRecordIds: ['019e7000-0000-7000-8000-000000000099'],
+      },
     });
     const service = new KnowledgeService(repo);
 
