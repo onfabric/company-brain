@@ -72,11 +72,30 @@ export type CreateKnowledgeResult =
       missingRecordIds: Records['id'][];
     };
 
+export type UpdateKnowledgeInput = Partial<
+  Pick<Knowledge, 'title' | 'body' | 'knowledge_type_id'>
+> & {
+  personIds?: People['id'][];
+  recordIds?: Records['id'][];
+};
+
+export type UpdateKnowledgeResult =
+  | { ok: true; id: Knowledge['id'] }
+  | { ok: false; notFound: true }
+  | {
+      ok: false;
+      notFound: false;
+      missingType: boolean;
+      missingPersonIds: People['id'][];
+      missingRecordIds: Records['id'][];
+    };
+
 export abstract class KnowledgeRepositoryContract {
   abstract searchPreview(params: KnowledgeSearchParams): Promise<KnowledgePreviewSearchPage>;
   abstract searchFull(params: KnowledgeSearchParams): Promise<KnowledgeFullSearchPage>;
   abstract getById(id: Knowledge['id']): Promise<KnowledgeRow | null>;
   abstract create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult>;
+  abstract update(id: Knowledge['id'], input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult>;
 }
 
 export class KnowledgeRepository extends Repository implements KnowledgeRepositoryContract {
@@ -202,6 +221,72 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
       }
 
       return { ok: true, id: created.id };
+    });
+  }
+
+  update(id: Knowledge['id'], input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult> {
+    return this.sql.begin(async (tx) => {
+      const [existing] = await tx<{ exists: true }[]>`
+        SELECT true AS exists FROM brain.knowledge WHERE id = ${id}
+      `;
+      if (!existing) {
+        return { ok: false, notFound: true };
+      }
+
+      let missingType = false;
+      if (input.knowledge_type_id !== undefined) {
+        const [type] = await tx<{ exists: true }[]>`
+          SELECT true AS exists FROM brain.knowledge_types WHERE id = ${input.knowledge_type_id}
+        `;
+        missingType = !type;
+      }
+      const missingPersonIds = input.personIds ? await this.missingPeople(tx, input.personIds) : [];
+      const missingRecordIds = input.recordIds
+        ? await this.missingRecords(tx, input.recordIds)
+        : [];
+
+      if (missingType || missingPersonIds.length > 0 || missingRecordIds.length > 0) {
+        return { ok: false, notFound: false, missingType, missingPersonIds, missingRecordIds };
+      }
+
+      const columns: Partial<Pick<Knowledge, 'title' | 'body' | 'knowledge_type_id'>> = {
+        ...(input.title !== undefined && { title: input.title }),
+        ...(input.body !== undefined && { body: input.body }),
+        ...(input.knowledge_type_id !== undefined && {
+          knowledge_type_id: input.knowledge_type_id,
+        }),
+      };
+
+      // The set_updated_at trigger bumps updated_at on any UPDATE, so when only
+      // links change we still touch the row to keep updated_at meaningful.
+      if (Object.keys(columns).length > 0) {
+        await tx`UPDATE brain.knowledge SET ${tx(columns)} WHERE id = ${id}`;
+      } else {
+        await tx`UPDATE brain.knowledge SET updated_at = now() WHERE id = ${id}`;
+      }
+
+      if (input.personIds !== undefined) {
+        await tx`DELETE FROM brain.knowledge_people WHERE knowledge_id = ${id}`;
+        if (input.personIds.length > 0) {
+          await tx`
+            INSERT INTO brain.knowledge_people ${tx(
+              input.personIds.map((person_id) => ({ knowledge_id: id, person_id })),
+            )}
+          `;
+        }
+      }
+      if (input.recordIds !== undefined) {
+        await tx`DELETE FROM brain.knowledge_records WHERE knowledge_id = ${id}`;
+        if (input.recordIds.length > 0) {
+          await tx`
+            INSERT INTO brain.knowledge_records ${tx(
+              input.recordIds.map((record_id) => ({ knowledge_id: id, record_id })),
+            )}
+          `;
+        }
+      }
+
+      return { ok: true, id };
     });
   }
 

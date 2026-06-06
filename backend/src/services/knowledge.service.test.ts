@@ -8,6 +8,8 @@ import {
   KnowledgeRepositoryContract,
   type KnowledgeRow,
   type KnowledgeSearchParams,
+  type UpdateKnowledgeInput,
+  type UpdateKnowledgeResult,
 } from '#repositories/knowledge.repository.ts';
 import { KnowledgeService } from '#services/knowledge.service.ts';
 
@@ -31,28 +33,33 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
   previewSearchCalls: KnowledgeSearchParams[] = [];
   fullSearchCalls: KnowledgeSearchParams[] = [];
   createCalls: CreateKnowledgeInput[] = [];
+  updateCalls: { id: string; input: UpdateKnowledgeInput }[] = [];
 
   private readonly previewPage: KnowledgePreviewSearchPage;
   private readonly fullPage: KnowledgeFullSearchPage;
   private readonly row: KnowledgeRow | null;
   private readonly createResult: CreateKnowledgeResult;
+  private readonly updateResult: UpdateKnowledgeResult;
 
   constructor({
     previewPage = { total: 0, results: [] },
     fullPage = { total: 0, results: [] },
     row = null,
     createResult = { ok: true, id: ROW.id },
+    updateResult = { ok: true, id: ROW.id },
   }: {
     previewPage?: KnowledgePreviewSearchPage;
     fullPage?: KnowledgeFullSearchPage;
     row?: KnowledgeRow | null;
     createResult?: CreateKnowledgeResult;
+    updateResult?: UpdateKnowledgeResult;
   } = {}) {
     super();
     this.previewPage = previewPage;
     this.fullPage = fullPage;
     this.row = row;
     this.createResult = createResult;
+    this.updateResult = updateResult;
   }
 
   searchPreview(params: KnowledgeSearchParams): Promise<KnowledgePreviewSearchPage> {
@@ -72,6 +79,11 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
   create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult> {
     this.createCalls.push(input);
     return Promise.resolve(this.createResult);
+  }
+
+  update(id: string, input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult> {
+    this.updateCalls.push({ id, input });
+    return Promise.resolve(this.updateResult);
   }
 }
 
@@ -222,6 +234,55 @@ describe('KnowledgeService', () => {
         person_ids: [],
         record_ids: ['019e7000-0000-7000-8000-000000000099'],
       }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+  });
+
+  it('dedupes link ids before updating and returns the updated item', async () => {
+    const repo = new MockKnowledgeRepository({ row: ROW });
+    const service = new KnowledgeService(repo);
+
+    const item = await service.update(ROW.id, {
+      body: '<p>Revised</p><script>alert("x")</script>',
+      person_ids: ['019e9000-0000-7000-8000-00000000000a', '019e9000-0000-7000-8000-00000000000a'],
+    });
+
+    expect(repo.updateCalls[0]?.input.body).toBe('<p>Revised</p>');
+    expect(repo.updateCalls[0]?.input.personIds).toEqual(['019e9000-0000-7000-8000-00000000000a']);
+    expect(repo.updateCalls[0]?.input.recordIds).toBeUndefined();
+    expect(item.id).toBe(ROW.id);
+  });
+
+  it('rejects an update whose body has no safe content', async () => {
+    const service = new KnowledgeService(new MockKnowledgeRepository({ row: ROW }));
+
+    await expect(
+      service.update(ROW.id, { body: '<script>alert("x")</script>' }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+  });
+
+  it('throws NotFound when updating a missing knowledge item', async () => {
+    const repo = new MockKnowledgeRepository({
+      updateResult: { ok: false, notFound: true },
+    });
+    const service = new KnowledgeService(repo);
+
+    await expect(service.update(ROW.id, { title: 'x' })).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('rejects unknown referenced ids on update with a 400', async () => {
+    const repo = new MockKnowledgeRepository({
+      updateResult: {
+        ok: false,
+        notFound: false,
+        missingType: false,
+        missingPersonIds: ['019e9000-0000-7000-8000-0000000000bb'],
+        missingRecordIds: [],
+      },
+    });
+    const service = new KnowledgeService(repo);
+
+    await expect(
+      service.update(ROW.id, { person_ids: ['019e9000-0000-7000-8000-0000000000bb'] }),
     ).rejects.toBeInstanceOf(BadRequestError);
   });
 });
