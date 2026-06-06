@@ -149,7 +149,7 @@ export function renderKnowledgeHtmlPage(item: KnowledgeHtmlItem): string {
       .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.85rem; margin: 1.75rem 0; }
       .stat { border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem; background: var(--surface); min-width: 0; }
       .stat .k { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-      .stat .v { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 0.4rem 0 0.2rem; overflow-wrap: anywhere; word-break: break-word; hyphens: auto; }
+      .stat .v { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 0.4rem 0 0.2rem; overflow-wrap: anywhere; word-break: break-word; }
       .stat .v code { font-size: 0.82em; background: none; padding: 0; }
       .stat .d { font-size: 0.84rem; color: var(--muted); line-height: 1.45; overflow-wrap: anywhere; }
       .stat.accent .v { color: var(--accent-ink); }
