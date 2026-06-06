@@ -1,4 +1,9 @@
 import { BadRequestError, NotFoundError } from '#lib/errors.ts';
+import {
+  knowledgePagePath,
+  renderKnowledgeHtmlPage,
+  sanitizeKnowledgeHtml,
+} from '#lib/knowledge-html.ts';
 import type {
   KnowledgeRepositoryContract,
   KnowledgeRow,
@@ -14,12 +19,12 @@ export type CreateKnowledge = {
   record_ids: string[];
 };
 
-type KnowledgeType = {
+export type KnowledgeType = {
   id: string;
   name: string;
 };
 
-type Participant = {
+export type Participant = {
   id: string;
   name: string | null;
   email: string | null;
@@ -27,12 +32,13 @@ type Participant = {
   handle: string | null;
 };
 
-type KnowledgeItem = {
+export type KnowledgeItem = {
   id: string;
   created_at: string;
   updated_at: string;
   title: string;
   body: string;
+  html_url: string;
   knowledge_type: KnowledgeType;
   participants: Participant[];
   source_record_ids: string[];
@@ -80,10 +86,19 @@ export class KnowledgeService extends Service {
     return this.toItem(row);
   }
 
+  async getKnowledgeHtmlPage(id: string): Promise<string> {
+    return renderKnowledgeHtmlPage(await this.getKnowledge(id));
+  }
+
   async create(input: CreateKnowledge): Promise<KnowledgeItem> {
+    const body = sanitizeKnowledgeHtml(input.body);
+    if (body.trim().length === 0) {
+      throw new BadRequestError('body must contain safe HTML content');
+    }
+
     const result = await this.knowledgeRepo.create({
       title: input.title,
-      body: input.body,
+      body,
       knowledge_type_id: input.knowledge_type_id,
       personIds: [...new Set(input.person_ids)],
       recordIds: [...new Set(input.record_ids)],
@@ -114,6 +129,7 @@ export class KnowledgeService extends Service {
       updated_at: row.updated_at.toISOString(),
       title: row.title,
       body: row.body,
+      html_url: knowledgePagePath(row.id),
       knowledge_type: { id: row.knowledge_type_id, name: row.knowledge_type_name },
       participants: row.participants,
       source_record_ids: row.source_record_ids,

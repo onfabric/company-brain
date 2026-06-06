@@ -62,7 +62,10 @@ export const KnowledgeQuerySchema = t.Object({
 
 export const CreateKnowledgeBodySchema = t.Object({
   title: t.String({ minLength: 1, description: 'Short title of the knowledge.' }),
-  body: t.String({ minLength: 1, description: 'Full distilled content of the knowledge.' }),
+  body: t.String({
+    minLength: 1,
+    description: 'Sanitized HTML fragment containing the full distilled content of the knowledge.',
+  }),
   knowledge_type_id: t.String({ format: 'uuid' }),
   person_ids: t.Optional(
     t.Array(t.String({ format: 'uuid' }), {
@@ -105,7 +108,12 @@ export const KnowledgeSchema = t.Object({
     description: 'Last time the knowledge was modified.',
   }),
   title: t.String(),
-  body: t.String({ description: 'Full distilled content of the knowledge.' }),
+  body: t.String({
+    description: 'Sanitized HTML fragment containing the full distilled content of the knowledge.',
+  }),
+  html_url: t.String({
+    description: 'Browser-navigable HTML representation of this knowledge item.',
+  }),
   knowledge_type: KnowledgeTypeRefSchema,
   participants: t.Array(KnowledgeParticipantSchema),
   source_record_ids: t.Array(t.String({ format: 'uuid' }), {

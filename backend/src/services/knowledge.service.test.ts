@@ -90,6 +90,7 @@ describe('KnowledgeService', () => {
     const service = new KnowledgeService(new MockKnowledgeRepository(undefined, ROW));
     const item = await service.getKnowledge(ROW.id);
     expect(item.title).toBe('Q1 pricing decision');
+    expect(item.html_url).toBe(`/knowledge/pages/${ROW.id}`);
     expect(item.knowledge_type.name).toBe('decision');
   });
 
@@ -107,6 +108,49 @@ describe('KnowledgeService', () => {
 
     expect(repo.createCalls[0]?.personIds).toEqual(['019e9000-0000-7000-8000-00000000000a']);
     expect(item.id).toBe(ROW.id);
+  });
+
+  it('sanitizes HTML before creating knowledge', async () => {
+    const repo = new MockKnowledgeRepository(undefined, ROW, { ok: true, id: ROW.id });
+    const service = new KnowledgeService(repo);
+
+    await service.create({
+      title: ROW.title,
+      body: '<p>Safe</p><script>alert("x")</script>',
+      knowledge_type_id: ROW.knowledge_type_id,
+      person_ids: [],
+      record_ids: [],
+    });
+
+    expect(repo.createCalls[0]?.body).toBe('<p>Safe</p>');
+  });
+
+  it('rejects HTML that has no safe content', async () => {
+    const service = new KnowledgeService(new MockKnowledgeRepository());
+
+    await expect(
+      service.create({
+        title: ROW.title,
+        body: '<script>alert("x")</script>',
+        knowledge_type_id: ROW.knowledge_type_id,
+        person_ids: [],
+        record_ids: [],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+  });
+
+  it('renders knowledge as a sanitized HTML page', async () => {
+    const service = new KnowledgeService(
+      new MockKnowledgeRepository(undefined, {
+        ...ROW,
+        body: '<p>See <a href="knowledge:019e8882-07f1-771c-993e-f6825a9224bc">next</a></p><script>alert("x")</script>',
+      }),
+    );
+
+    const html = await service.getKnowledgeHtmlPage(ROW.id);
+
+    expect(html).toContain('/knowledge/pages/019e8882-07f1-771c-993e-f6825a9224bc');
+    expect(html).not.toContain('<script>');
   });
 
   it('rejects unknown referenced ids with a 400', async () => {
