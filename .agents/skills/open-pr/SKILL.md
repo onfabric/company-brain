@@ -1,17 +1,18 @@
 ---
 name: open-pr
-description: Use this repo-local skill when asked to open, prepare, publish, or shepherd a pull request in Company Brain. Every PR opened with this skill must be shepherded through merge and post-merge CI; if post-merge CI fails, create a narrow repair PR.
+description: Use this repo-local skill when asked to open, prepare, publish, or shepherd a pull request in Company Brain. Never merge a PR unless the user explicitly asks for that merge. PRs opened with this skill should be shepherded through pre-merge checks, and through post-merge CI only after a user or another actor merges them.
 ---
 
 # Open PR
 
-Use this skill to finish work by opening a pull request and shepherding it until the merged commit's CI result is known. Shepherding is mandatory whenever this skill is invoked.
+Use this skill to finish work by opening a pull request and shepherding it through pre-merge checks. Shepherding is mandatory whenever this skill is invoked, but it does not authorize merging.
 
 ## Ground Rules
 
 - Preserve user changes. Do not stage, rewrite, revert, or clean up unrelated work.
 - Use non-interactive git and GitHub CLI commands.
 - Never push directly to `main`.
+- Never merge a PR unless the user explicitly asks you to merge that specific PR. Passing checks, clean mergeability, this skill being invoked, or the word "shepherd" are not merge approval.
 - Keep PRs narrow. If post-merge CI fails, fix only the failure caused by the merged PR or the smallest clear compatibility issue exposed by it.
 
 ## Write The PR Description
@@ -28,12 +29,14 @@ Write the PR body so someone uninvolved can quickly understand what changed, why
 
 After opening a PR, do not treat the task as complete until one of these is true:
 
-- The PR is merged and post-merge CI for the merged commit passes.
+- Pre-merge checks pass and the PR is still open, so the user has been told it is ready for review or merge.
+- The user explicitly asks you to wait for a human merge; arrange a follow-up in the current thread to continue after merge.
+- The PR is merged by the user or another actor and post-merge CI for the merged commit passes.
 - The PR is closed without merge and the user has been told.
 - Post-merge CI fails and a repair PR has been opened.
 - GitHub state or logs are unavailable or ambiguous enough that user input is required.
 
-If waiting for review, merge, or CI would exceed the current turn, arrange a follow-up in the current thread and resume shepherding later. Keep enough state in the follow-up prompt to continue: PR URL, PR number, branch, base branch, current status, and the next check to run.
+If waiting for review, a user-approved merge, or CI would exceed the current turn, arrange a follow-up in the current thread and resume shepherding later. Keep enough state in the follow-up prompt to continue: PR URL, PR number, branch, base branch, current status, and the next check to run.
 
 Poll the PR with GitHub CLI, for example:
 
@@ -41,11 +44,15 @@ Poll the PR with GitHub CLI, for example:
 gh pr view "$PR_NUMBER" --json number,state,mergedAt,mergeCommit,headRefName,baseRefName,url
 ```
 
-When the PR is still open, wait and poll again. When it is closed without merge, report that and stop.
+When the PR is still open and checks are still pending, wait and poll again. When checks pass, report that the PR is ready and stop unless the user has explicitly asked you to keep watching. When it is closed without merge, report that and stop.
+
+## Explicit Merge Approval Required
+
+Do not run `gh pr merge`, use auto-merge, press merge buttons through browser automation, or otherwise cause a PR to merge unless the user explicitly asks you to merge that specific PR. If a PR is mergeable and checks pass, report that state to the user and stop or schedule a follow-up. If the user later asks you to merge, then merge using the repository's normal merge style and continue with post-merge CI shepherding.
 
 ## Find The Merged Commit
 
-When the PR is merged, identify the exact commit on the base branch whose CI should be checked.
+When the PR is merged by an approved merge action, the user, or another actor, identify the exact commit on the base branch whose CI should be checked.
 
 Prefer the PR merge commit from GitHub:
 

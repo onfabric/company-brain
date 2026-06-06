@@ -4,7 +4,6 @@ declare global {
       readonly DATABASE_URL?: string;
       readonly PORT?: string;
       readonly BRAIN_API_KEY?: string;
-      readonly BRAIN_SESSION_SECRET?: string;
     }
   }
 }
@@ -15,7 +14,6 @@ type Env = {
   databaseUrl: string;
   port: number;
   brainApiKey: string;
-  brainSessionSecret: string;
 };
 
 function loadEnv(): Env {
@@ -33,7 +31,6 @@ function loadEnv(): Env {
     databaseUrl,
     port: process.env.PORT ? Number(process.env.PORT) : DEFAULT_PORT,
     brainApiKey,
-    brainSessionSecret: process.env.BRAIN_SESSION_SECRET ?? brainApiKey,
   };
 }
 
