@@ -147,10 +147,11 @@ export function renderKnowledgeHtmlPage(item: KnowledgeHtmlItem): string {
       article .muted { color: var(--muted); }
 
       .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.85rem; margin: 1.75rem 0; }
-      .stat { border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem; background: var(--surface); }
+      .stat { border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem; background: var(--surface); min-width: 0; }
       .stat .k { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-      .stat .v { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin: 0.4rem 0 0.2rem; }
-      .stat .d { font-size: 0.84rem; color: var(--muted); line-height: 1.45; }
+      .stat .v { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 0.4rem 0 0.2rem; overflow-wrap: anywhere; word-break: break-word; hyphens: auto; }
+      .stat .v code { font-size: 0.82em; background: none; padding: 0; }
+      .stat .d { font-size: 0.84rem; color: var(--muted); line-height: 1.45; overflow-wrap: anywhere; }
       .stat.accent .v { color: var(--accent-ink); }
       .stat.warn .v { color: #b91c1c; }
 
@@ -169,10 +170,12 @@ export function renderKnowledgeHtmlPage(item: KnowledgeHtmlItem): string {
       .tag.gray { background: #f0f0f0; color: var(--muted); }
 
       .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
-      .card { border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.2rem; background: var(--surface); }
-      .card h3 { margin: 0.1rem 0 0.5rem; font-size: 1.05rem; border: none; padding: 0; }
-      .card p { margin: 0.3rem 0; font-size: 0.95rem; }
+      .card { border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.2rem; background: var(--surface); min-width: 0; }
+      .card h3 { margin: 0.1rem 0 0.5rem; font-size: 1.05rem; border: none; padding: 0; overflow-wrap: anywhere; }
+      .card p { margin: 0.3rem 0; font-size: 0.95rem; overflow-wrap: anywhere; }
       .card .sub { font-size: 0.84rem; color: var(--muted); }
+      .meta-line { overflow-wrap: anywhere; }
+      .meta-line code, article p code, li code { overflow-wrap: anywhere; word-break: break-word; }
     </style>
   </head>
   <body>
