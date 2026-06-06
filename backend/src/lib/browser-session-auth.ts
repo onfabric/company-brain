@@ -119,7 +119,7 @@ function signatureMatches(payload: string, signature: string): boolean {
 }
 
 function sign(payload: string): string {
-  return createHmac('sha256', env.brainSessionSecret).update(payload).digest('base64url');
+  return createHmac('sha256', env.brainApiKey).update(payload).digest('base64url');
 }
 
 function headerValue(headers: RequestHeaders, name: string): string | null {
