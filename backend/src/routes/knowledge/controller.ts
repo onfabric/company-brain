@@ -19,7 +19,7 @@ export const knowledgeController = new Elysia()
     '/knowledge',
     async ({ query, knowledgeService, logger, status }) => {
       logger.info(
-        `searching knowledge: q=${query.q ?? ''} type=${query.knowledge_type_id ?? ''} people=${query.person_id?.length ?? 0} record=${query.record_id ?? ''} sort=${query.sort_by ?? ''}:${query.sort_order ?? ''}`,
+        `searching knowledge: q=${query.q ?? ''} type=${query.knowledge_type_id ?? ''} people=${query.person_id?.length ?? 0} record=${query.record_id ?? ''} sort=${query.sort_by ?? ''}:${query.sort_order ?? ''} view=${query.view ?? ''}`,
       );
       const result = await knowledgeService.search({
         query: query.q,
@@ -28,6 +28,7 @@ export const knowledgeController = new Elysia()
         recordId: query.record_id,
         sortBy: query.sort_by,
         sortOrder: query.sort_order,
+        view: query.view,
         limit: query.limit ?? DEFAULT_LIMIT,
         offset: query.offset ?? DEFAULT_OFFSET,
       });
@@ -39,7 +40,7 @@ export const knowledgeController = new Elysia()
         tags: ['Knowledge'],
         summary: 'List and search knowledge',
         description:
-          'Full-text search over distilled knowledge, with optional filtering via query parameters. Omit the query to list knowledge matching the filters. Results are paginated.',
+          'Full-text search over distilled knowledge, with optional filtering via query parameters. Omit the query to list knowledge matching the filters. Results are paginated. Results default to preview objects containing only id and title; use view=full to return complete knowledge items.',
       },
       query: KnowledgeQuerySchema,
       response: {

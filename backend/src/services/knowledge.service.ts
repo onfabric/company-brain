@@ -4,10 +4,12 @@ import {
   renderKnowledgeHtmlPage,
   sanitizeKnowledgeHtml,
 } from '#lib/knowledge-html.ts';
-import type {
-  KnowledgeRepositoryContract,
-  KnowledgeRow,
-  KnowledgeSearchParams,
+import {
+  DEFAULT_KNOWLEDGE_RESULT_VIEW,
+  type KnowledgeRepositoryContract,
+  type KnowledgeResultView,
+  type KnowledgeRow,
+  type KnowledgeSearchParams,
 } from '#repositories/knowledge.repository.ts';
 import { Service } from '#services/service.ts';
 
@@ -49,6 +51,14 @@ type SearchHit = KnowledgeItem & {
   snippet: string | null;
 };
 
+export type KnowledgePreviewItem = Pick<KnowledgeItem, 'id' | 'title'>;
+
+export type KnowledgeSearchRequest = KnowledgeSearchParams & {
+  view?: KnowledgeResultView;
+};
+
+type SearchResult = SearchHit | KnowledgePreviewItem;
+
 export class KnowledgeService extends Service {
   private readonly knowledgeRepo: KnowledgeRepositoryContract;
 
@@ -58,23 +68,35 @@ export class KnowledgeService extends Service {
   }
 
   async search(
-    params: KnowledgeSearchParams,
-  ): Promise<{ total: number | null; limit: number; offset: number; results: SearchHit[] }> {
+    params: KnowledgeSearchRequest,
+  ): Promise<{ total: number | null; limit: number; offset: number; results: SearchResult[] }> {
     if (params.sortBy === 'relevance' && !params.query) {
       throw new BadRequestError('sort_by=relevance requires q');
     }
 
-    const { total, results } = await this.knowledgeRepo.search(params);
+    const view = params.view ?? DEFAULT_KNOWLEDGE_RESULT_VIEW;
+
+    if (view === 'full') {
+      const { total, results } = await this.knowledgeRepo.searchFull(params);
+      return {
+        total,
+        limit: params.limit,
+        offset: params.offset,
+        results: results.map((row) => ({
+          ...this.toItem(row),
+          score: row.score,
+          snippet: row.snippet,
+        })),
+      };
+    }
+
+    const { total, results } = await this.knowledgeRepo.searchPreview(params);
 
     return {
       total,
       limit: params.limit,
       offset: params.offset,
-      results: results.map((row) => ({
-        ...this.toItem(row),
-        score: row.score,
-        snippet: row.snippet,
-      })),
+      results: results.map((row) => ({ id: row.id, title: row.title })),
     };
   }
 

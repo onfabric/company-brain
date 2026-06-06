@@ -32,12 +32,21 @@ describe('KnowledgeQuerySchema', () => {
   it('defaults limit and offset when absent', async () => {
     const { status, body } = await search('');
     expect(status).toBe(VALID);
-    expect(body).toEqual({ limit: 20, offset: 0 });
+    expect(body).toEqual({ limit: 20, offset: 0, view: 'preview' });
   });
 
   it('accepts the knowledge sort fields', async () => {
     expect((await search('?q=pricing&sort_by=relevance&sort_order=desc')).status).toBe(VALID);
     expect((await search('?sort_by=created_at&sort_order=asc')).status).toBe(VALID);
+  });
+
+  it('accepts preview and full result views', async () => {
+    expect((await search('?view=preview')).status).toBe(VALID);
+    expect((await search('?view=full')).status).toBe(VALID);
+  });
+
+  it('rejects an unknown result view', async () => {
+    expect((await search('?view=summary')).status).toBe(INVALID);
   });
 
   it('rejects an unknown sort field', async () => {

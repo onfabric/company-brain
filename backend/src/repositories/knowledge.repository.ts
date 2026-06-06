@@ -6,13 +6,16 @@ type SqlFragment = SQL.Query<unknown>;
 
 export const KNOWLEDGE_SORT_FIELDS = ['created_at', 'relevance'] as const;
 export const KNOWLEDGE_SORT_ORDERS = ['asc', 'desc'] as const;
+export const KNOWLEDGE_RESULT_VIEWS = ['preview', 'full'] as const;
 
 export type KnowledgeSortField = (typeof KNOWLEDGE_SORT_FIELDS)[number];
 export type KnowledgeSortOrder = (typeof KNOWLEDGE_SORT_ORDERS)[number];
+export type KnowledgeResultView = (typeof KNOWLEDGE_RESULT_VIEWS)[number];
 
 export const DEFAULT_KNOWLEDGE_SORT_FIELD: KnowledgeSortField = 'created_at';
 export const DEFAULT_KNOWLEDGE_SEARCH_SORT_FIELD: KnowledgeSortField = 'relevance';
 export const DEFAULT_KNOWLEDGE_SORT_ORDER: KnowledgeSortOrder = 'desc';
+export const DEFAULT_KNOWLEDGE_RESULT_VIEW: KnowledgeResultView = 'preview';
 
 export type KnowledgeSearchParams = {
   query?: string;
@@ -43,7 +46,14 @@ export type KnowledgeHitRow = KnowledgeRow & {
   snippet: string | null;
 };
 
-export type KnowledgeSearchPage = {
+export type KnowledgePreviewRow = Pick<Knowledge, 'id' | 'title'>;
+
+export type KnowledgePreviewSearchPage = {
+  total: number | null;
+  results: KnowledgePreviewRow[];
+};
+
+export type KnowledgeFullSearchPage = {
   total: number | null;
   results: KnowledgeHitRow[];
 };
@@ -63,13 +73,39 @@ export type CreateKnowledgeResult =
     };
 
 export abstract class KnowledgeRepositoryContract {
-  abstract search(params: KnowledgeSearchParams): Promise<KnowledgeSearchPage>;
+  abstract searchPreview(params: KnowledgeSearchParams): Promise<KnowledgePreviewSearchPage>;
+  abstract searchFull(params: KnowledgeSearchParams): Promise<KnowledgeFullSearchPage>;
   abstract getById(id: Knowledge['id']): Promise<KnowledgeRow | null>;
   abstract create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult>;
 }
 
 export class KnowledgeRepository extends Repository implements KnowledgeRepositoryContract {
-  async search(params: KnowledgeSearchParams): Promise<KnowledgeSearchPage> {
+  async searchPreview(params: KnowledgeSearchParams): Promise<KnowledgePreviewSearchPage> {
+    const where = this.buildWhere(params);
+    const scoreExpr = params.query ? this.sql`paradedb.score(id)` : this.sql`NULL::real`;
+
+    const results = await this.sql<KnowledgePreviewRow[]>`
+      WITH page AS (
+        SELECT
+          id,
+          title,
+          ${scoreExpr} AS score
+        FROM brain.knowledge
+        ${where}
+        ${this.orderBy(params)}
+        LIMIT ${params.limit} OFFSET ${params.offset}
+      )
+      SELECT
+        page.id,
+        page.title
+      FROM page
+      ${this.orderBy(params, 'page')}
+    `;
+
+    return { total: await this.count(where, params.offset), results };
+  }
+
+  async searchFull(params: KnowledgeSearchParams): Promise<KnowledgeFullSearchPage> {
     const where = this.buildWhere(params);
     const scoreExpr = params.query ? this.sql`paradedb.score(id)` : this.sql`NULL::real`;
     const snippetExpr = params.query ? this.sql`paradedb.snippet(body)` : this.sql`NULL::text`;
@@ -107,14 +143,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
       ${this.orderBy(params, 'page')}
     `;
 
-    if (params.offset > 0) {
-      return { total: null, results };
-    }
-
-    const [countRow] = await this.sql<{ total: number }[]>`
-      SELECT COUNT(*)::int AS total FROM brain.knowledge ${where}
-    `;
-    return { total: countRow?.total ?? 0, results };
+    return { total: await this.count(where, params.offset), results };
   }
 
   async getById(id: Knowledge['id']): Promise<KnowledgeRow | null> {
@@ -230,6 +259,17 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
       FROM brain.knowledge_records kr
       WHERE kr.knowledge_id = ${knowledgeId}
     ), '[]')`;
+  }
+
+  private async count(where: SqlFragment, offset: number): Promise<number | null> {
+    if (offset > 0) {
+      return null;
+    }
+
+    const [countRow] = await this.sql<{ total: number }[]>`
+      SELECT COUNT(*)::int AS total FROM brain.knowledge ${where}
+    `;
+    return countRow?.total ?? 0;
   }
 
   private orderBy(params: KnowledgeSearchParams, scope?: 'page') {
