@@ -19,7 +19,7 @@ export const KNOWLEDGE_HTML_CSP = [
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'none'",
-  "frame-ancestors 'none'",
+  "frame-ancestors 'self'",
   'img-src https: data:',
   "style-src 'unsafe-inline'",
 ].join('; ');
@@ -120,6 +120,7 @@ function sanitizeOptions(rewriteKnowledgeLinks: boolean): SanitizeOptions {
               attribs: {
                 ...attribs,
                 ...(rewritten ? { href: rewritten } : {}),
+                ...(match?.groups?.id ? { target: '_self' } : {}),
               },
             };
           },
