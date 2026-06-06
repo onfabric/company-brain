@@ -21,6 +21,14 @@ export type CreateKnowledge = {
   record_ids: string[];
 };
 
+export type UpdateKnowledge = {
+  title?: string;
+  body?: string;
+  knowledge_type_id?: string;
+  person_ids?: string[];
+  record_ids?: string[];
+};
+
 export type KnowledgeType = {
   id: string;
   name: string;
@@ -127,21 +135,56 @@ export class KnowledgeService extends Service {
     });
 
     if (!result.ok) {
-      const problems: string[] = [];
-      if (result.missingType) {
-        problems.push(`unknown knowledge_type_id: ${input.knowledge_type_id}`);
-      }
-      if (result.missingPersonIds.length > 0) {
-        problems.push(`unknown person_ids: ${result.missingPersonIds.join(', ')}`);
-      }
-      if (result.missingRecordIds.length > 0) {
-        problems.push(`unknown record_ids: ${result.missingRecordIds.join(', ')}`);
-      }
-      throw new BadRequestError(problems.join('; '));
+      throw new BadRequestError(this.describeMissing(result, input.knowledge_type_id));
     }
 
     this.logger.info(`created knowledge ${result.id}`);
     return this.getKnowledge(result.id);
+  }
+
+  async update(id: string, input: UpdateKnowledge): Promise<KnowledgeItem> {
+    let body: string | undefined;
+    if (input.body !== undefined) {
+      body = sanitizeKnowledgeHtml(input.body);
+      if (body.trim().length === 0) {
+        throw new BadRequestError('body must contain safe HTML content');
+      }
+    }
+
+    const result = await this.knowledgeRepo.update(id, {
+      title: input.title,
+      body,
+      knowledge_type_id: input.knowledge_type_id,
+      personIds: input.person_ids ? [...new Set(input.person_ids)] : undefined,
+      recordIds: input.record_ids ? [...new Set(input.record_ids)] : undefined,
+    });
+
+    if (!result.ok) {
+      if (result.notFound) {
+        throw new NotFoundError(`Knowledge not found: ${id}`);
+      }
+      throw new BadRequestError(this.describeMissing(result, input.knowledge_type_id));
+    }
+
+    this.logger.info(`updated knowledge ${id}`);
+    return this.getKnowledge(id);
+  }
+
+  private describeMissing(
+    missing: { missingType: boolean; missingPersonIds: string[]; missingRecordIds: string[] },
+    knowledgeTypeId: string | undefined,
+  ): string {
+    const problems: string[] = [];
+    if (missing.missingType) {
+      problems.push(`unknown knowledge_type_id: ${knowledgeTypeId}`);
+    }
+    if (missing.missingPersonIds.length > 0) {
+      problems.push(`unknown person_ids: ${missing.missingPersonIds.join(', ')}`);
+    }
+    if (missing.missingRecordIds.length > 0) {
+      problems.push(`unknown record_ids: ${missing.missingRecordIds.join(', ')}`);
+    }
+    return problems.join('; ');
   }
 
   private toItem(row: KnowledgeRow): KnowledgeItem {
