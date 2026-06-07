@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { BadRequestError, NotFoundError } from '#lib/errors.ts';
+import { BadRequestError, ConflictError, NotFoundError } from '#lib/errors.ts';
 import {
   type CreateKnowledgeInput,
   type CreateKnowledgeResult,
@@ -8,6 +8,7 @@ import {
   KnowledgeRepositoryContract,
   type KnowledgeRow,
   type KnowledgeSearchParams,
+  type KnowledgeTypeName,
   type UpdateKnowledgeInput,
   type UpdateKnowledgeResult,
 } from '#repositories/knowledge.repository.ts';
@@ -32,12 +33,14 @@ const ROW: KnowledgeRow = {
 class MockKnowledgeRepository extends KnowledgeRepositoryContract {
   previewSearchCalls: KnowledgeSearchParams[] = [];
   fullSearchCalls: KnowledgeSearchParams[] = [];
+  knowledgeTypeNameCalls: KnowledgeTypeName[] = [];
   createCalls: CreateKnowledgeInput[] = [];
   updateCalls: { id: string; input: UpdateKnowledgeInput }[] = [];
 
   private readonly previewPage: KnowledgePreviewSearchPage;
   private readonly fullPage: KnowledgeFullSearchPage;
   private readonly row: KnowledgeRow | null;
+  private readonly rowsByTypeName: KnowledgeRow[] | undefined;
   private readonly createResult: CreateKnowledgeResult;
   private readonly updateResult: UpdateKnowledgeResult;
 
@@ -45,12 +48,14 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
     previewPage = { total: 0, results: [] },
     fullPage = { total: 0, results: [] },
     row = null,
+    rowsByTypeName,
     createResult = { ok: true, id: ROW.id },
     updateResult = { ok: true, id: ROW.id },
   }: {
     previewPage?: KnowledgePreviewSearchPage;
     fullPage?: KnowledgeFullSearchPage;
     row?: KnowledgeRow | null;
+    rowsByTypeName?: KnowledgeRow[];
     createResult?: CreateKnowledgeResult;
     updateResult?: UpdateKnowledgeResult;
   } = {}) {
@@ -58,6 +63,7 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
     this.previewPage = previewPage;
     this.fullPage = fullPage;
     this.row = row;
+    this.rowsByTypeName = rowsByTypeName;
     this.createResult = createResult;
     this.updateResult = updateResult;
   }
@@ -74,6 +80,11 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
 
   getById(): Promise<KnowledgeRow | null> {
     return Promise.resolve(this.row);
+  }
+
+  getByKnowledgeTypeName(name: KnowledgeTypeName): Promise<KnowledgeRow[]> {
+    this.knowledgeTypeNameCalls.push(name);
+    return Promise.resolve(this.rowsByTypeName ?? (this.row ? [this.row] : []));
   }
 
   create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult> {
@@ -213,6 +224,32 @@ describe('KnowledgeService', () => {
 
     expect(html).toContain('/knowledge/pages/019e8882-07f1-771c-993e-f6825a9224bc');
     expect(html).not.toContain('<script>');
+  });
+
+  it('renders the canonical knowledge index page', async () => {
+    const repo = new MockKnowledgeRepository({ row: ROW });
+    const service = new KnowledgeService(repo);
+
+    const html = await service.getKnowledgeIndexHtmlPage();
+
+    expect(repo.knowledgeTypeNameCalls).toEqual(['index']);
+    expect(html).toContain('Q1 pricing decision');
+    expect(html).toContain('/knowledge/pages/index');
+  });
+
+  it('throws when the knowledge index is missing', async () => {
+    const service = new KnowledgeService(new MockKnowledgeRepository());
+    await expect(service.getKnowledgeIndexHtmlPage()).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('throws when more than one knowledge item has the index type', async () => {
+    const service = new KnowledgeService(
+      new MockKnowledgeRepository({
+        rowsByTypeName: [ROW, { ...ROW, id: '019e8882-07f1-771c-993e-f6825a9224bc' }],
+      }),
+    );
+
+    await expect(service.getKnowledgeIndexHtmlPage()).rejects.toBeInstanceOf(ConflictError);
   });
 
   it('rejects unknown referenced ids with a 400', async () => {

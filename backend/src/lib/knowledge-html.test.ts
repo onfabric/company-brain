@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   KNOWLEDGE_HTML_HEADERS,
+  knowledgeIndexPagePath,
   knowledgePagePath,
   renderKnowledgeHtmlPage,
   sanitizeKnowledgeHtml,
@@ -12,6 +13,10 @@ const LINKED_KNOWLEDGE_ID = '019e8882-07f1-771c-993e-f6825a9224bc';
 describe('knowledge HTML', () => {
   it('builds the canonical page path', () => {
     expect(knowledgePagePath(KNOWLEDGE_ID)).toBe(`/knowledge/pages/${KNOWLEDGE_ID}`);
+  });
+
+  it('builds the canonical index path', () => {
+    expect(knowledgeIndexPagePath()).toBe('/knowledge/pages/index');
   });
 
   it('sanitizes unsafe markup while preserving knowledge links', () => {
@@ -35,6 +40,7 @@ describe('knowledge HTML', () => {
     expect(html).toContain('<!doctype html>');
     expect(html).toContain('Pricing &lt;Decision&gt;');
     expect(html).toContain(`/knowledge/pages/${LINKED_KNOWLEDGE_ID}`);
+    expect(html).toContain('href="/knowledge/pages/index"');
     expect(html).toContain('target="_self"');
     expect(html).not.toContain('javascript:');
   });

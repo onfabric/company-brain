@@ -25,7 +25,6 @@ export type RecordsRouteSearch = {
   sortOrder?: RecordSortOrder;
   limit: number;
   selectedRecordId?: string;
-  knowledgeQ?: string;
   selectedKnowledgeId?: string;
 };
 
@@ -41,7 +40,6 @@ export function normalizeRouteSearch(search: Record<string, unknown>): RecordsRo
     sortOrder: sortOrderValue(search.sortOrder),
     limit: limitValue(search.limit),
     selectedRecordId: stringValue(search.selectedRecordId),
-    knowledgeQ: stringValue(search.knowledgeQ),
     selectedKnowledgeId: stringValue(search.selectedKnowledgeId),
   };
 }
@@ -71,7 +69,6 @@ export function cleanRouteSearch(search: RecordsRouteSearch): RecordsRouteSearch
     sortOrder: search.sortOrder || undefined,
     limit: search.limit,
     selectedRecordId: search.selectedRecordId || undefined,
-    knowledgeQ: search.knowledgeQ || undefined,
     selectedKnowledgeId: search.selectedKnowledgeId || undefined,
   };
 }

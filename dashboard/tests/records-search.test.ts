@@ -19,7 +19,6 @@ describe('records route search helpers', () => {
       sortOrder: undefined,
       limit: 20,
       selectedRecordId: undefined,
-      knowledgeQ: undefined,
       selectedKnowledgeId: undefined,
     });
   });
@@ -37,7 +36,6 @@ describe('records route search helpers', () => {
         sortOrder: 'desc',
         limit: 50,
         selectedRecordId: '019e8882-07f1-77e9-93cd-084f3e8491b2',
-        knowledgeQ: 'pricing',
         selectedKnowledgeId: '019e8882-07f1-771c-993e-f6825a9224bd',
       }),
     ).toEqual({
@@ -65,7 +63,6 @@ describe('records route search helpers', () => {
         sortOrder: undefined,
         limit: 20,
         selectedRecordId: '',
-        knowledgeQ: '',
         selectedKnowledgeId: '',
       }),
     ).toEqual({
@@ -79,7 +76,6 @@ describe('records route search helpers', () => {
       sortOrder: undefined,
       limit: 20,
       selectedRecordId: undefined,
-      knowledgeQ: undefined,
       selectedKnowledgeId: undefined,
     });
   });

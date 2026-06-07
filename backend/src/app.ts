@@ -9,6 +9,7 @@ import { healthController } from '#routes/health/controller.ts';
 import { knowledgeIdController } from '#routes/knowledge/[id]/controller.ts';
 import { knowledgeController } from '#routes/knowledge/controller.ts';
 import { knowledgePagesIdController } from '#routes/knowledge/pages/[id]/controller.ts';
+import { knowledgePagesIndexController } from '#routes/knowledge/pages/index/controller.ts';
 import { knowledgeTypesIdController } from '#routes/knowledge-types/[id]/controller.ts';
 import { knowledgeTypesController } from '#routes/knowledge-types/controller.ts';
 import { peopleIdController } from '#routes/people/[id]/controller.ts';
@@ -70,6 +71,7 @@ export function createApp() {
     .use(dataSourcesController)
     .use(knowledgeController)
     .use(knowledgeIdController)
+    .use(knowledgePagesIndexController)
     .use(knowledgePagesIdController)
     .use(knowledgeTypesController)
     .use(knowledgeTypesIdController)
