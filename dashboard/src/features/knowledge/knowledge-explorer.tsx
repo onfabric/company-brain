@@ -3,7 +3,13 @@ import { Home, KeyRound, Loader2, RefreshCw } from 'lucide-react';
 import type { ReactNode, SyntheticEvent } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card } from '#/components/ui/card.tsx';
-import { BrainApiError, createKnowledgeBrowserSession } from '#/lib/brain-functions.ts';
+import {
+  BrainApiError,
+  createKnowledgeBrowserSession,
+  type KnowledgePreview,
+  listKnowledge,
+  listKnowledgeTypes,
+} from '#/lib/brain-functions.ts';
 import { HTTP_UNAUTHORIZED } from '#/lib/constants.ts';
 import type { RecordsRouteSearch } from '#/lib/records-search.ts';
 
@@ -18,6 +24,8 @@ type KnowledgeExplorerProps = {
 const KNOWLEDGE_PAGE_PATH_PATTERN =
   /^\/knowledge\/pages\/(?<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 const KNOWLEDGE_INDEX_PAGE_PATH = '/knowledge/pages/index';
+const KNOWLEDGE_INDEX_TYPE = 'index';
+const KNOWLEDGE_INDEX_LIMIT = 2;
 
 export function KnowledgeExplorer({
   apiKey,
@@ -31,7 +39,15 @@ export function KnowledgeExplorer({
     queryFn: () => createKnowledgeBrowserSession(apiKey),
     retry: false,
   });
+  const indexQuery = useQuery({
+    queryKey: ['knowledge-index-page', apiKeyVersion],
+    queryFn: () => getKnowledgeIndex(apiKey),
+    retry: false,
+  });
   const selectedKnowledgeId = search.selectedKnowledgeId;
+  const indexKnowledgeId = indexQuery.data?.id;
+  const frameKnowledgeId = selectedKnowledgeId ?? indexKnowledgeId;
+  const error = sessionQuery.error ?? indexQuery.error;
 
   const openIndex = () => {
     onChange({ tab: 'knowledge', selectedKnowledgeId: undefined });
@@ -39,12 +55,16 @@ export function KnowledgeExplorer({
 
   const handleFrameLoad = (event: SyntheticEvent<HTMLIFrameElement>) => {
     const path = knowledgePathFromFrame(event.currentTarget);
-    if (path === KNOWLEDGE_INDEX_PAGE_PATH && selectedKnowledgeId) {
+    if (path === KNOWLEDGE_INDEX_PAGE_PATH) {
       openIndex();
       return;
     }
 
     const id = knowledgeIdFromPath(path);
+    if (id === indexKnowledgeId && selectedKnowledgeId) {
+      openIndex();
+      return;
+    }
     if (id && id !== selectedKnowledgeId) {
       onChange({ tab: 'knowledge', selectedKnowledgeId: id });
     }
@@ -75,22 +95,22 @@ export function KnowledgeExplorer({
         </div>
 
         <div className="min-h-0 flex-1">
-          {sessionQuery.isLoading ? (
+          {sessionQuery.isLoading || indexQuery.isLoading ? (
             <FrameState
               icon={<Loader2 className="size-5 animate-spin" />}
               text="Opening session..."
             />
-          ) : sessionQuery.isError ? (
+          ) : error ? (
             <PanelError
-              title="Could not open session"
-              error={sessionQuery.error}
+              title={sessionQuery.isError ? 'Could not open session' : 'Could not load index'}
+              error={error}
               onChangeApiKey={onChangeApiKey}
             />
           ) : (
             <iframe
-              key={selectedKnowledgeId ?? 'index'}
+              key={frameKnowledgeId}
               title="Knowledge page"
-              src={knowledgePageSrc(selectedKnowledgeId)}
+              src={knowledgePageSrc(frameKnowledgeId)}
               className="h-full min-h-0 w-full border-0 bg-background"
               referrerPolicy="no-referrer"
               onLoad={handleFrameLoad}
@@ -100,6 +120,29 @@ export function KnowledgeExplorer({
       </Card>
     </section>
   );
+}
+
+async function getKnowledgeIndex(apiKey: string): Promise<KnowledgePreview> {
+  const types = await listKnowledgeTypes(apiKey);
+  const indexType = types.knowledge_types.find(
+    (type) => type.name.toLowerCase() === KNOWLEDGE_INDEX_TYPE,
+  );
+  if (!indexType) {
+    throw new Error('Knowledge index type not found.');
+  }
+
+  const indexPage = await listKnowledge(apiKey, {
+    knowledgeTypeId: indexType.id,
+    limit: KNOWLEDGE_INDEX_LIMIT,
+  });
+  const [index] = indexPage.results;
+  if (!index) {
+    throw new Error('Knowledge index not found.');
+  }
+  if (indexPage.results.length > 1) {
+    throw new Error('More than one knowledge index page found.');
+  }
+  return index;
 }
 
 function knowledgePageSrc(id: string | undefined) {
