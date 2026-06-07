@@ -88,6 +88,15 @@ const KnowledgePreviewResponseSchema = z.object({
   results: z.array(KnowledgePreviewSchema),
 });
 
+const KnowledgeTypeSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+});
+
+const KnowledgeTypesResponseSchema = z.object({
+  knowledge_types: z.array(KnowledgeTypeSchema),
+});
+
 export class BrainApiError extends Error {
   constructor(
     message: string,
@@ -118,6 +127,8 @@ export type Source = z.infer<typeof SourceSchema>;
 export type Person = z.infer<typeof PersonDetailsSchema>;
 export type KnowledgePreview = z.infer<typeof KnowledgePreviewSchema>;
 export type KnowledgePreviewResponse = z.infer<typeof KnowledgePreviewResponseSchema>;
+export type KnowledgeType = z.infer<typeof KnowledgeTypeSchema>;
+export type KnowledgeTypesResponse = z.infer<typeof KnowledgeTypesResponseSchema>;
 export type PersonUpdateInput = Partial<Pick<Person, 'name' | 'email' | 'is_external'>>;
 export type ListPeopleInput = {
   isExternal?: boolean;
@@ -129,6 +140,7 @@ export type ListPeopleInput = {
 };
 export type ListKnowledgeInput = {
   q?: string;
+  knowledgeTypeId?: string;
   limit?: number;
   offset?: number;
 };
@@ -199,6 +211,9 @@ export async function listKnowledge(apiKey: string, input: ListKnowledgeInput = 
   if (search) {
     params.set('q', search);
   }
+  if (input.knowledgeTypeId) {
+    params.set('knowledge_type_id', input.knowledgeTypeId);
+  }
   if (input.limit !== undefined) {
     params.set('limit', String(input.limit));
   }
@@ -210,6 +225,10 @@ export async function listKnowledge(apiKey: string, input: ListKnowledgeInput = 
     KnowledgePreviewResponseSchema,
     apiKey,
   );
+}
+
+export async function listKnowledgeTypes(apiKey: string) {
+  return await fetchBrain('/knowledge-types', KnowledgeTypesResponseSchema, apiKey);
 }
 
 export async function createKnowledgeBrowserSession(apiKey: string) {

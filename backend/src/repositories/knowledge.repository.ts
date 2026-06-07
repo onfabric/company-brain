@@ -172,7 +172,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
   }
 
   getByKnowledgeTypeName(name: KnowledgeTypeName): Promise<KnowledgeRow[]> {
-    return this.getMany(this.sql`kt.name = ${name}`, 2);
+    return this.getMany(this.sql`lower(kt.name) = lower(${name})`, 2);
   }
 
   create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult> {
