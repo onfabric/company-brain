@@ -1,5 +1,6 @@
-import { BadRequestError, NotFoundError } from '#lib/errors.ts';
+import { BadRequestError, ConflictError, NotFoundError } from '#lib/errors.ts';
 import {
+  knowledgeIndexPagePath,
   knowledgePagePath,
   renderKnowledgeHtmlPage,
   sanitizeKnowledgeHtml,
@@ -10,8 +11,11 @@ import {
   type KnowledgeResultView,
   type KnowledgeRow,
   type KnowledgeSearchParams,
+  type KnowledgeTypeName,
 } from '#repositories/knowledge.repository.ts';
 import { Service } from '#services/service.ts';
+
+const KNOWLEDGE_INDEX_TYPE_NAME: KnowledgeTypeName = 'index';
 
 export type CreateKnowledge = {
   title: string;
@@ -118,6 +122,21 @@ export class KnowledgeService extends Service {
 
   async getKnowledgeHtmlPage(id: string): Promise<string> {
     return renderKnowledgeHtmlPage(await this.getKnowledge(id));
+  }
+
+  async getKnowledgeIndexHtmlPage(): Promise<string> {
+    const rows = await this.knowledgeRepo.getByKnowledgeTypeName(KNOWLEDGE_INDEX_TYPE_NAME);
+    if (rows.length === 0) {
+      throw new NotFoundError(`Knowledge index not found: ${knowledgeIndexPagePath()}`);
+    }
+    if (rows.length > 1) {
+      throw new ConflictError('Expected exactly one knowledge item with type index');
+    }
+    const [row] = rows;
+    if (!row) {
+      throw new NotFoundError(`Knowledge index not found: ${knowledgeIndexPagePath()}`);
+    }
+    return renderKnowledgeHtmlPage(this.toItem(row));
   }
 
   async create(input: CreateKnowledge): Promise<KnowledgeItem> {

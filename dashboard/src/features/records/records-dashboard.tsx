@@ -227,7 +227,7 @@ function AuthenticatedRecordsDashboard({
               size="sm"
               variant={activeTab === 'knowledge' ? 'secondary' : 'ghost'}
               aria-selected={activeTab === 'knowledge'}
-              onClick={() => updateSearch({ tab: 'knowledge' })}
+              onClick={() => updateSearch({ tab: 'knowledge', selectedKnowledgeId: undefined })}
             >
               <BookOpen />
               Knowledge
@@ -318,7 +318,7 @@ function descriptionForTab(activeTab: string, peopleTotal: number, recordsTotal:
     case 'people':
       return `${peopleTotal.toLocaleString()} people ranked by records`;
     case 'knowledge':
-      return 'Knowledge pages';
+      return 'Knowledge index';
     default:
       return `${recordsTotal.toLocaleString()} records matching current filters`;
   }

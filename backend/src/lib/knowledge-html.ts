@@ -36,6 +36,10 @@ export function knowledgePagePath(id: string): string {
   return `/knowledge/pages/${id}`;
 }
 
+export function knowledgeIndexPagePath(): string {
+  return '/knowledge/pages/index';
+}
+
 export function sanitizeKnowledgeHtml(html: string): string {
   return sanitizeHtml(html, sanitizeOptions(false));
 }
@@ -79,7 +83,11 @@ export function renderKnowledgeHtmlPage(item: KnowledgeHtmlItem): string {
         text-rendering: optimizeLegibility;
       }
       main { max-width: 72ch; margin: 0 auto; padding: 72px 24px 96px; }
-      header.brand { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 2.25rem; }
+      header.brand {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 1rem; margin-bottom: 2.25rem;
+      }
+      header.brand .brand-mark { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
       header.brand .dot {
         width: 0.55rem; height: 0.55rem; border-radius: 50%;
         background: var(--accent);
@@ -88,6 +96,14 @@ export function renderKnowledgeHtmlPage(item: KnowledgeHtmlItem): string {
       header.brand .label {
         font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em;
         text-transform: uppercase; color: var(--muted);
+      }
+      header.brand .index-link {
+        flex: 0 0 auto; border: 1px solid var(--border); border-radius: 999px;
+        padding: 0.35rem 0.75rem; color: var(--text); font-size: 0.78rem;
+        font-weight: 600; text-decoration: none;
+      }
+      header.brand .index-link:hover {
+        background: color-mix(in srgb, var(--accent) 28%, transparent);
       }
       h1 {
         margin: 0 0 1.6rem;
@@ -180,7 +196,10 @@ export function renderKnowledgeHtmlPage(item: KnowledgeHtmlItem): string {
   </head>
   <body>
     <main>
-      <header class="brand"><span class="dot" aria-hidden="true"></span><span class="label">Company Brain</span></header>
+      <header class="brand">
+        <div class="brand-mark"><span class="dot" aria-hidden="true"></span><span class="label">Company Brain</span></div>
+        <a class="index-link" href="${knowledgeIndexPagePath()}" target="_self">Index</a>
+      </header>
       <article>
         <h1>${title}</h1>
         ${body}

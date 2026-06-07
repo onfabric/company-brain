@@ -107,6 +107,12 @@ describe('api key auth', () => {
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
 
+  it('rejects the knowledge index page without api key or session cookie', async () => {
+    const { createApp } = await import('#app.ts');
+    const res = await createApp().handle(new Request('http://localhost/knowledge/pages/index'));
+    expect(res.status).toBe(StatusMap.Unauthorized);
+  });
+
   it('leaves the internal webhook open to in-network callers', async () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(

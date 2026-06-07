@@ -11,6 +11,7 @@ export const KNOWLEDGE_RESULT_VIEWS = ['preview', 'full'] as const;
 export type KnowledgeSortField = (typeof KNOWLEDGE_SORT_FIELDS)[number];
 export type KnowledgeSortOrder = (typeof KNOWLEDGE_SORT_ORDERS)[number];
 export type KnowledgeResultView = (typeof KNOWLEDGE_RESULT_VIEWS)[number];
+export type KnowledgeTypeName = KnowledgeTypes['name'];
 
 export const DEFAULT_KNOWLEDGE_SORT_FIELD: KnowledgeSortField = 'created_at';
 export const DEFAULT_KNOWLEDGE_SEARCH_SORT_FIELD: KnowledgeSortField = 'relevance';
@@ -94,6 +95,7 @@ export abstract class KnowledgeRepositoryContract {
   abstract searchPreview(params: KnowledgeSearchParams): Promise<KnowledgePreviewSearchPage>;
   abstract searchFull(params: KnowledgeSearchParams): Promise<KnowledgeFullSearchPage>;
   abstract getById(id: Knowledge['id']): Promise<KnowledgeRow | null>;
+  abstract getByKnowledgeTypeName(name: KnowledgeTypeName): Promise<KnowledgeRow[]>;
   abstract create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult>;
   abstract update(id: Knowledge['id'], input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult>;
 }
@@ -165,23 +167,12 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     return { total: await this.count(where, params.offset), results };
   }
 
-  async getById(id: Knowledge['id']): Promise<KnowledgeRow | null> {
-    const [row] = await this.sql<KnowledgeRow[]>`
-      SELECT
-        k.id,
-        k.created_at,
-        k.updated_at,
-        k.title,
-        k.body,
-        k.knowledge_type_id,
-        kt.name AS knowledge_type_name,
-        ${this.participants(this.sql`k.id`)} AS participants,
-        ${this.sourceRecordIds(this.sql`k.id`)} AS source_record_ids
-      FROM brain.knowledge k
-      JOIN brain.knowledge_types kt ON kt.id = k.knowledge_type_id
-      WHERE k.id = ${id}
-    `;
-    return row ?? null;
+  getById(id: Knowledge['id']): Promise<KnowledgeRow | null> {
+    return this.getOne(this.sql`k.id = ${id}`);
+  }
+
+  getByKnowledgeTypeName(name: KnowledgeTypeName): Promise<KnowledgeRow[]> {
+    return this.getMany(this.sql`kt.name = ${name}`, 2);
   }
 
   create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult> {
@@ -288,6 +279,31 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
 
       return { ok: true, id };
     });
+  }
+
+  private async getOne(condition: SqlFragment): Promise<KnowledgeRow | null> {
+    const [row] = await this.getMany(condition, 1);
+    return row ?? null;
+  }
+
+  private async getMany(condition: SqlFragment, limit: number): Promise<KnowledgeRow[]> {
+    return await this.sql<KnowledgeRow[]>`
+      SELECT
+        k.id,
+        k.created_at,
+        k.updated_at,
+        k.title,
+        k.body,
+        k.knowledge_type_id,
+        kt.name AS knowledge_type_name,
+        ${this.participants(this.sql`k.id`)} AS participants,
+        ${this.sourceRecordIds(this.sql`k.id`)} AS source_record_ids
+      FROM brain.knowledge k
+      JOIN brain.knowledge_types kt ON kt.id = k.knowledge_type_id
+      WHERE ${condition}
+      ORDER BY k.id
+      LIMIT ${limit}
+    `;
   }
 
   private async missingPeople(tx: SQL, ids: People['id'][]): Promise<People['id'][]> {
