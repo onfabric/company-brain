@@ -1,6 +1,7 @@
 import { Elysia, StatusMap } from 'elysia';
 import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
 import {
+  DeleteKnowledgeResponseSchema,
   KnowledgeItemResponseSchema,
   KnowledgeParamsSchema,
   UpdateKnowledgeBodySchema,
@@ -52,6 +53,27 @@ export const knowledgeIdController = new Elysia()
       body: UpdateKnowledgeBodySchema,
       response: {
         [StatusMap.OK]: UpdateKnowledgeResponseSchema,
+      },
+    },
+  )
+  .delete(
+    '/knowledge/:id',
+    async ({ params, knowledgeService, logger, status }) => {
+      logger.info(`deleting knowledge ${params.id}`);
+      const id = await knowledgeService.remove(params.id);
+      return status(StatusMap.OK, { id });
+    },
+    {
+      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      detail: {
+        tags: ['Knowledge'],
+        summary: 'Delete a knowledge item',
+        description:
+          'Deletes a distilled knowledge item by its id, along with its participant and source-record links. Returns 404 if no item with that id exists.',
+      },
+      params: KnowledgeParamsSchema,
+      response: {
+        [StatusMap.OK]: DeleteKnowledgeResponseSchema,
       },
     },
   );

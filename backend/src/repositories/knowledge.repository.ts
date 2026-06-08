@@ -98,6 +98,7 @@ export abstract class KnowledgeRepositoryContract {
   abstract getByKnowledgeTypeName(name: KnowledgeTypeName): Promise<KnowledgeRow[]>;
   abstract create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult>;
   abstract update(id: Knowledge['id'], input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult>;
+  abstract remove(id: Knowledge['id']): Promise<Knowledge['id'] | null>;
 }
 
 export class KnowledgeRepository extends Repository implements KnowledgeRepositoryContract {
@@ -278,6 +279,17 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
       }
 
       return { ok: true, id };
+    });
+  }
+
+  remove(id: Knowledge['id']): Promise<Knowledge['id'] | null> {
+    return this.sql.begin(async (tx) => {
+      await tx`DELETE FROM brain.knowledge_people WHERE knowledge_id = ${id}`;
+      await tx`DELETE FROM brain.knowledge_records WHERE knowledge_id = ${id}`;
+      const [row] = await tx<Pick<Knowledge, 'id'>[]>`
+        DELETE FROM brain.knowledge WHERE id = ${id} RETURNING id
+      `;
+      return row?.id ?? null;
     });
   }
 

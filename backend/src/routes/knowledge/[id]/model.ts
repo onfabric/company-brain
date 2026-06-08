@@ -37,3 +37,7 @@ export const UpdateKnowledgeBodySchema = t.Object(
 );
 
 export const UpdateKnowledgeResponseSchema = KnowledgeSchema;
+
+export const DeleteKnowledgeResponseSchema = t.Object({
+  id: t.String({ format: 'uuid' }),
+});

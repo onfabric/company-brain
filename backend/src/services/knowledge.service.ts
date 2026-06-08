@@ -189,6 +189,15 @@ export class KnowledgeService extends Service {
     return this.getKnowledge(id);
   }
 
+  async remove(id: string): Promise<string> {
+    const removed = await this.knowledgeRepo.remove(id);
+    if (!removed) {
+      throw new NotFoundError(`Knowledge not found: ${id}`);
+    }
+    this.logger.info(`deleted knowledge ${id}`);
+    return removed;
+  }
+
   private describeMissing(
     missing: { missingType: boolean; missingPersonIds: string[]; missingRecordIds: string[] },
     knowledgeTypeId: string | undefined,
