@@ -21,7 +21,7 @@ One `knowledge` item per ISO week (Monday 00:00 through Sunday 23:59:59, in a si
 
 The temporal counterpart of the build-knowledge-base **index**. Everything true of the index is true here — single hub, its own dedicated type so there is only ever one, navigation-not-content, updated every iteration, a missing/stale hub is the top-priority fix. The differences:
 
-- It is a **chronological strip**: every week entry as a one-line "what this week was about" with a `knowledge:<id>` link, grouped under months or quarters as it grows.
+- It is a **reverse-chronological strip**: the most recent week first, descending to the oldest, each a one-line "what this week was about" with a `knowledge:<id>` link, grouped under months or quarters (newest group on top) as it grows. The hub reads like a feed — newest at the top — even though within any single week's page the events still run forward, Monday→Sunday.
 - It is **separate from the main index** (which stays the entity hub). Add a one-line pointer to this hub from the main index under a "Timeline" section, once, when the hub is created, so it's reachable from the landing page.
 
 ## Gather and interpret the week
@@ -50,7 +50,7 @@ Follow build-knowledge-base **step 5** in full for the HTML-fragment rules, the 
 
 Same lint step as build-knowledge-base (backlink, update the hub, fold newly-found facts into entity pages, all drafted and approved before any write), with one addition unique to the time axis:
 
-- **Stitch the strip.** Add reciprocal `previous week` / `next week` links between the new entry and its neighbours — update the week that now has a successor to link forward to this one. Then insert the new week into the timeline hub in chronological position.
+- **Stitch the strip.** Add reciprocal `previous week` / `next week` links between the new entry and its neighbours — update the week that now has a successor to link forward to this one. Then insert the new week into the timeline hub in its correct reverse-chronological position — the newest week sits at the top of the strip.
 
 ## Week-specific principles
 
