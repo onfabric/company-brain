@@ -36,6 +36,7 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
   knowledgeTypeNameCalls: KnowledgeTypeName[] = [];
   createCalls: CreateKnowledgeInput[] = [];
   updateCalls: { id: string; input: UpdateKnowledgeInput }[] = [];
+  removeCalls: string[] = [];
 
   private readonly previewPage: KnowledgePreviewSearchPage;
   private readonly fullPage: KnowledgeFullSearchPage;
@@ -43,6 +44,7 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
   private readonly rowsByTypeName: KnowledgeRow[] | undefined;
   private readonly createResult: CreateKnowledgeResult;
   private readonly updateResult: UpdateKnowledgeResult;
+  private readonly removeResult: KnowledgeRow['id'] | null;
 
   constructor({
     previewPage = { total: 0, results: [] },
@@ -51,6 +53,7 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
     rowsByTypeName,
     createResult = { ok: true, id: ROW.id },
     updateResult = { ok: true, id: ROW.id },
+    removeResult = ROW.id,
   }: {
     previewPage?: KnowledgePreviewSearchPage;
     fullPage?: KnowledgeFullSearchPage;
@@ -58,6 +61,7 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
     rowsByTypeName?: KnowledgeRow[];
     createResult?: CreateKnowledgeResult;
     updateResult?: UpdateKnowledgeResult;
+    removeResult?: KnowledgeRow['id'] | null;
   } = {}) {
     super();
     this.previewPage = previewPage;
@@ -66,6 +70,7 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
     this.rowsByTypeName = rowsByTypeName;
     this.createResult = createResult;
     this.updateResult = updateResult;
+    this.removeResult = removeResult;
   }
 
   searchPreview(params: KnowledgeSearchParams): Promise<KnowledgePreviewSearchPage> {
@@ -95,6 +100,11 @@ class MockKnowledgeRepository extends KnowledgeRepositoryContract {
   update(id: string, input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult> {
     this.updateCalls.push({ id, input });
     return Promise.resolve(this.updateResult);
+  }
+
+  remove(id: string): Promise<KnowledgeRow['id'] | null> {
+    this.removeCalls.push(id);
+    return Promise.resolve(this.removeResult);
   }
 }
 
@@ -321,5 +331,18 @@ describe('KnowledgeService', () => {
     await expect(
       service.update(ROW.id, { person_ids: ['019e9000-0000-7000-8000-0000000000bb'] }),
     ).rejects.toBeInstanceOf(BadRequestError);
+  });
+
+  it('removes a knowledge item and returns its id', async () => {
+    const repo = new MockKnowledgeRepository({ removeResult: ROW.id });
+    const service = new KnowledgeService(repo);
+
+    await expect(service.remove(ROW.id)).resolves.toBe(ROW.id);
+    expect(repo.removeCalls).toEqual([ROW.id]);
+  });
+
+  it('throws when removing a knowledge item that does not exist', async () => {
+    const service = new KnowledgeService(new MockKnowledgeRepository({ removeResult: null }));
+    await expect(service.remove(ROW.id)).rejects.toBeInstanceOf(NotFoundError);
   });
 });
