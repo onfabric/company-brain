@@ -13,6 +13,28 @@ bun test
 bun run check:types
 ```
 
+## MCP
+
+`POST /mcp` is a stateless [Streamable HTTP MCP](https://modelcontextprotocol.io)
+endpoint exposing the knowledge pages to agents, gated by the same `api-key`
+header as the REST API. Tools: `get_index_page` (the entry point — links every
+page) and `get_page` (follows a `/knowledge/pages/{id}` link). Example client
+configuration:
+
+```json
+{
+  "mcpServers": {
+    "company-brain": {
+      "type": "http",
+      "url": "https://brain-dev.onfabric.io/mcp",
+      "headers": {
+        "api-key": "<BRAIN_API_KEY>"
+      }
+    }
+  }
+}
+```
+
 ## Build
 
 `bun run build` compiles a standalone binary to `dist/server` and copies the
