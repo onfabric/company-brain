@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      allow_destroy:
+        description: "Apply even if the plan destroys or replaces resources"
+        type: boolean
+        default: false
 
 concurrency:
   group: cd-dev
@@ -48,7 +53,32 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - run: terraform init -input=false
-      - run: terraform apply -input=false -auto-approve -var-file=dev.tfvars
+      - run: terraform plan -input=false -var-file=dev.tfvars -out=tfplan
+
+      # Auto-applying a plan that destroys or replaces resources already
+      # terminated the instance once (a floating-AMI bump on 2026-06-10).
+      # Destructive plans need a human: rerun via workflow_dispatch with
+      # allow_destroy enabled.
+      - name: Block destructive plans
+        if: inputs.allow_destroy != true
+        run: |
+          destroyed=$(terraform show -json tfplan \
+            | jq -r '.resource_changes[] | select(.change.actions | index("delete")) | .address')
+          if [ -n "$destroyed" ]; then
+            {
+              echo '## Destructive terraform plan blocked'
+              echo 'The plan would destroy or replace:'
+              echo '```'
+              echo "$destroyed"
+              echo '```'
+              echo 'If intentional, rerun the workflow via workflow_dispatch with `allow_destroy` enabled.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error title=Destructive terraform plan blocked::Plan destroys/replaces: $(echo "$destroyed" | tr '\n' ' ')"
+            exit 1
+          fi
+
+      # Applying the saved plan guarantees what was checked is what runs.
+      - run: terraform apply -input=false tfplan
 
       - name: Capture outputs
         id: tf_outputs
