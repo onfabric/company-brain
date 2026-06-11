@@ -36,6 +36,22 @@ services:
     volumes:
       - ./dozzle/data:/data
 
+  # Nightly pg_dumpall to S3 (see infra/pg-backup). Prod-only: local dev has
+  # nothing worth backing up. AWS credentials come from the instance role via
+  # IMDS; run `docker exec pg-backup backup.sh` for an on-demand backup.
+  pg-backup:
+    image: ${PG_BACKUP_IMAGE_URI}
+    container_name: pg-backup
+    restart: always
+    environment:
+      PGHOST: postgres-db
+      PGUSER: ${NANGO_DB_USER}
+      PGPASSWORD: ${NANGO_DB_PASSWORD}
+      BACKUP_BUCKET: ${BACKUP_BUCKET}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+    networks:
+      - nango
+
   caddy:
     image: caddy:2.8
     container_name: caddy

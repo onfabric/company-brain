@@ -36,6 +36,7 @@ data "aws_iam_policy_document" "instance" {
     resources = [
       aws_ecr_repository.nango.arn,
       aws_ecr_repository.brain.arn,
+      aws_ecr_repository.pg_backup.arn,
     ]
   }
 
@@ -44,6 +45,13 @@ data "aws_iam_policy_document" "instance" {
     sid       = "ArtifactsRead"
     actions   = ["s3:GetObject", "s3:ListBucket"]
     resources = [aws_s3_bucket.artifacts.arn, "${aws_s3_bucket.artifacts.arn}/*"]
+  }
+
+  # Upload nightly pg_dump backups.
+  statement {
+    sid       = "BackupsWrite"
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.artifacts.arn}/backups/*"]
   }
 
   # Read deployment secrets.

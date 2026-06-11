@@ -10,7 +10,10 @@ cd "$(dirname "$0")"
 
 log() { echo "=== [on_box_deploy $(date -u +%H:%M:%S)] $* ==="; }
 
-: "${NANGO_IMAGE_URI:?}" "${BRAIN_IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}" "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${BRAIN_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_DEFAULT_REGION:?}"
+: "${NANGO_IMAGE_URI:?}" "${BRAIN_IMAGE_URI:?}" "${PG_BACKUP_IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}" "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${BRAIN_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_DEFAULT_REGION:?}" "${DATA_VOLUME_ID:?}" "${ARTIFACTS_BUCKET:?}"
+
+log "Ensuring the persistent data volume is mounted and holds Docker's data-root"
+bash ensure_data_volume.sh
 
 secret() {
   aws ssm get-parameter --name "${SSM_SECRET_PREFIX}/$1" --with-decryption \
@@ -54,6 +57,9 @@ FLAG_AUTH_ENABLED=true
 LOG_LEVEL=info
 NANGO_IMAGE_URI=${NANGO_IMAGE_URI}
 BRAIN_IMAGE_URI=${BRAIN_IMAGE_URI}
+PG_BACKUP_IMAGE_URI=${PG_BACKUP_IMAGE_URI}
+BACKUP_BUCKET=${ARTIFACTS_BUCKET}
+AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 NANGO_HOSTNAME=${NANGO_HOSTNAME}
 NANGO_CONNECT_HOSTNAME=${NANGO_CONNECT_HOSTNAME}
 BRAIN_HOSTNAME=${BRAIN_HOSTNAME}

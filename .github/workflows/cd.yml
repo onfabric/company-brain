@@ -29,8 +29,10 @@ jobs:
     outputs:
       nango_ecr_repository_url: ${{ steps.tf_outputs.outputs.nango_ecr_repository_url }}
       brain_ecr_repository_url: ${{ steps.tf_outputs.outputs.brain_ecr_repository_url }}
+      pg_backup_ecr_repository_url: ${{ steps.tf_outputs.outputs.pg_backup_ecr_repository_url }}
       artifacts_bucket: ${{ steps.tf_outputs.outputs.artifacts_bucket }}
       github_deploy_role_arn: ${{ steps.tf_outputs.outputs.github_deploy_role_arn }}
+      data_volume_id: ${{ steps.tf_outputs.outputs.data_volume_id }}
     defaults:
       run:
         working-directory: infra/terraform
@@ -53,8 +55,10 @@ jobs:
         run: |
           echo "nango_ecr_repository_url=$(terraform output -raw nango_ecr_repository_url)" >> "$GITHUB_OUTPUT"
           echo "brain_ecr_repository_url=$(terraform output -raw brain_ecr_repository_url)" >> "$GITHUB_OUTPUT"
+          echo "pg_backup_ecr_repository_url=$(terraform output -raw pg_backup_ecr_repository_url)" >> "$GITHUB_OUTPUT"
           echo "artifacts_bucket=$(terraform output -raw artifacts_bucket)" >> "$GITHUB_OUTPUT"
           echo "github_deploy_role_arn=$(terraform output -raw github_deploy_role_arn)" >> "$GITHUB_OUTPUT"
+          echo "data_volume_id=$(terraform output -raw data_volume_id)" >> "$GITHUB_OUTPUT"
 
       - name: Outputs
         run: |
@@ -107,6 +111,26 @@ jobs:
           dockerfile: backend/Dockerfile
           cache-scope: brain
 
+  build-docker-pg-backup:
+    needs: terraform-apply
+    runs-on: ubuntu-latest
+    outputs:
+      docker_image_tag: ${{ steps.build.outputs.image-tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build and push
+        id: build
+        uses: ./.github/actions/build-and-push-docker
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
+          ecr-repository-url: ${{ needs.terraform-apply.outputs.pg_backup_ecr_repository_url }}
+          context: infra/pg-backup
+          dockerfile: infra/pg-backup/Dockerfile
+          cache-scope: pg-backup
+
   build-bundle:
     needs: terraform-apply
     runs-on: ubuntu-latest
@@ -137,14 +161,20 @@ jobs:
             db/prepare \
             nango/packages/providers/providers.yaml \
             -C infra caddy/Caddyfile \
-            -C deploy on_box_deploy.sh
+            -C deploy on_box_deploy.sh ensure_data_volume.sh
 
       - name: Upload bundle to S3
         run: aws s3 cp bundle.tar.gz "${{ steps.meta.outputs.bundle_url }}"
 
   deploy:
     needs:
-      [terraform-apply, build-docker-nango, build-docker-brain, build-bundle]
+      [
+        terraform-apply,
+        build-docker-nango,
+        build-docker-brain,
+        build-docker-pg-backup,
+        build-bundle,
+      ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -160,8 +190,11 @@ jobs:
         env:
           BUNDLE_URL: ${{ needs.build-bundle.outputs.bundle_url }}
           DEPLOY_GROUP: ${{ env.DEPLOY_GROUP }}
+          DATA_VOLUME_ID: ${{ needs.terraform-apply.outputs.data_volume_id }}
+          ARTIFACTS_BUCKET: ${{ needs.terraform-apply.outputs.artifacts_bucket }}
           NANGO_IMAGE_URI: ${{ needs.build-docker-nango.outputs.docker_image_tag }}
           BRAIN_IMAGE_URI: ${{ needs.build-docker-brain.outputs.docker_image_tag }}
+          PG_BACKUP_IMAGE_URI: ${{ needs.build-docker-pg-backup.outputs.docker_image_tag }}
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
           NANGO_HOSTNAME: ${{ env.NANGO_HOSTNAME }}
           NANGO_CONNECT_HOSTNAME: ${{ env.NANGO_CONNECT_HOSTNAME }}

@@ -23,6 +23,9 @@ resource "aws_instance" "app" {
   metadata_options {
     http_tokens   = "required" # IMDSv2 only
     http_endpoint = "enabled"
+    # Two hops so containers on the bridge network can reach IMDS: the
+    # pg-backup container uses the instance role to upload dumps to S3.
+    http_put_response_hop_limit = 2
   }
 
   lifecycle {

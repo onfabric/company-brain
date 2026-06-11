@@ -16,7 +16,13 @@ variable "instance_type" {
 variable "root_volume_size" {
   type        = number
   default     = 50
-  description = "Root EBS volume size in GB. Holds the OS and all Docker volumes (Postgres/ES/Redis)."
+  description = "Root EBS volume size in GB. Holds the OS only; data lives on the data volume."
+}
+
+variable "data_volume_size" {
+  type        = number
+  default     = 50
+  description = "Persistent data EBS volume size in GB. Holds Docker's data-root (Postgres/ES/Caddy volumes and images). Survives instance replacement."
 }
 
 variable "hostname" {
