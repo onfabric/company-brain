@@ -22,7 +22,7 @@ variable "root_volume_size" {
 variable "data_volume_size" {
   type        = number
   default     = 50
-  description = "Persistent data EBS volume size in GB. Holds Docker's data-root (Postgres/ES/Caddy volumes and images). Survives instance replacement."
+  description = "Persistent data EBS volume size in GB. Backs the data-bearing compose volumes (Postgres/ES/Caddy certs). Survives instance replacement."
 }
 
 variable "hostname" {

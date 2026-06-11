@@ -82,8 +82,26 @@ services:
     networks:
       - nango
 
+# Data-bearing volumes are bind-backed by the persistent EBS volume mounted at
+# /data (see infra/deploy/ensure_data_volume.sh), so they survive instance
+# replacement. Derived volumes (nango-integrations, caddy-config) stay on the
+# root disk; deploys rebuild them.
 volumes:
+  postgres-data:
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/volumes/postgres-data
+  elasticsearch-data:
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/volumes/elasticsearch-data
   caddy-data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/volumes/caddy-data
   caddy-config:
     driver: local

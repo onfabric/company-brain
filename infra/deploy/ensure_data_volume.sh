@@ -1,8 +1,11 @@
 #!/bin/bash
 # Runs ON the EC2 instance before the compose stack is touched. Mounts the
-# persistent EBS data volume at /data and points Docker's data-root at it, so
-# Postgres/Elasticsearch/Caddy volumes survive instance replacement.
-# Idempotent: a no-op once the volume is mounted and Docker is migrated.
+# persistent EBS data volume at /data and prepares the directories the prod
+# compose file binds the data-bearing named volumes to (postgres-data,
+# elasticsearch-data, caddy-data), so that data survives instance replacement.
+# Docker's own state (images, containers, derived volumes) stays on the root
+# disk — every deploy rebuilds it.
+# Idempotent: a no-op once the volume is mounted and the directories exist.
 set -euo pipefail
 
 : "${DATA_VOLUME_ID:?}"
@@ -32,13 +35,16 @@ mkdir -p /data
 grep -qF "$dev" /etc/fstab || echo "$dev /data xfs defaults,nofail 0 2" >> /etc/fstab
 mountpoint -q /data || mount /data
 
-if ! grep -qs '"data-root": "/data/docker"' /etc/docker/daemon.json; then
-  log "migrating Docker data-root to /data/docker (stops the stack briefly)"
+mkdir -p /data/volumes/postgres-data /data/volumes/elasticsearch-data /data/volumes/caddy-data
+
+# One-time rollback of the abandoned data-root migration (deployed 2026-06-11,
+# never worked): reset Docker to a clean default state so compose recreates
+# everything with the bind-backed volumes. The box held no data worth keeping.
+# Delete this block once it has run on the box.
+if grep -qs '"data-root"' /etc/docker/daemon.json; then
+  log "rolling back the data-root override; resetting Docker state"
   systemctl stop docker docker.socket
-  mkdir -p /data/docker /etc/docker
-  cp -a /var/lib/docker/. /data/docker/
-  echo '{ "data-root": "/data/docker" }' > /etc/docker/daemon.json
-  mv /var/lib/docker "/var/lib/docker.pre-data-volume.$(date -u +%s)"
+  rm /etc/docker/daemon.json
+  rm -rf /data/docker /var/lib/docker.pre-data-volume.*
   systemctl start docker
-  log "Docker now runs from /data/docker"
 fi
