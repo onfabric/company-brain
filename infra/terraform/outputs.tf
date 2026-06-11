@@ -22,6 +22,11 @@ output "brain_ecr_repository_url" {
   value       = aws_ecr_repository.brain.repository_url
 }
 
+output "pg_backup_ecr_repository_url" {
+  description = "ECR repo for the nightly Postgres backup image."
+  value       = aws_ecr_repository.pg_backup.repository_url
+}
+
 output "artifacts_bucket" {
   value = aws_s3_bucket.artifacts.bucket
 }
@@ -33,6 +38,11 @@ output "github_deploy_role_arn" {
 
 output "instance_id" {
   value = aws_instance.app.id
+}
+
+output "data_volume_id" {
+  description = "The deploy script locates the device by this id to mount /data."
+  value       = aws_ebs_volume.data.id
 }
 
 output "deploy_group_tag" {
