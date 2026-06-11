@@ -35,16 +35,6 @@ mkdir -p /data
 grep -qF "$dev" /etc/fstab || echo "$dev /data xfs defaults,nofail 0 2" >> /etc/fstab
 mountpoint -q /data || mount /data
 
+# Docker does not create missing host directories for local volumes with
+# `o: bind` driver_opts (unlike container bind mounts) — volume creation fails.
 mkdir -p /data/volumes/postgres-data /data/volumes/elasticsearch-data /data/volumes/caddy-data
-
-# One-time rollback of the abandoned data-root migration (deployed 2026-06-11,
-# never worked): reset Docker to a clean default state so compose recreates
-# everything with the bind-backed volumes. The box held no data worth keeping.
-# Delete this block once it has run on the box.
-if grep -qs '"data-root"' /etc/docker/daemon.json; then
-  log "rolling back the data-root override; resetting Docker state"
-  systemctl stop docker docker.socket
-  rm /etc/docker/daemon.json
-  rm -rf /data/docker /var/lib/docker.pre-data-volume.*
-  systemctl start docker
-fi
