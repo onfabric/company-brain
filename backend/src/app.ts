@@ -12,6 +12,7 @@ import { knowledgePagesIdController } from '#routes/knowledge/pages/[id]/control
 import { knowledgePagesIndexController } from '#routes/knowledge/pages/index/controller.ts';
 import { knowledgeTypesIdController } from '#routes/knowledge-types/[id]/controller.ts';
 import { knowledgeTypesController } from '#routes/knowledge-types/controller.ts';
+import { mcpController } from '#routes/mcp/controller.ts';
 import { peopleIdController } from '#routes/people/[id]/controller.ts';
 import { peopleController } from '#routes/people/controller.ts';
 import { peopleMergeController } from '#routes/people/merge/controller.ts';
@@ -26,6 +27,7 @@ export function createApp() {
     .use(requestResponsePlugin)
     .use(
       openapi({
+        exclude: { paths: ['/mcp'] },
         documentation: {
           info: {
             title: 'Company Brain API',
@@ -78,5 +80,6 @@ export function createApp() {
     .use(recordsController)
     .use(recordsIdController)
     .use(sessionsController)
+    .use(mcpController)
     .use(batchSaveController);
 }
