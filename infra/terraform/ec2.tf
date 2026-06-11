@@ -25,6 +25,18 @@ resource "aws_instance" "app" {
     http_endpoint = "enabled"
   }
 
+  lifecycle {
+    # The AMI comes from a floating SSM parameter that AWS bumps every few
+    # weeks; acting on that drift would terminate and replace the instance
+    # (and on 2026-06-10 it did, destroying all data). New instances get the
+    # latest AL2023; existing ones keep theirs and patch via dnf.
+    ignore_changes = [ami]
+    # ami is not the only force-replacement attribute. Replacing the instance
+    # must be an explicit human decision: remove this flag in the PR that
+    # intends it.
+    prevent_destroy = true
+  }
+
   tags = {
     Name = "company-brain-${var.environment}"
     # The deploy workflow targets the instance by these tags.
