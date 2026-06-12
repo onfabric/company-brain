@@ -258,6 +258,8 @@ services:
       - PGDATABASE=${NANGO_DB_NAME}
       - BRAIN_DB_USER=${BRAIN_DB_USER}
       - BRAIN_DB_PASSWORD=${BRAIN_DB_PASSWORD}
+      - KEYCLOAK_DB_USER=${KEYCLOAK_DB_USER}
+      - KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}
       - NANGO_RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
     volumes:
       - ./db/prepare:/db-prepare:ro
@@ -277,6 +279,11 @@ services:
     environment:
       - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
       - BRAIN_API_KEY
+      # Issuer/resource are the host-facing URLs MCP clients see; JWKS is fetched
+      # over the compose network.
+      - MCP_OAUTH_ISSUER=http://localhost:${KEYCLOAK_PORT}/realms/company-brain
+      - MCP_OAUTH_JWKS_URL=http://keycloak:8080/realms/company-brain/protocol/openid-connect/certs
+      - MCP_RESOURCE=http://localhost:${BRAIN_SERVER_PORT}/mcp
     ports:
       - "127.0.0.1:${BRAIN_SERVER_PORT}:3010"
     healthcheck:
@@ -289,6 +296,53 @@ services:
     depends_on:
       db-prepare:
         condition: service_completed_successfully
+    networks:
+      - nango
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5
+    container_name: keycloak
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-db:5432/keycloak
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      # Fixes the issuer to the host-facing URL so tokens validate regardless of
+      # whether Keycloak is reached via the host port or the compose network.
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT}
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PORT}:8080"
+    restart: always
+    depends_on:
+      db-prepare:
+        condition: service_completed_successfully
+    networks:
+      - nango
+
+  # One-shot: idempotently applies infra/keycloak/*.json (realm, client scopes,
+  # client registration policies) on every up, so the committed files stay the
+  # single source of truth for Keycloak's configuration.
+  keycloak-config:
+    image: adorsys/keycloak-config-cli:6.5.1-26.5.5
+    container_name: keycloak-config
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_USER: ${KEYCLOAK_ADMIN_USER}
+      KEYCLOAK_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
+      KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: 120s
+      IMPORT_FILES_LOCATIONS: /config/*.json
+      IMPORT_VARSUBSTITUTION_ENABLED: "true"
+      MCP_RESOURCE: http://localhost:${BRAIN_SERVER_PORT}/mcp
+      KEYCLOAK_DEV_USER_PASSWORD: ${KEYCLOAK_DEV_USER_PASSWORD}
+    volumes:
+      - ./infra/keycloak:/config:ro
+    restart: "no"
+    depends_on:
+      - keycloak
     networks:
       - nango
 
