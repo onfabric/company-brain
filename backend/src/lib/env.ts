@@ -20,10 +20,13 @@ type Env = {
   databaseUrl: string;
   port: number;
   brainApiKey: string;
+  // Issuer and resource are OAuth identifiers compared byte-for-byte against
+  // token claims, so they stay strings: URL normalization (e.g. the trailing
+  // slash added to origin-only URLs) would silently break validation.
   mcpOauthIssuer: string;
-  mcpOauthJwksUrl: string;
+  mcpOauthJwksUrl: URL;
   mcpResource: string;
-  logtoUpstreamUrl: string;
+  logtoUpstreamUrl: URL;
   logtoM2mClientId: string;
   logtoM2mClientSecret: string;
 };
@@ -36,6 +39,10 @@ function required(name: keyof NodeJS.ProcessEnv): string {
   return value;
 }
 
+function requiredUrl(name: keyof NodeJS.ProcessEnv): URL {
+  return new URL(required(name));
+}
+
 function optional(name: keyof NodeJS.ProcessEnv, defaultValue: string): string {
   return process.env[name] || defaultValue;
 }
@@ -46,9 +53,9 @@ function loadEnv(): Env {
     port: Number(optional('PORT', DEFAULT_PORT)),
     brainApiKey: required('BRAIN_API_KEY'),
     mcpOauthIssuer: required('MCP_OAUTH_ISSUER'),
-    mcpOauthJwksUrl: required('MCP_OAUTH_JWKS_URL'),
+    mcpOauthJwksUrl: requiredUrl('MCP_OAUTH_JWKS_URL'),
     mcpResource: required('MCP_RESOURCE'),
-    logtoUpstreamUrl: required('LOGTO_UPSTREAM_URL'),
+    logtoUpstreamUrl: requiredUrl('LOGTO_UPSTREAM_URL'),
     logtoM2mClientId: required('LOGTO_M2M_CLIENT_ID'),
     logtoM2mClientSecret: required('LOGTO_M2M_CLIENT_SECRET'),
   };

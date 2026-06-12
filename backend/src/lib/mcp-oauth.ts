@@ -22,15 +22,25 @@ export const mcpBearerSecuritySchemes = {
   },
 } satisfies Record<string, OpenAPIV3.SecuritySchemeObject>;
 
-const jwks = createRemoteJWKSet(new URL(env.mcpOauthJwksUrl));
+const jwks = createRemoteJWKSet(env.mcpOauthJwksUrl);
+
+const BEARER_PREFIX = 'Bearer ';
+
+function bearerToken(headers: RequestHeaders): string | null {
+  const authorization = getHeader(headers, 'Authorization');
+  if (!authorization?.startsWith(BEARER_PREFIX)) {
+    return null;
+  }
+  return authorization.slice(BEARER_PREFIX.length);
+}
 
 export async function hasValidMcpAccessToken(headers: RequestHeaders): Promise<boolean> {
-  const authorization = getHeader(headers, 'Authorization');
-  if (!authorization?.startsWith('Bearer ')) {
+  const token = bearerToken(headers);
+  if (!token) {
     return false;
   }
   try {
-    await jwtVerify(authorization.slice('Bearer '.length), jwks, {
+    await jwtVerify(token, jwks, {
       issuer: env.mcpOauthIssuer,
       audience: env.mcpResource,
     });

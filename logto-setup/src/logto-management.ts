@@ -1,6 +1,6 @@
-import { MANAGEMENT_API_RESOURCE, requiredEnv } from './env.ts';
+import { MANAGEMENT_API_RESOURCE, requiredEnv, requiredUrlEnv } from './env.ts';
 
-const upstream = requiredEnv('LOGTO_UPSTREAM_URL');
+const upstream = requiredUrlEnv('LOGTO_UPSTREAM_URL');
 const m2mClientId = requiredEnv('LOGTO_M2M_CLIENT_ID');
 const m2mClientSecret = requiredEnv('LOGTO_M2M_CLIENT_SECRET');
 
@@ -13,7 +13,7 @@ export async function managementToken(): Promise<string> {
   if (cached && cached.expiresAt > Date.now() + TOKEN_REFRESH_MARGIN_MS) {
     return cached.token;
   }
-  const res = await fetch(`${upstream}/oidc/token`, {
+  const res = await fetch(new URL('oidc/token', upstream), {
     method: 'POST',
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
@@ -38,7 +38,7 @@ export async function managementToken(): Promise<string> {
 
 export async function managementApi<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = await managementToken();
-  const res = await fetch(`${upstream}/api/${path}`, {
+  const res = await fetch(new URL(`api/${path}`, upstream), {
     method,
     headers: {
       authorization: `Bearer ${token}`,

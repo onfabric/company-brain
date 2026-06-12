@@ -1,4 +1,4 @@
-import { MCP_SCOPE, requiredEnv } from './env.ts';
+import { MCP_SCOPE, requiredEnv, requiredUrlEnv } from './env.ts';
 import {
   findMcpScope,
   type LogtoResource,
@@ -11,7 +11,7 @@ import {
 // Requires the M2M credentials from the one-time console bootstrap (see
 // .env.example).
 
-const upstream = requiredEnv('LOGTO_UPSTREAM_URL');
+const upstream = requiredUrlEnv('LOGTO_UPSTREAM_URL');
 const mcpResource = requiredEnv('MCP_RESOURCE');
 
 const READY_TIMEOUT_MS = 120_000;
@@ -21,7 +21,7 @@ async function waitForLogto(): Promise<void> {
   const deadline = Date.now() + READY_TIMEOUT_MS;
   while (true) {
     try {
-      const res = await fetch(`${upstream}/oidc/.well-known/openid-configuration`);
+      const res = await fetch(new URL('oidc/.well-known/openid-configuration', upstream));
       if (res.ok) {
         return;
       }

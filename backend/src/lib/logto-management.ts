@@ -3,6 +3,8 @@ import { env } from '#lib/env.ts';
 // Minimal client for Logto's Management API, authenticated with the M2M
 // credentials seeded by logto-setup.
 
+// Fixed resource indicator (token audience) of Logto's built-in Management
+// API for the OSS `default` tenant — an identifier, never fetched as a URL.
 const MANAGEMENT_API_RESOURCE = 'https://default.logto.app/api';
 const TOKEN_REFRESH_MARGIN_MS = 30_000;
 const MILLISECONDS_PER_SECOND = 1_000;
@@ -14,7 +16,7 @@ async function managementToken(): Promise<string> {
     return cached.token;
   }
   const credentials = `${env.logtoM2mClientId}:${env.logtoM2mClientSecret}`;
-  const res = await fetch(`${env.logtoUpstreamUrl}/oidc/token`, {
+  const res = await fetch(new URL('oidc/token', env.logtoUpstreamUrl), {
     method: 'POST',
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
@@ -43,7 +45,7 @@ export async function logtoManagementApi<T>(
   body?: unknown,
 ): Promise<T> {
   const token = await managementToken();
-  const res = await fetch(`${env.logtoUpstreamUrl}/api/${path}`, {
+  const res = await fetch(new URL(`api/${path}`, env.logtoUpstreamUrl), {
     method,
     headers: {
       authorization: `Bearer ${token}`,

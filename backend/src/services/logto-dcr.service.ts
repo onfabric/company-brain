@@ -11,7 +11,8 @@ type LogtoResource = { id: string; indicator: string };
 type LogtoScope = { id: string; name: string };
 type LogtoApplication = { id: string };
 
-type OpenidConfiguration = { issuer: string } & Record<string, unknown>;
+type UpstreamOpenidConfiguration = { issuer: string } & Record<string, unknown>;
+type OpenidConfiguration = UpstreamOpenidConfiguration & { registration_endpoint: string };
 
 export class LogtoDcrService extends Service {
   async registerClient(input: { clientName: string; redirectUris: string[] }): Promise<string> {
@@ -40,11 +41,11 @@ export class LogtoDcrService extends Service {
   // Logto's discovery document, with the registration endpoint this service
   // provides added in.
   async openidConfiguration(): Promise<OpenidConfiguration> {
-    const res = await fetch(`${env.logtoUpstreamUrl}/oidc/.well-known/openid-configuration`);
+    const res = await fetch(new URL('oidc/.well-known/openid-configuration', env.logtoUpstreamUrl));
     if (!res.ok) {
       throw new Error(`upstream openid-configuration failed (${res.status})`);
     }
-    const metadata = (await res.json()) as OpenidConfiguration;
+    const metadata = (await res.json()) as UpstreamOpenidConfiguration;
     return { ...metadata, registration_endpoint: `${metadata.issuer}/register` };
   }
 
