@@ -14,7 +14,7 @@ declare global {
   }
 }
 
-const DEFAULT_PORT = 3010;
+const DEFAULT_PORT = '3010';
 
 type Env = {
   databaseUrl: string;
@@ -36,10 +36,14 @@ function required(name: keyof NodeJS.ProcessEnv): string {
   return value;
 }
 
+function optional(name: keyof NodeJS.ProcessEnv, defaultValue: string): string {
+  return process.env[name] || defaultValue;
+}
+
 function loadEnv(): Env {
   return {
     databaseUrl: required('DATABASE_URL'),
-    port: process.env.PORT ? Number(process.env.PORT) : DEFAULT_PORT,
+    port: Number(optional('PORT', DEFAULT_PORT)),
     brainApiKey: required('BRAIN_API_KEY'),
     mcpOauthIssuer: required('MCP_OAUTH_ISSUER'),
     mcpOauthJwksUrl: required('MCP_OAUTH_JWKS_URL'),
