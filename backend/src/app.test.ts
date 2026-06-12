@@ -96,7 +96,21 @@ describe('api key auth', () => {
     expect(cookie).toContain(`${BRAIN_SESSION_COOKIE}=`);
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('Path=/knowledge/pages');
+    expect(cookie).toContain('SameSite=Lax');
     expect(cookie).toContain('Secure');
+  });
+
+  it('lets a knowledge page past auth with a valid session cookie', async () => {
+    const { createApp } = await import('#app.ts');
+    const { BRAIN_SESSION_COOKIE, createBrainSessionToken } = await import(
+      '#lib/browser-session-auth.ts'
+    );
+    const res = await createApp().handle(
+      new Request('http://localhost/knowledge/pages/index', {
+        headers: { cookie: `${BRAIN_SESSION_COOKIE}=${createBrainSessionToken()}` },
+      }),
+    );
+    expect(res.status).not.toBe(StatusMap.Unauthorized);
   });
 
   it('rejects navigable knowledge pages without api key or session cookie', async () => {

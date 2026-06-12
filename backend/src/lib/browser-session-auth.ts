@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { Elysia, StatusMap, t } from 'elysia';
+import { type CookieOptions, Elysia, StatusMap, t } from 'elysia';
 import type { OpenAPIV3 } from 'openapi-types';
 import { API_KEY_SECURITY_SCHEME, hasValidApiKey, type RequestHeaders } from '#lib/api-key-auth.ts';
 import { env } from '#lib/env.ts';
@@ -19,11 +19,6 @@ type BrainSessionPayload = {
   nonce: string;
 };
 
-type CookieOptions = {
-  secure: boolean;
-  now?: number;
-};
-
 export const REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME = 'requireKnowledgePageAuth';
 export const BRAIN_SESSION_SECURITY_SCHEME = 'brainSession';
 
@@ -36,13 +31,6 @@ export const brainSessionSecuritySchemes = {
   },
 } satisfies Record<string, OpenAPIV3.SecuritySchemeObject>;
 
-export function hasValidKnowledgePageAuth(headers: RequestHeaders): boolean {
-  if (hasValidApiKey(headers)) {
-    return true;
-  }
-  return hasValidBrainSessionCookie(headerValue(headers, 'cookie'));
-}
-
 export const knowledgePageAuth = new Elysia({ name: 'knowledgePageAuth' }).macro(
   REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME,
   {
@@ -52,27 +40,26 @@ export const knowledgePageAuth = new Elysia({ name: 'knowledgePageAuth' }).macro
     response: {
       [StatusMap.Unauthorized]: t.Object({ error: t.String() }),
     },
-    beforeHandle({ headers, status }) {
-      if (!hasValidKnowledgePageAuth(headers)) {
+    beforeHandle({ cookie, headers, status }) {
+      const sessionToken = cookie[BRAIN_SESSION_COOKIE]?.value;
+      const authorized =
+        hasValidApiKey(headers) ||
+        (typeof sessionToken === 'string' && isValidBrainSessionToken(sessionToken));
+      if (!authorized) {
         return status(StatusMap.Unauthorized, { error: 'Unauthorized' });
       }
     },
   },
 );
 
-export function createBrainSessionSetCookie(options: CookieOptions): string {
-  const token = createBrainSessionToken(options.now);
-  const parts = [
-    `${BRAIN_SESSION_COOKIE}=${token}`,
-    'HttpOnly',
-    `Path=${COOKIE_PATH}`,
-    'SameSite=Lax',
-    `Max-Age=${BRAIN_SESSION_TTL_SECONDS}`,
-  ];
-  if (options.secure) {
-    parts.push('Secure');
-  }
-  return parts.join('; ');
+export function brainSessionCookieAttributes(secure: boolean): CookieOptions {
+  return {
+    httpOnly: true,
+    path: COOKIE_PATH,
+    sameSite: 'lax',
+    maxAge: BRAIN_SESSION_TTL_SECONDS,
+    secure,
+  };
 }
 
 export function isSecureCookieRequest(headers: RequestHeaders, url: string): boolean {
@@ -108,21 +95,6 @@ export function isValidBrainSessionToken(token: string, now = Date.now()): boole
   }
 
   return payload.v === SESSION_VERSION && payload.exp >= Math.floor(now / MILLISECONDS_PER_SECOND);
-}
-
-function hasValidBrainSessionCookie(cookieHeader: string | null): boolean {
-  const token = cookieHeader ? cookieValue(cookieHeader, BRAIN_SESSION_COOKIE) : null;
-  return token ? isValidBrainSessionToken(token) : false;
-}
-
-function cookieValue(cookieHeader: string, name: string): string | null {
-  for (const part of cookieHeader.split(';')) {
-    const [rawName, ...rawValue] = part.trim().split('=');
-    if (rawName === name) {
-      return decodeURIComponent(rawValue.join('='));
-    }
-  }
-  return null;
 }
 
 function parsePayload(encodedPayload: string): BrainSessionPayload | null {
