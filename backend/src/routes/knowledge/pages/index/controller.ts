@@ -3,7 +3,7 @@ import {
   knowledgePageAuth,
   REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME,
 } from '#lib/browser-session-auth.ts';
-import { KNOWLEDGE_HTML_HEADERS } from '#lib/knowledge-html.ts';
+import { applyKnowledgeHtmlHeaders } from '#lib/knowledge-html.ts';
 import { KnowledgeHtmlPageResponseSchema } from '#routes/knowledge/pages/model.ts';
 import { KnowledgeServicePlugin, loggerPlugin } from '#services/plugins.ts';
 
@@ -16,7 +16,7 @@ export const knowledgePagesIndexController = new Elysia()
     async ({ knowledgeService, logger, set, status }) => {
       logger.info('fetching knowledge HTML index page');
       const html = await knowledgeService.getKnowledgeIndexHtmlPage();
-      Object.assign(set.headers, KNOWLEDGE_HTML_HEADERS);
+      applyKnowledgeHtmlHeaders(set.headers);
       return status(StatusMap.OK, html);
     },
     {

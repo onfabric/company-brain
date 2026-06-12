@@ -1,3 +1,4 @@
+import type { HTTPHeaders } from 'elysia';
 import sanitizeHtml from 'sanitize-html';
 
 const KNOWLEDGE_LINK_PATTERN =
@@ -30,7 +31,11 @@ export const KNOWLEDGE_HTML_HEADERS = {
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'no-referrer',
   'cache-control': 'private, max-age=60',
-};
+} satisfies HTTPHeaders;
+
+export function applyKnowledgeHtmlHeaders(headers: HTTPHeaders): void {
+  Object.assign(headers, KNOWLEDGE_HTML_HEADERS);
+}
 
 export function knowledgePagePath(id: string): string {
   return `/knowledge/pages/${id}`;
