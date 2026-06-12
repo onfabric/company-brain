@@ -42,7 +42,7 @@ export async function hasValidMcpAccessToken(headers: RequestHeaders): Promise<b
   try {
     await jwtVerify(token, jwks, {
       issuer: env.mcpOauthIssuer,
-      audience: env.mcpResource,
+      audience: env.mcpResource.href,
     });
     return true;
   } catch {
@@ -53,8 +53,8 @@ export async function hasValidMcpAccessToken(headers: RequestHeaders): Promise<b
 // RFC 9728 path-suffixed form: metadata for <origin>/mcp lives at
 // <origin>/.well-known/oauth-protected-resource/mcp.
 export function protectedResourceMetadataUrl(): string {
-  const url = new URL(env.mcpResource);
-  return `${url.origin}/.well-known/oauth-protected-resource${url.pathname}`;
+  const { origin, pathname } = env.mcpResource;
+  return `${origin}/.well-known/oauth-protected-resource${pathname}`;
 }
 
 export const mcpAuth = new Elysia({ name: 'mcpAuth' }).macro(REQUIRE_MCP_AUTH_MACRO_NAME, {

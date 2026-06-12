@@ -51,7 +51,7 @@ export class LogtoDcrService extends Service {
 
   private async mcpScope(): Promise<LogtoScope> {
     const resources = await logtoManagementApi<LogtoResource[]>('GET', 'resources');
-    const resource = resources.find((r) => r.indicator === env.mcpResource);
+    const resource = resources.find((r) => r.indicator === env.mcpResource.href);
     if (!resource) {
       throw new Error(`MCP api resource not provisioned in Logto: ${env.mcpResource}`);
     }

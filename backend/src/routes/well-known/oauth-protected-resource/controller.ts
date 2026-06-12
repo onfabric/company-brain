@@ -9,7 +9,7 @@ import { ProtectedResourceMetadataSchema } from '#routes/well-known/oauth-protec
 // path-suffixed form (clients try `/.well-known/oauth-protected-resource/mcp`
 // first for the resource `<origin>/mcp`). Unauthenticated by design.
 const METADATA: Static<typeof ProtectedResourceMetadataSchema> = {
-  resource: env.mcpResource,
+  resource: env.mcpResource.href,
   authorization_servers: [env.mcpOauthIssuer],
   scopes_supported: [MCP_SCOPE],
   bearer_methods_supported: ['header'],

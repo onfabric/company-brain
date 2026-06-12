@@ -20,12 +20,14 @@ type Env = {
   databaseUrl: string;
   port: number;
   brainApiKey: string;
-  // Issuer and resource are OAuth identifiers compared byte-for-byte against
-  // token claims, so they stay strings: URL normalization (e.g. the trailing
-  // slash added to origin-only URLs) would silently break validation.
+  // The issuer is minted by the authorization server and compared
+  // byte-for-byte against the token's iss claim, so it stays a string: URL
+  // normalization on our side would silently break validation. The resource is
+  // our own identifier — every use derives from this one parsed value (via
+  // .href), so it is consistently normalized everywhere.
   mcpOauthIssuer: string;
   mcpOauthJwksUrl: URL;
-  mcpResource: string;
+  mcpResource: URL;
   logtoUpstreamUrl: URL;
   logtoM2mClientId: string;
   logtoM2mClientSecret: string;
@@ -54,7 +56,7 @@ function loadEnv(): Env {
     brainApiKey: required('BRAIN_API_KEY'),
     mcpOauthIssuer: required('MCP_OAUTH_ISSUER'),
     mcpOauthJwksUrl: requiredUrl('MCP_OAUTH_JWKS_URL'),
-    mcpResource: required('MCP_RESOURCE'),
+    mcpResource: requiredUrl('MCP_RESOURCE'),
     logtoUpstreamUrl: requiredUrl('LOGTO_UPSTREAM_URL'),
     logtoM2mClientId: required('LOGTO_M2M_CLIENT_ID'),
     logtoM2mClientSecret: required('LOGTO_M2M_CLIENT_SECRET'),

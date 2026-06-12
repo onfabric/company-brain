@@ -326,9 +326,11 @@ services:
     networks:
       - nango
 
-  # One-shot: idempotently provisions Logto on every up (M2M credentials seeded
-  # into its database, MCP API resource + scope, dev user), so the committed
-  # setup code is the source of truth for Logto's configuration.
+  # One-shot: idempotently provisions Logto on every up (MCP API resource +
+  # scope, dev user), so the committed setup code is the source of truth for
+  # Logto's configuration. Runs the mounted TypeScript directly on the stock
+  # bun image: this works because logto-setup has no runtime dependencies
+  # (Bun/Web built-ins only) — adding one would require an install step here.
   logto-configure:
     image: oven/bun:1.3
     container_name: logto-configure

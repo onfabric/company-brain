@@ -12,7 +12,7 @@ import {
 // .env.example).
 
 const upstream = requiredUrlEnv('LOGTO_UPSTREAM_URL');
-const mcpResource = requiredEnv('MCP_RESOURCE');
+const mcpResource = requiredUrlEnv('MCP_RESOURCE').href;
 
 const READY_TIMEOUT_MS = 120_000;
 const READY_POLL_MS = 2_000;
