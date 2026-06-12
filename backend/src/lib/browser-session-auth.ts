@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { Elysia, StatusMap, t } from 'elysia';
+import { type CookieOptions, Elysia, StatusMap, t } from 'elysia';
 import type { OpenAPIV3 } from 'openapi-types';
 import { API_KEY_SECURITY_SCHEME, hasValidApiKey, type RequestHeaders } from '#lib/api-key-auth.ts';
 import { env } from '#lib/env.ts';
@@ -52,14 +52,14 @@ export const knowledgePageAuth = new Elysia({ name: 'knowledgePageAuth' }).macro
   },
 );
 
-export function brainSessionCookieAttributes(secure: boolean) {
+export function brainSessionCookieAttributes(secure: boolean): CookieOptions {
   return {
     httpOnly: true,
     path: COOKIE_PATH,
     sameSite: 'lax',
     maxAge: BRAIN_SESSION_TTL_SECONDS,
     secure,
-  } as const;
+  };
 }
 
 export function isSecureCookieRequest(headers: RequestHeaders, url: string): boolean {
