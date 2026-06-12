@@ -8,7 +8,7 @@ import { MCP_SCOPE } from '#lib/mcp-oauth.ts';
 // path-suffixed form (clients try `/.well-known/oauth-protected-resource/mcp`
 // first for the resource `<origin>/mcp`). Unauthenticated by design;
 // `access-control-allow-origin: *` lets browser-based MCP clients read it.
-function metadata({ set }: Pick<Context, 'set'>) {
+function metadata({ set }: Context) {
   set.headers['access-control-allow-origin'] = '*';
   return {
     resource: env.mcpResource,
