@@ -41,7 +41,7 @@ export const peopleIdController = new Elysia()
       return status(StatusMap.OK, person);
     },
     {
-      requireApiKey: true,
+      [REQUIRE_API_KEY_MACRO_NAME]: true,
       parse: 'json',
       detail: {
         tags: ['People'],

@@ -1,10 +1,11 @@
-import { Elysia, StatusMap, t } from 'elysia';
+import { Elysia, StatusMap } from 'elysia';
 import {
   knowledgePageAuth,
   REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME,
 } from '#lib/browser-session-auth.ts';
 import { KNOWLEDGE_HTML_HEADERS } from '#lib/knowledge-html.ts';
 import { KnowledgeParamsSchema } from '#routes/knowledge/[id]/model.ts';
+import { KnowledgeHtmlPageResponseSchema } from '#routes/knowledge/pages/model.ts';
 import { KnowledgeServicePlugin, loggerPlugin } from '#services/plugins.ts';
 
 export const knowledgePagesIdController = new Elysia()
@@ -13,13 +14,11 @@ export const knowledgePagesIdController = new Elysia()
   .use(knowledgePageAuth)
   .get(
     '/knowledge/pages/:id',
-    async ({ knowledgeService, logger, params }) => {
+    async ({ knowledgeService, logger, params, set, status }) => {
       logger.info(`fetching knowledge HTML page ${params.id}`);
       const html = await knowledgeService.getKnowledgeHtmlPage(params.id);
-      return new Response(html, {
-        status: StatusMap.OK,
-        headers: KNOWLEDGE_HTML_HEADERS,
-      });
+      set.headers = { ...KNOWLEDGE_HTML_HEADERS };
+      return status(StatusMap.OK, html);
     },
     {
       [REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME]: true,
@@ -31,7 +30,7 @@ export const knowledgePagesIdController = new Elysia()
       },
       params: KnowledgeParamsSchema,
       response: {
-        [StatusMap.OK]: t.String(),
+        [StatusMap.OK]: KnowledgeHtmlPageResponseSchema,
       },
     },
   );
