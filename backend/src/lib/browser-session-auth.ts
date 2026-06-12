@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { hasValidApiKey, type RequestHeaders } from '#lib/api-key-auth.ts';
+import { Elysia, StatusMap, t } from 'elysia';
+import { API_KEY_SECURITY_SCHEME, hasValidApiKey, type RequestHeaders } from '#lib/api-key-auth.ts';
 import { env } from '#lib/env.ts';
 
 export const BRAIN_SESSION_COOKIE = 'brain_session';
@@ -22,12 +23,29 @@ type CookieOptions = {
   now?: number;
 };
 
+export const REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME = 'requireKnowledgePageAuth';
+
 export function hasValidKnowledgePageAuth(headers: RequestHeaders): boolean {
   if (hasValidApiKey(headers)) {
     return true;
   }
   return hasValidBrainSessionCookie(headerValue(headers, 'cookie'));
 }
+
+export const knowledgePageAuth = new Elysia({ name: 'knowledgePageAuth' }).macro(
+  REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME,
+  {
+    detail: { security: [{ [API_KEY_SECURITY_SCHEME]: [] }] },
+    response: {
+      [StatusMap.Unauthorized]: t.Object({ error: t.String() }),
+    },
+    beforeHandle({ headers, status }) {
+      if (!hasValidKnowledgePageAuth(headers)) {
+        return status(StatusMap.Unauthorized, { error: 'Unauthorized' });
+      }
+    },
+  },
+);
 
 export function createBrainSessionSetCookie(options: CookieOptions): string {
   const token = createBrainSessionToken(options.now);

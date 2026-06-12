@@ -1,23 +1,18 @@
 import { Elysia, StatusMap, t } from 'elysia';
-import { hasValidKnowledgePageAuth } from '#lib/browser-session-auth.ts';
+import {
+  knowledgePageAuth,
+  REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME,
+} from '#lib/browser-session-auth.ts';
 import { KNOWLEDGE_HTML_HEADERS } from '#lib/knowledge-html.ts';
 import { KnowledgeServicePlugin, loggerPlugin } from '#services/plugins.ts';
 
 export const knowledgePagesIndexController = new Elysia()
   .use(loggerPlugin('knowledgePagesIndexController'))
   .use(KnowledgeServicePlugin)
+  .use(knowledgePageAuth)
   .get(
     '/knowledge/pages/index',
-    async ({ headers, knowledgeService, logger }) => {
-      if (!hasValidKnowledgePageAuth(headers)) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: StatusMap.Unauthorized,
-          headers: {
-            'content-type': 'application/json; charset=utf-8',
-          },
-        });
-      }
-
+    async ({ knowledgeService, logger }) => {
       logger.info('fetching knowledge HTML index page');
       const html = await knowledgeService.getKnowledgeIndexHtmlPage();
       return new Response(html, {
@@ -26,6 +21,7 @@ export const knowledgePagesIndexController = new Elysia()
       });
     },
     {
+      [REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME]: true,
       detail: {
         tags: ['Knowledge'],
         summary: 'Fetch the knowledge index as HTML',
@@ -34,7 +30,6 @@ export const knowledgePagesIndexController = new Elysia()
       },
       response: {
         [StatusMap.OK]: t.String(),
-        [StatusMap.Unauthorized]: t.Object({ error: t.String() }),
       },
     },
   );
