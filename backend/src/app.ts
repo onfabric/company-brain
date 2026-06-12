@@ -1,6 +1,7 @@
 import { openapi } from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
 import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
+import { brainSessionSecuritySchemes } from '#lib/browser-session-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
 import { dashboardController } from '#routes/dashboard/controller.ts';
@@ -60,7 +61,7 @@ export function createApp() {
             },
           ],
           components: {
-            securitySchemes: apiKeySecuritySchemes,
+            securitySchemes: { ...apiKeySecuritySchemes, ...brainSessionSecuritySchemes },
           },
         },
       }),

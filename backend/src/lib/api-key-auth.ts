@@ -2,7 +2,7 @@ import { Elysia, StatusMap, t } from 'elysia';
 import type { OpenAPIV3 } from 'openapi-types';
 import { env } from '#lib/env.ts';
 
-export const API_KEY_HEADER = 'api-key';
+export const API_KEY_HEADER = 'Api-Key';
 export const API_KEY_SECURITY_SCHEME = 'apiKey';
 export const REQUIRE_API_KEY_MACRO_NAME = 'requireApiKey';
 
