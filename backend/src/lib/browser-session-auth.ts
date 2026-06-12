@@ -31,6 +31,10 @@ export const brainSessionSecuritySchemes = {
   },
 } satisfies Record<string, OpenAPIV3.SecuritySchemeObject>;
 
+export const BrainSessionCookieSchema = t.Cookie({
+  [BRAIN_SESSION_COOKIE]: t.Optional(t.String()),
+});
+
 export const knowledgePageAuth = new Elysia({ name: 'knowledgePageAuth' }).macro(
   REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME,
   {
@@ -40,11 +44,12 @@ export const knowledgePageAuth = new Elysia({ name: 'knowledgePageAuth' }).macro
     response: {
       [StatusMap.Unauthorized]: t.Object({ error: t.String() }),
     },
+    cookie: BrainSessionCookieSchema,
     beforeHandle({ cookie, headers, status }) {
       const sessionToken = cookie[BRAIN_SESSION_COOKIE]?.value;
       const authorized =
         hasValidApiKey(headers) ||
-        (typeof sessionToken === 'string' && isValidBrainSessionToken(sessionToken));
+        (sessionToken !== undefined && isValidBrainSessionToken(sessionToken));
       if (!authorized) {
         return status(StatusMap.Unauthorized, { error: 'Unauthorized' });
       }
