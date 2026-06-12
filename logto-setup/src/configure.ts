@@ -5,11 +5,11 @@ import {
   type LogtoScope,
   managementApi,
 } from './logto-management.ts';
-import { ensureM2mApplication } from './m2m-bootstrap.ts';
 
 // One-shot, idempotent Logto provisioning, run on every `docker compose up`:
-// M2M credentials (seeded straight into the database, see m2m-bootstrap.ts),
 // the MCP API resource and scope, and a dev user for the local OAuth flow.
+// Requires the M2M credentials from the one-time console bootstrap (see
+// .env.example).
 
 const upstream = requiredEnv('LOGTO_UPSTREAM_URL');
 const mcpResource = requiredEnv('MCP_RESOURCE');
@@ -66,7 +66,6 @@ async function ensureDevUser(): Promise<void> {
 }
 
 await waitForLogto();
-await ensureM2mApplication();
 await ensureMcpResource();
 await ensureDevUser();
 console.log('logto configuration complete');

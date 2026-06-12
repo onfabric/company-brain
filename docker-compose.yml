@@ -336,7 +336,6 @@ services:
     command: ["bun", "run", "src/configure.ts"]
     environment:
       LOGTO_UPSTREAM_URL: http://logto:3001
-      LOGTO_DB_URL: postgres://${LOGTO_DB_USER}:${LOGTO_DB_PASSWORD}@postgres-db:5432/logto
       LOGTO_M2M_CLIENT_ID: ${LOGTO_M2M_CLIENT_ID}
       LOGTO_M2M_CLIENT_SECRET: ${LOGTO_M2M_CLIENT_SECRET}
       LOGTO_DEV_USER_PASSWORD: ${LOGTO_DEV_USER_PASSWORD}
