@@ -1,5 +1,6 @@
-import { Elysia } from 'elysia';
+import { Elysia, StatusMap } from 'elysia';
 import { PUBLIC_CORS_MACRO_NAME, publicCors } from '#lib/public-cors.ts';
+import { OpenidConfigurationResponseSchema } from '#routes/oidc/model.ts';
 import { LogtoDcrServicePlugin, loggerPlugin } from '#services/plugins.ts';
 
 // OIDC discovery for the authorization server origin: the reverse proxy in
@@ -12,5 +13,9 @@ export const oidcOpenidConfigurationController = new Elysia()
   .get(
     '/oidc/.well-known/openid-configuration',
     async ({ logtoDcrService }) => await logtoDcrService.openidConfiguration(),
-    { [PUBLIC_CORS_MACRO_NAME]: true, detail: { hide: true } },
+    {
+      [PUBLIC_CORS_MACRO_NAME]: true,
+      response: { [StatusMap.OK]: OpenidConfigurationResponseSchema },
+      detail: { hide: true },
+    },
   );

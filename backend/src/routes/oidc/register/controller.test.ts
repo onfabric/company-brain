@@ -113,5 +113,6 @@ describe('oidc register controller', () => {
     const metadata = (await res.json()) as Record<string, unknown>;
     expect(metadata.issuer).toBe(ISSUER);
     expect(metadata.registration_endpoint).toBe(`${ISSUER}/register`);
+    expect(metadata.authorization_endpoint).toBe(`${ISSUER}/auth`);
   });
 });
