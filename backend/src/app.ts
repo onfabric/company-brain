@@ -15,6 +15,8 @@ import { knowledgePagesIndexController } from '#routes/knowledge/pages/index/con
 import { knowledgeTypesIdController } from '#routes/knowledge-types/[id]/controller.ts';
 import { knowledgeTypesController } from '#routes/knowledge-types/controller.ts';
 import { mcpController } from '#routes/mcp/controller.ts';
+import { oidcRegisterController } from '#routes/oidc/register/controller.ts';
+import { oidcOpenidConfigurationController } from '#routes/oidc/well-known/openid-configuration/controller.ts';
 import { peopleIdController } from '#routes/people/[id]/controller.ts';
 import { peopleController } from '#routes/people/controller.ts';
 import { peopleMergeController } from '#routes/people/merge/controller.ts';
@@ -89,5 +91,7 @@ export function createApp() {
     .use(sessionsController)
     .use(mcpController)
     .use(oauthProtectedResourceController)
+    .use(oidcRegisterController)
+    .use(oidcOpenidConfigurationController)
     .use(batchSaveController);
 }

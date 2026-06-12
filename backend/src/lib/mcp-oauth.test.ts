@@ -6,9 +6,20 @@ import { exportJWK, generateKeyPair, SignJWT } from 'jose';
   'postgresql://test:test@localhost:5432/test';
 (process.env as Record<string, string | undefined>).BRAIN_API_KEY ??=
   '00000000-0000-4000-8000-000000000000';
+(process.env as Record<string, string | undefined>).MCP_OAUTH_ISSUER ??=
+  'http://localhost:18831/oidc';
+(process.env as Record<string, string | undefined>).MCP_OAUTH_JWKS_URL ??=
+  'http://localhost:18831/oidc/jwks';
+(process.env as Record<string, string | undefined>).MCP_RESOURCE ??= 'http://localhost:3010/mcp';
+(process.env as Record<string, string | undefined>).LOGTO_UPSTREAM_URL ??= 'http://localhost:18832';
+(process.env as Record<string, string | undefined>).LOGTO_M2M_CLIENT_ID ??= 'test-m2m';
+(process.env as Record<string, string | undefined>).LOGTO_M2M_CLIENT_SECRET ??= 'test-m2m-secret';
 
-const ISSUER = 'https://auth.test/realms/company-brain';
-const RESOURCE = 'http://localhost:3010/mcp';
+// Fixed port matching every test file's MCP_OAUTH_JWKS_URL default: the eager
+// `env` singleton freezes the URL at first import, whichever file that is.
+const MOCK_JWKS_PORT = 18831;
+const ISSUER = process.env.MCP_OAUTH_ISSUER as string;
+const RESOURCE = process.env.MCP_RESOURCE as string;
 const KID = 'test-key';
 
 const INITIALIZE_BODY = JSON.stringify({
@@ -31,12 +42,7 @@ beforeAll(async () => {
   const pair = await generateKeyPair('RS256');
   privateKey = pair.privateKey;
   const jwk = { ...(await exportJWK(pair.publicKey)), kid: KID, alg: 'RS256', use: 'sig' };
-  jwksServer = Bun.serve({ port: 0, fetch: () => Response.json({ keys: [jwk] }) });
-
-  const mutableEnv = process.env as Record<string, string | undefined>;
-  mutableEnv.MCP_OAUTH_ISSUER = ISSUER;
-  mutableEnv.MCP_OAUTH_JWKS_URL = `http://localhost:${jwksServer.port}/jwks`;
-  mutableEnv.MCP_RESOURCE = RESOURCE;
+  jwksServer = Bun.serve({ port: MOCK_JWKS_PORT, fetch: () => Response.json({ keys: [jwk] }) });
 
   const { createApp } = await import('#app.ts');
   const listening = createApp().listen(0);
@@ -47,10 +53,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await app.stop();
   await jwksServer.stop();
-  const mutableEnv = process.env as Record<string, string | undefined>;
-  delete mutableEnv.MCP_OAUTH_ISSUER;
-  delete mutableEnv.MCP_OAUTH_JWKS_URL;
-  delete mutableEnv.MCP_RESOURCE;
 });
 
 function signToken(claims: { issuer?: string; audience?: string } = {}): Promise<string> {
@@ -80,8 +82,9 @@ describe('mcp oauth', () => {
   it('challenges unauthenticated requests with the resource metadata URL', async () => {
     const res = await fetch(initializeRequest({}));
     expect(res.status).toBe(StatusMap.Unauthorized);
+    const resourceOrigin = new URL(RESOURCE).origin;
     expect(res.headers.get('www-authenticate')).toBe(
-      `Bearer resource_metadata="http://localhost:3010/.well-known/oauth-protected-resource/mcp", scope="mcp"`,
+      `Bearer resource_metadata="${resourceOrigin}/.well-known/oauth-protected-resource/mcp", scope="mcp"`,
     );
   });
 

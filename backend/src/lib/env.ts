@@ -7,6 +7,9 @@ declare global {
       readonly MCP_OAUTH_ISSUER?: string;
       readonly MCP_OAUTH_JWKS_URL?: string;
       readonly MCP_RESOURCE?: string;
+      readonly LOGTO_UPSTREAM_URL?: string;
+      readonly LOGTO_M2M_CLIENT_ID?: string;
+      readonly LOGTO_M2M_CLIENT_SECRET?: string;
     }
   }
 }
@@ -17,48 +20,34 @@ type Env = {
   databaseUrl: string;
   port: number;
   brainApiKey: string;
+  mcpOauthIssuer: string;
+  mcpOauthJwksUrl: string;
+  mcpResource: string;
+  logtoUpstreamUrl: string;
+  logtoM2mClientId: string;
+  logtoM2mClientSecret: string;
 };
 
+function required(name: keyof NodeJS.ProcessEnv): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
 function loadEnv(): Env {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error('Missing required environment variable: DATABASE_URL');
-  }
-
-  const brainApiKey = process.env.BRAIN_API_KEY;
-  if (!brainApiKey) {
-    throw new Error('Missing required environment variable: BRAIN_API_KEY');
-  }
-
   return {
-    databaseUrl,
+    databaseUrl: required('DATABASE_URL'),
     port: process.env.PORT ? Number(process.env.PORT) : DEFAULT_PORT,
-    brainApiKey,
+    brainApiKey: required('BRAIN_API_KEY'),
+    mcpOauthIssuer: required('MCP_OAUTH_ISSUER'),
+    mcpOauthJwksUrl: required('MCP_OAUTH_JWKS_URL'),
+    mcpResource: required('MCP_RESOURCE'),
+    logtoUpstreamUrl: required('LOGTO_UPSTREAM_URL'),
+    logtoM2mClientId: required('LOGTO_M2M_CLIENT_ID'),
+    logtoM2mClientSecret: required('LOGTO_M2M_CLIENT_SECRET'),
   };
 }
 
 export const env = loadEnv();
-
-type McpOauthEnv = {
-  issuer: string;
-  jwksUrl: string;
-  resource: string;
-};
-
-// Read lazily (unlike `env`): OAuth is optional, and tests enable it per file
-// after this module is already imported.
-export function mcpOauthEnv(): McpOauthEnv | null {
-  const issuer = process.env.MCP_OAUTH_ISSUER;
-  if (!issuer) {
-    return null;
-  }
-  const resource = process.env.MCP_RESOURCE;
-  if (!resource) {
-    throw new Error('MCP_RESOURCE is required when MCP_OAUTH_ISSUER is set');
-  }
-  return {
-    issuer,
-    jwksUrl: process.env.MCP_OAUTH_JWKS_URL ?? `${issuer}/protocol/openid-connect/certs`,
-    resource,
-  };
-}

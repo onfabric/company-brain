@@ -4,6 +4,14 @@ import { describe, expect, it } from 'bun:test';
   'postgresql://test:test@localhost:5432/test';
 (process.env as Record<string, string | undefined>).BRAIN_API_KEY ??=
   '00000000-0000-4000-8000-000000000000';
+(process.env as Record<string, string | undefined>).MCP_OAUTH_ISSUER ??=
+  'http://localhost:18831/oidc';
+(process.env as Record<string, string | undefined>).MCP_OAUTH_JWKS_URL ??=
+  'http://localhost:18831/oidc/jwks';
+(process.env as Record<string, string | undefined>).MCP_RESOURCE ??= 'http://localhost:3010/mcp';
+(process.env as Record<string, string | undefined>).LOGTO_UPSTREAM_URL ??= 'http://localhost:18832';
+(process.env as Record<string, string | undefined>).LOGTO_M2M_CLIENT_ID ??= 'test-m2m';
+(process.env as Record<string, string | undefined>).LOGTO_M2M_CLIENT_SECRET ??= 'test-m2m-secret';
 
 const {
   BRAIN_SESSION_TTL_SECONDS,

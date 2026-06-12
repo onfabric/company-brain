@@ -11,7 +11,7 @@ import { ensureM2mApplication } from './m2m-bootstrap.ts';
 // M2M credentials (seeded straight into the database, see m2m-bootstrap.ts),
 // the MCP API resource and scope, and a dev user for the local OAuth flow.
 
-const upstream = requiredEnv('LOGTO_UPSTREAM');
+const upstream = requiredEnv('LOGTO_UPSTREAM_URL');
 const mcpResource = requiredEnv('MCP_RESOURCE');
 
 const READY_TIMEOUT_MS = 120_000;

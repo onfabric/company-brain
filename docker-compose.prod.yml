@@ -74,6 +74,7 @@ services:
       - NANGO_CONNECT_HOSTNAME
       - BRAIN_HOSTNAME
       - DOZZLE_HOSTNAME
+      - AUTH_HOSTNAME
       - ACME_EMAIL
     volumes:
       - ./caddy:/etc/caddy:ro

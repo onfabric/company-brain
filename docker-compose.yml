@@ -284,6 +284,11 @@ services:
       - MCP_OAUTH_ISSUER
       - MCP_OAUTH_JWKS_URL
       - MCP_RESOURCE
+      # Used by the DCR bridge (/oidc/register + discovery augmentation); on a
+      # deployment Caddy routes those two paths of the auth hostname here.
+      - LOGTO_UPSTREAM_URL=http://logto:3001
+      - LOGTO_M2M_CLIENT_ID=${LOGTO_M2M_CLIENT_ID}
+      - LOGTO_M2M_CLIENT_SECRET=${LOGTO_M2M_CLIENT_SECRET}
     ports:
       - "127.0.0.1:${BRAIN_SERVER_PORT}:3010"
     healthcheck:
@@ -307,39 +312,17 @@ services:
     entrypoint: ["sh", "-c", "npm run cli db seed -- --swe && npm start"]
     environment:
       DB_URL: postgres://${LOGTO_DB_USER}:${LOGTO_DB_PASSWORD}@postgres-db:5432/logto
-      # Public URL of the core endpoint = the gateway, which fronts this
-      # container; issuer and all OIDC URLs are minted against it.
+      # Issuer and all OIDC URLs are minted against this public URL; on a
+      # deployment it is the auth hostname served by Caddy.
       ENDPOINT: http://localhost:${LOGTO_PORT}
       ADMIN_ENDPOINT: http://localhost:${LOGTO_ADMIN_PORT}
     ports:
+      - "127.0.0.1:${LOGTO_PORT}:3001"
       - "127.0.0.1:${LOGTO_ADMIN_PORT}:3002"
     restart: always
     depends_on:
       db-prepare:
         condition: service_completed_successfully
-    networks:
-      - nango
-
-  # Fronts Logto's core endpoint and bridges RFC 7591 Dynamic Client
-  # Registration (which Logto lacks) onto its Management API so MCP clients can
-  # self-register; all other traffic passes through untouched.
-  logto-gateway:
-    image: oven/bun:1.3
-    container_name: logto-gateway
-    working_dir: /app
-    command: ["bun", "run", "src/gateway.ts"]
-    environment:
-      LOGTO_UPSTREAM: http://logto:3001
-      LOGTO_M2M_CLIENT_ID: ${LOGTO_M2M_CLIENT_ID}
-      LOGTO_M2M_CLIENT_SECRET: ${LOGTO_M2M_CLIENT_SECRET}
-      MCP_RESOURCE: ${MCP_RESOURCE}
-    volumes:
-      - ./logto-setup:/app:ro
-    ports:
-      - "127.0.0.1:${LOGTO_PORT}:3001"
-    restart: always
-    depends_on:
-      - logto
     networks:
       - nango
 
@@ -352,7 +335,7 @@ services:
     working_dir: /app
     command: ["bun", "run", "src/configure.ts"]
     environment:
-      LOGTO_UPSTREAM: http://logto:3001
+      LOGTO_UPSTREAM_URL: http://logto:3001
       LOGTO_DB_URL: postgres://${LOGTO_DB_USER}:${LOGTO_DB_PASSWORD}@postgres-db:5432/logto
       LOGTO_M2M_CLIENT_ID: ${LOGTO_M2M_CLIENT_ID}
       LOGTO_M2M_CLIENT_SECRET: ${LOGTO_M2M_CLIENT_SECRET}

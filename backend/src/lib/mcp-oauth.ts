@@ -7,7 +7,7 @@ import {
   hasValidApiKey,
   type RequestHeaders,
 } from '#lib/api-key-auth.ts';
-import { mcpOauthEnv } from '#lib/env.ts';
+import { env } from '#lib/env.ts';
 
 export const REQUIRE_MCP_AUTH_MACRO_NAME = 'requireMcpAuth';
 export const MCP_BEARER_SECURITY_SCHEME = 'mcpBearer';
@@ -18,35 +18,21 @@ export const mcpBearerSecuritySchemes = {
     type: 'http',
     scheme: 'bearer',
     bearerFormat: 'JWT',
-    description: 'OAuth 2.1 access token issued by the company-brain Keycloak realm',
+    description: 'OAuth 2.1 access token issued by the MCP authorization server',
   },
 } satisfies Record<string, OpenAPIV3.SecuritySchemeObject>;
 
-type Jwks = ReturnType<typeof createRemoteJWKSet>;
-const jwksByUrl = new Map<string, Jwks>();
-
-function jwks(url: string): Jwks {
-  let keySet = jwksByUrl.get(url);
-  if (!keySet) {
-    keySet = createRemoteJWKSet(new URL(url));
-    jwksByUrl.set(url, keySet);
-  }
-  return keySet;
-}
+const jwks = createRemoteJWKSet(new URL(env.mcpOauthJwksUrl));
 
 export async function hasValidMcpAccessToken(headers: RequestHeaders): Promise<boolean> {
-  const config = mcpOauthEnv();
-  if (!config) {
-    return false;
-  }
   const authorization = getHeader(headers, 'Authorization');
   if (!authorization?.startsWith('Bearer ')) {
     return false;
   }
   try {
-    await jwtVerify(authorization.slice('Bearer '.length), jwks(config.jwksUrl), {
-      issuer: config.issuer,
-      audience: config.resource,
+    await jwtVerify(authorization.slice('Bearer '.length), jwks, {
+      issuer: env.mcpOauthIssuer,
+      audience: env.mcpResource,
     });
     return true;
   } catch {
@@ -56,8 +42,8 @@ export async function hasValidMcpAccessToken(headers: RequestHeaders): Promise<b
 
 // RFC 9728 path-suffixed form: metadata for <origin>/mcp lives at
 // <origin>/.well-known/oauth-protected-resource/mcp.
-export function protectedResourceMetadataUrl(resource: string): string {
-  const url = new URL(resource);
+export function protectedResourceMetadataUrl(): string {
+  const url = new URL(env.mcpResource);
   return `${url.origin}/.well-known/oauth-protected-resource${url.pathname}`;
 }
 
@@ -75,11 +61,8 @@ export const mcpAuth = new Elysia({ name: 'mcpAuth' }).macro(REQUIRE_MCP_AUTH_MA
     if (await hasValidMcpAccessToken(headers)) {
       return;
     }
-    const config = mcpOauthEnv();
-    if (config) {
-      set.headers['www-authenticate'] =
-        `Bearer resource_metadata="${protectedResourceMetadataUrl(config.resource)}", scope="${MCP_SCOPE}"`;
-    }
+    set.headers['www-authenticate'] =
+      `Bearer resource_metadata="${protectedResourceMetadataUrl()}", scope="${MCP_SCOPE}"`;
     return status(StatusMap.Unauthorized, { error: 'Unauthorized' });
   },
 });

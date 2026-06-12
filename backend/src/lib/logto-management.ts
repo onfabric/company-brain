@@ -1,23 +1,24 @@
-import { MANAGEMENT_API_RESOURCE, requiredEnv } from './env.ts';
+import { env } from '#lib/env.ts';
 
-const upstream = requiredEnv('LOGTO_UPSTREAM_URL');
-const m2mClientId = requiredEnv('LOGTO_M2M_CLIENT_ID');
-const m2mClientSecret = requiredEnv('LOGTO_M2M_CLIENT_SECRET');
+// Minimal client for Logto's Management API, authenticated with the M2M
+// credentials seeded by logto-setup.
 
+const MANAGEMENT_API_RESOURCE = 'https://default.logto.app/api';
 const TOKEN_REFRESH_MARGIN_MS = 30_000;
 const MILLISECONDS_PER_SECOND = 1_000;
 
 let cached: { token: string; expiresAt: number } | null = null;
 
-export async function managementToken(): Promise<string> {
+async function managementToken(): Promise<string> {
   if (cached && cached.expiresAt > Date.now() + TOKEN_REFRESH_MARGIN_MS) {
     return cached.token;
   }
-  const res = await fetch(`${upstream}/oidc/token`, {
+  const credentials = `${env.logtoM2mClientId}:${env.logtoM2mClientSecret}`;
+  const res = await fetch(`${env.logtoUpstreamUrl}/oidc/token`, {
     method: 'POST',
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
-      authorization: `Basic ${Buffer.from(`${m2mClientId}:${m2mClientSecret}`).toString('base64')}`,
+      authorization: `Basic ${Buffer.from(credentials).toString('base64')}`,
     },
     body: new URLSearchParams({
       grant_type: 'client_credentials',
@@ -36,9 +37,13 @@ export async function managementToken(): Promise<string> {
   return body.access_token;
 }
 
-export async function managementApi<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function logtoManagementApi<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<T> {
   const token = await managementToken();
-  const res = await fetch(`${upstream}/api/${path}`, {
+  const res = await fetch(`${env.logtoUpstreamUrl}/api/${path}`, {
     method,
     headers: {
       authorization: `Bearer ${token}`,
@@ -49,25 +54,9 @@ export async function managementApi<T>(method: string, path: string, body?: unkn
   if (!res.ok) {
     throw new Error(`${method} /api/${path} failed (${res.status}): ${await res.text()}`);
   }
+  // Some endpoints (e.g. user-consent-scopes) reply with plain-text "Created".
   if (!res.headers.get('content-type')?.includes('application/json')) {
     return undefined as T;
   }
   return (await res.json()) as T;
-}
-
-export type LogtoResource = { id: string; indicator: string };
-export type LogtoScope = { id: string; name: string };
-export type LogtoApplication = { id: string; name: string };
-
-export async function findMcpScope(
-  mcpResource: string,
-  scopeName: string,
-): Promise<LogtoScope | null> {
-  const resources = await managementApi<LogtoResource[]>('GET', 'resources');
-  const resource = resources.find((r) => r.indicator === mcpResource);
-  if (!resource) {
-    return null;
-  }
-  const scopes = await managementApi<LogtoScope[]>('GET', `resources/${resource.id}/scopes`);
-  return scopes.find((s) => s.name === scopeName) ?? null;
 }

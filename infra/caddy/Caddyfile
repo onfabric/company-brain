@@ -19,7 +19,7 @@
 }
 
 {$BRAIN_HOSTNAME} {
-	@public path /dashboard /dashboard/* /data-sources /data-sources/* /health /knowledge /knowledge/* /knowledge-types /knowledge-types/* /mcp /people /people/* /records /records/* /sessions /openapi /openapi/*
+	@public path /dashboard /dashboard/* /data-sources /data-sources/* /health /knowledge /knowledge/* /knowledge-types /knowledge-types/* /mcp /people /people/* /records /records/* /sessions /openapi /openapi/* /.well-known/oauth-protected-resource /.well-known/oauth-protected-resource/*
 	handle @public {
 		reverse_proxy brain:3010 {
 			# Retry dial failures to ride out the container recreate gap on deploy.
@@ -37,5 +37,29 @@
 		# Retry dial failures to ride out the container recreate gap on deploy.
 		lb_try_duration 30s
 		lb_try_interval 250ms
+	}
+}
+
+# Authorization server (Logto). The two DCR-bridge paths are answered by the
+# brain, which implements RFC 7591 registration on top of Logto's Management
+# API and augments the discovery document accordingly.
+{$AUTH_HOSTNAME} {
+	handle /oidc/.well-known/openid-configuration {
+		reverse_proxy brain:3010 {
+			lb_try_duration 30s
+			lb_try_interval 250ms
+		}
+	}
+	handle /oidc/register {
+		reverse_proxy brain:3010 {
+			lb_try_duration 30s
+			lb_try_interval 250ms
+		}
+	}
+	handle {
+		reverse_proxy logto:3001 {
+			lb_try_duration 30s
+			lb_try_interval 250ms
+		}
 	}
 }
