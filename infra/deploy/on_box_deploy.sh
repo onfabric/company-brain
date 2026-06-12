@@ -10,7 +10,7 @@ cd "$(dirname "$0")"
 
 log() { echo "=== [on_box_deploy $(date -u +%H:%M:%S)] $* ==="; }
 
-: "${NANGO_IMAGE_URI:?}" "${BRAIN_IMAGE_URI:?}" "${PG_BACKUP_IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}" "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${BRAIN_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_DEFAULT_REGION:?}" "${DATA_VOLUME_ID:?}" "${ARTIFACTS_BUCKET:?}"
+: "${NANGO_IMAGE_URI:?}" "${BRAIN_IMAGE_URI:?}" "${PG_BACKUP_IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}" "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${BRAIN_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${AUTH_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_DEFAULT_REGION:?}" "${DATA_VOLUME_ID:?}" "${ARTIFACTS_BUCKET:?}"
 
 log "Ensuring the persistent data volume is mounted and holds Docker's data-root"
 bash ensure_data_volume.sh
@@ -23,6 +23,9 @@ secret() {
 NANGO_DB_PASSWORD="$(secret nango_db_password)"
 BRAIN_DB_PASSWORD="$(secret brain_db_password)"
 BRAIN_API_KEY="$(secret brain_api_key)"
+LOGTO_DB_PASSWORD="$(secret logto_db_password)"
+LOGTO_M2M_CLIENT_ID="$(secret logto_m2m_client_id)"
+LOGTO_M2M_CLIENT_SECRET="$(secret logto_m2m_client_secret)"
 
 # Dozzle simple-auth users file (full users.yml, generated via `dozzle generate`),
 # mounted into the container at /data/users.yml by the prod compose override.
@@ -53,6 +56,15 @@ REDIS_PORT=6379
 ELASTICSEARCH_PORT=9200
 DOZZLE_PORT=8080
 BRAIN_SERVER_PORT=3010
+LOGTO_DB_USER=logto
+LOGTO_DB_PASSWORD=${LOGTO_DB_PASSWORD}
+LOGTO_M2M_CLIENT_ID=${LOGTO_M2M_CLIENT_ID}
+LOGTO_M2M_CLIENT_SECRET=${LOGTO_M2M_CLIENT_SECRET}
+LOGTO_PORT=3001
+LOGTO_ADMIN_PORT=3002
+MCP_RESOURCE=https://${BRAIN_HOSTNAME}/mcp
+MCP_OAUTH_ISSUER=https://${AUTH_HOSTNAME}/oidc
+MCP_OAUTH_JWKS_URL=http://logto:3001/oidc/jwks
 FLAG_AUTH_ENABLED=true
 LOG_LEVEL=info
 NANGO_IMAGE_URI=${NANGO_IMAGE_URI}
@@ -64,6 +76,7 @@ NANGO_HOSTNAME=${NANGO_HOSTNAME}
 NANGO_CONNECT_HOSTNAME=${NANGO_CONNECT_HOSTNAME}
 BRAIN_HOSTNAME=${BRAIN_HOSTNAME}
 DOZZLE_HOSTNAME=${DOZZLE_HOSTNAME}
+AUTH_HOSTNAME=${AUTH_HOSTNAME}
 ACME_EMAIL=${ACME_EMAIL}
 EOF
 

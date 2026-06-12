@@ -6,7 +6,7 @@
 set -euo pipefail
 
 : "${BUNDLE_URL:?}" "${DEPLOY_GROUP:?}" "${NANGO_IMAGE_URI:?}" "${BRAIN_IMAGE_URI:?}" "${SSM_SECRET_PREFIX:?}"
-: "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${BRAIN_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_REGION:?}"
+: "${NANGO_HOSTNAME:?}" "${NANGO_CONNECT_HOSTNAME:?}" "${BRAIN_HOSTNAME:?}" "${DOZZLE_HOSTNAME:?}" "${AUTH_HOSTNAME:?}" "${ACME_EMAIL:?}" "${AWS_REGION:?}"
 : "${DATA_VOLUME_ID:?}" "${ARTIFACTS_BUCKET:?}" "${PG_BACKUP_IMAGE_URI:?}"
 
 instance_id=$(aws ec2 describe-instances \
@@ -40,9 +40,9 @@ fi
 # built with jq @sh so the values are safely shell-quoted.
 exports=$(jq -rn \
   --arg image "$NANGO_IMAGE_URI" --arg brain_image "$BRAIN_IMAGE_URI" --arg prefix "$SSM_SECRET_PREFIX" --arg host "$NANGO_HOSTNAME" \
-  --arg connect_host "$NANGO_CONNECT_HOSTNAME" --arg brain_host "$BRAIN_HOSTNAME" --arg dozzle_host "$DOZZLE_HOSTNAME" --arg acme "$ACME_EMAIL" --arg region "$AWS_REGION" \
+  --arg connect_host "$NANGO_CONNECT_HOSTNAME" --arg brain_host "$BRAIN_HOSTNAME" --arg dozzle_host "$DOZZLE_HOSTNAME" --arg auth_host "$AUTH_HOSTNAME" --arg acme "$ACME_EMAIL" --arg region "$AWS_REGION" \
   --arg data_volume "$DATA_VOLUME_ID" --arg artifacts "$ARTIFACTS_BUCKET" --arg pg_backup_image "$PG_BACKUP_IMAGE_URI" \
-  '"export NANGO_IMAGE_URI=\($image|@sh) BRAIN_IMAGE_URI=\($brain_image|@sh) PG_BACKUP_IMAGE_URI=\($pg_backup_image|@sh) SSM_SECRET_PREFIX=\($prefix|@sh) NANGO_HOSTNAME=\($host|@sh) NANGO_CONNECT_HOSTNAME=\($connect_host|@sh) BRAIN_HOSTNAME=\($brain_host|@sh) DOZZLE_HOSTNAME=\($dozzle_host|@sh) ACME_EMAIL=\($acme|@sh) AWS_DEFAULT_REGION=\($region|@sh) DATA_VOLUME_ID=\($data_volume|@sh) ARTIFACTS_BUCKET=\($artifacts|@sh)"')
+  '"export NANGO_IMAGE_URI=\($image|@sh) BRAIN_IMAGE_URI=\($brain_image|@sh) PG_BACKUP_IMAGE_URI=\($pg_backup_image|@sh) SSM_SECRET_PREFIX=\($prefix|@sh) NANGO_HOSTNAME=\($host|@sh) NANGO_CONNECT_HOSTNAME=\($connect_host|@sh) BRAIN_HOSTNAME=\($brain_host|@sh) DOZZLE_HOSTNAME=\($dozzle_host|@sh) AUTH_HOSTNAME=\($auth_host|@sh) ACME_EMAIL=\($acme|@sh) AWS_DEFAULT_REGION=\($region|@sh) DATA_VOLUME_ID=\($data_volume|@sh) ARTIFACTS_BUCKET=\($artifacts|@sh)"')
 
 remote_script=$(cat <<REMOTE
 set -euo pipefail

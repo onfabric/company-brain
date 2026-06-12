@@ -25,6 +25,7 @@ env:
   NANGO_CONNECT_HOSTNAME: nango-auth-dev.onfabric.io
   BRAIN_HOSTNAME: brain-dev.onfabric.io
   DOZZLE_HOSTNAME: dozzle-dev.onfabric.io
+  AUTH_HOSTNAME: auth-dev.onfabric.io
   DEPLOY_GROUP: company-brain-dev
   NO_COLOR: "1"
 
@@ -230,6 +231,7 @@ jobs:
           NANGO_CONNECT_HOSTNAME: ${{ env.NANGO_CONNECT_HOSTNAME }}
           BRAIN_HOSTNAME: ${{ env.BRAIN_HOSTNAME }}
           DOZZLE_HOSTNAME: ${{ env.DOZZLE_HOSTNAME }}
+          AUTH_HOSTNAME: ${{ env.AUTH_HOSTNAME }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
           AWS_REGION: ${{ env.AWS_REGION }}
 

@@ -30,6 +30,12 @@ services:
     image: ${BRAIN_IMAGE_URI}
     build: !reset null
 
+  logto:
+    environment:
+      # Issuer and all OIDC URLs must be minted against the public auth
+      # hostname served by Caddy, not the local port binding.
+      ENDPOINT: https://${AUTH_HOSTNAME}
+
   dozzle:
     environment:
       DOZZLE_AUTH_PROVIDER: simple
