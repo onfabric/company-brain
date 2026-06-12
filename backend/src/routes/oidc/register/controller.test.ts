@@ -99,6 +99,13 @@ describe('oidc register controller', () => {
     expect(res.status).toBe(StatusMap['Bad Request']);
   });
 
+  it('answers CORS preflight on the registration endpoint', async () => {
+    const res = await fetch(new URL('/oidc/register', baseUrl), { method: 'OPTIONS' });
+    expect(res.status).toBe(StatusMap['No Content']);
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+    expect(res.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS');
+  });
+
   it('advertises the registration endpoint in the discovery document', async () => {
     const res = await fetch(new URL('/oidc/.well-known/openid-configuration', baseUrl));
     expect(res.status).toBe(StatusMap.OK);

@@ -51,7 +51,7 @@ export const oidcRegisterController = new Elysia()
       detail: { hide: true },
     },
   )
-  .options('/oidc/register', ({ set }) => {
+  .options('/oidc/register', ({ set, status }) => {
     set.headers = { ...CORS_HEADERS };
-    return new Response(null, { status: StatusMap['No Content'] });
+    return status(StatusMap['No Content']);
   });
