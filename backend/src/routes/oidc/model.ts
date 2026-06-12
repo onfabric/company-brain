@@ -28,6 +28,8 @@ export const ClientRegistrationErrorSchema = t.Object({
   error_description: t.String(),
 });
 
+export const NoContentResponseSchema = t.Void();
+
 // Logto's discovery document passed through with our registration endpoint
 // added; only the fields this service guarantees are pinned, the rest is
 // upstream passthrough.

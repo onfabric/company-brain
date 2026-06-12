@@ -5,6 +5,7 @@ import {
   ClientRegistrationErrorSchema,
   ClientRegistrationRequestSchema,
   ClientRegistrationResponseSchema,
+  NoContentResponseSchema,
 } from '#routes/oidc/model.ts';
 import { LogtoDcrServicePlugin, loggerPlugin } from '#services/plugins.ts';
 
@@ -53,7 +54,11 @@ export const oidcRegisterController = new Elysia()
     ({ set, status }) => {
       set.headers['access-control-allow-methods'] = 'POST, OPTIONS';
       set.headers['access-control-allow-headers'] = 'content-type';
-      return status(StatusMap['No Content']);
+      return status(StatusMap['No Content'], undefined);
     },
-    { [PUBLIC_CORS_MACRO_NAME]: true },
+    {
+      [PUBLIC_CORS_MACRO_NAME]: true,
+      response: { [StatusMap['No Content']]: NoContentResponseSchema },
+      detail: { hide: true },
+    },
   );
