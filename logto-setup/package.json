@@ -3,8 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check:types": "bun run --bun tsc",
-    "test": "bun test"
+    "check:types": "bun run --bun tsc"
   },
   "devDependencies": {
     "typescript": "catalog:"
