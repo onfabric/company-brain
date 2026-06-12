@@ -21,6 +21,8 @@ export function hasValidApiKey(headers: RequestHeaders): boolean {
   return getHeader(headers, API_KEY_HEADER) === env.brainApiKey;
 }
 
+export { getHeader };
+
 export const apiKeyAuth = new Elysia({ name: 'apiKeyAuth' }).macro(REQUIRE_API_KEY_MACRO_NAME, {
   detail: { security: [{ [API_KEY_SECURITY_SCHEME]: [] }] },
   response: {

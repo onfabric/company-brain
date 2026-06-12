@@ -4,6 +4,9 @@ declare global {
       readonly DATABASE_URL?: string;
       readonly PORT?: string;
       readonly BRAIN_API_KEY?: string;
+      readonly MCP_OAUTH_ISSUER?: string;
+      readonly MCP_OAUTH_JWKS_URL?: string;
+      readonly MCP_RESOURCE?: string;
     }
   }
 }
@@ -35,3 +38,27 @@ function loadEnv(): Env {
 }
 
 export const env = loadEnv();
+
+type McpOauthEnv = {
+  issuer: string;
+  jwksUrl: string;
+  resource: string;
+};
+
+// Read lazily (unlike `env`): OAuth is optional, and tests enable it per file
+// after this module is already imported.
+export function mcpOauthEnv(): McpOauthEnv | null {
+  const issuer = process.env.MCP_OAUTH_ISSUER;
+  if (!issuer) {
+    return null;
+  }
+  const resource = process.env.MCP_RESOURCE;
+  if (!resource) {
+    throw new Error('MCP_RESOURCE is required when MCP_OAUTH_ISSUER is set');
+  }
+  return {
+    issuer,
+    jwksUrl: process.env.MCP_OAUTH_JWKS_URL ?? `${issuer}/protocol/openid-connect/certs`,
+    resource,
+  };
+}

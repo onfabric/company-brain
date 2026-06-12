@@ -258,6 +258,8 @@ services:
       - PGDATABASE=${NANGO_DB_NAME}
       - BRAIN_DB_USER=${BRAIN_DB_USER}
       - BRAIN_DB_PASSWORD=${BRAIN_DB_PASSWORD}
+      - LOGTO_DB_USER=${LOGTO_DB_USER}
+      - LOGTO_DB_PASSWORD=${LOGTO_DB_PASSWORD}
       - NANGO_RECORDS_DATABASE_SCHEMA=${NANGO_RECORDS_DATABASE_SCHEMA}
     volumes:
       - ./db/prepare:/db-prepare:ro
@@ -277,6 +279,11 @@ services:
     environment:
       - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
       - BRAIN_API_KEY
+      # Issuer/resource are the host-facing URLs MCP clients see; JWKS is
+      # fetched over the compose network. Values live in .env.
+      - MCP_OAUTH_ISSUER
+      - MCP_OAUTH_JWKS_URL
+      - MCP_RESOURCE
     ports:
       - "127.0.0.1:${BRAIN_SERVER_PORT}:3010"
     healthcheck:
@@ -285,6 +292,26 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    restart: always
+    depends_on:
+      db-prepare:
+        condition: service_completed_successfully
+    networks:
+      - nango
+
+  logto:
+    image: ghcr.io/logto-io/logto:1.40.1
+    container_name: logto
+    # `db seed -- --swe` creates Logto's schema on first start and is a no-op
+    # afterwards (--swe = skip when exists).
+    entrypoint: ["sh", "-c", "npm run cli db seed -- --swe && npm start"]
+    environment:
+      DB_URL: postgres://${LOGTO_DB_USER}:${LOGTO_DB_PASSWORD}@postgres-db:5432/logto
+      ENDPOINT: http://localhost:${LOGTO_PORT}
+      ADMIN_ENDPOINT: http://localhost:${LOGTO_ADMIN_PORT}
+    ports:
+      - "127.0.0.1:${LOGTO_PORT}:3001"
+      - "127.0.0.1:${LOGTO_ADMIN_PORT}:3002"
     restart: always
     depends_on:
       db-prepare:
