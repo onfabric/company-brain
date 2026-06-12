@@ -33,10 +33,6 @@ export const KNOWLEDGE_HTML_HEADERS = {
   'cache-control': 'private, max-age=60',
 } satisfies HTTPHeaders;
 
-export function applyKnowledgeHtmlHeaders(headers: HTTPHeaders): void {
-  Object.assign(headers, KNOWLEDGE_HTML_HEADERS);
-}
-
 export function knowledgePagePath(id: string): string {
   return `/knowledge/pages/${id}`;
 }
