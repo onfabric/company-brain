@@ -14,7 +14,8 @@
       "agent-sync/",
       "nango-integrations/",
       "backend/",
-      "dashboard/"
+      "dashboard/",
+      "logto-setup/"
     ],
     "catalog": {
       "typescript": "^5.9.3"

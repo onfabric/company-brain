@@ -1,0 +1,12 @@
+{
+  "name": "@company-brain/logto-setup",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:types": "bun run --bun tsc",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

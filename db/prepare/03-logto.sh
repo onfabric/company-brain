@@ -8,9 +8,12 @@ set -e
 
 psql -v ON_ERROR_STOP=1 \
   -v logto_user="$LOGTO_DB_USER" -v logto_pass="$LOGTO_DB_PASSWORD" <<'SQL'
-SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'logto_user', :'logto_pass')
+-- CREATEROLE: Logto's seed creates per-tenant database roles for RLS.
+SELECT format('CREATE ROLE %I LOGIN CREATEROLE PASSWORD %L', :'logto_user', :'logto_pass')
 WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'logto_user')\gexec
 
-SELECT format('CREATE DATABASE logto OWNER %I', :'logto_user')
+-- TEMPLATE template0: the ParadeDB image installs PostGIS into template1, and
+-- the inherited spatial_ref_sys table (no RLS) trips Logto's startup check.
+SELECT format('CREATE DATABASE logto OWNER %I TEMPLATE template0', :'logto_user')
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'logto')\gexec
 SQL
