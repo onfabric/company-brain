@@ -4,7 +4,7 @@ import { APIError } from 'better-auth/api';
 import { jwt } from 'better-auth/plugins';
 import { sql } from '#db/client.ts';
 import { bunSqlAdapter } from '#lib/auth-adapter.ts';
-import { env, WORKSPACE_DOMAIN } from '#lib/env.ts';
+import { env } from '#lib/env.ts';
 
 export const SIGN_IN_PATH = '/sign-in';
 export const CONSENT_PATH = '/consent';
@@ -14,7 +14,7 @@ export const AUTH_BASE_PATH = '/api/auth';
 export const OAUTH_SCOPES = ['openid', 'profile', 'email', 'offline_access', MCP_SCOPE];
 
 function isWorkspaceEmail(email: string): boolean {
-  return email.toLowerCase().endsWith(`@${WORKSPACE_DOMAIN}`);
+  return email.toLowerCase().endsWith(`@${env.workspaceDomain}`);
 }
 
 export const auth = betterAuth({
@@ -38,7 +38,7 @@ export const auth = betterAuth({
         before: (user) => {
           if (!isWorkspaceEmail(user.email)) {
             throw new APIError('FORBIDDEN', {
-              message: `Sign-in is restricted to @${WORKSPACE_DOMAIN} accounts.`,
+              message: `Sign-in is restricted to @${env.workspaceDomain} accounts.`,
             });
           }
           return Promise.resolve();
