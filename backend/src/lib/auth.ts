@@ -25,6 +25,17 @@ export const auth = betterAuth({
   baseURL: env.publicUrl.href,
   basePath: AUTH_BASE_PATH,
   secret: env.betterAuthSecret,
+  // Catches errors better-auth routes through its error pipeline. OAuth-endpoint
+  // failures bypass this (they are serialised into 4xx JSON), so those are logged
+  // separately in `handleAuthRequest`.
+  onAPIError: {
+    onError(error) {
+      const { status, body } = error as { status?: number; body?: Record<string, unknown> };
+      logger.error(
+        `api error ${status ?? ''} ${body?.error ?? ''}: ${body?.error_description ?? error}`,
+      );
+    },
+  },
   // better-auth runs on the same Bun.sql client as the rest of the brain, via a
   // custom adapter that targets its own `auth` schema (migration 0011).
   database: bunSqlAdapter(sql),
@@ -65,9 +76,11 @@ export const auth = betterAuth({
       consentPage: CONSENT_PATH,
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
-      // Accept both the origin (RFC 8707 strict clients follow the root PRM) and
-      // the `/mcp` resource (the path-suffixed PRM) so either resolves a token.
-      validAudiences: [env.publicUrl.origin, env.mcpResource.href],
+      // Clients echo the root PRM `resource` (the origin) or the path-suffixed PRM
+      // `resource` (`/mcp`). The origin is accepted both without a trailing slash
+      // (`origin`) and with one (`href`), since clients that re-serialise it as a
+      // URL send the slash form and better-auth matches audiences by exact string.
+      validAudiences: [env.publicUrl.origin, env.publicUrl.href, env.mcpResource.href],
       scopes: OAUTH_SCOPES,
     }),
   ],
@@ -76,14 +89,27 @@ export const auth = betterAuth({
 // The OAuth plugin serialises errors (e.g. token-exchange failures) into 4xx JSON
 // responses instead of routing them through `onAPIError`, and the handler is
 // mounted inside mcp-use's Hono app, bypassing Elysia's error handler — so log the
-// `{ error, error_description }` body of any failed auth response for observability.
+// `{ error, error_description }` body of any failed auth response here for
+// observability (complementing the `onAPIError` hook above).
 export async function handleAuthRequest(request: Request): Promise<Response> {
+  const probe = request.clone();
   const response = await auth.handler(request);
   if (response.status >= StatusMap['Bad Request']) {
     const { pathname } = new URL(request.url);
+    const resource = resourceParam(probe.headers.get('content-type'), await probe.text());
     logger.error(
-      `${request.method} ${pathname} ${response.status}: ${await response.clone().text()}`,
+      `${request.method} ${pathname} ${response.status}: ${await response.clone().text()}${resource}`,
     );
   }
   return response;
+}
+
+// The OAuth audience check rejects token requests whose `resource` is not a valid
+// audience; surface that value (it is not a secret) to diagnose such failures.
+function resourceParam(contentType: string | null, body: string): string {
+  if (!contentType?.includes('form-urlencoded')) {
+    return '';
+  }
+  const resource = new URLSearchParams(body).get('resource');
+  return resource ? ` (resource=${resource})` : '';
 }
