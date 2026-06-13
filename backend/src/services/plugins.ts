@@ -24,7 +24,7 @@ const recordsService = new RecordsService(recordsRepo);
 const peopleService = new PeopleService(peopleRepo);
 const knowledgeTypesService = new KnowledgeTypesService(knowledgeTypesRepo);
 const knowledgeService = new KnowledgeService(knowledgeRepo);
-const knowledgeMcpService = new KnowledgeMcpService(knowledgeService);
+export const knowledgeMcpService = new KnowledgeMcpService(knowledgeService);
 
 export function loggerPlugin(name: string) {
   const logger = createLogger(name);
@@ -54,9 +54,4 @@ export const KnowledgeTypesServicePlugin = new Elysia({ name: 'service.knowledge
 export const KnowledgeServicePlugin = new Elysia({ name: 'service.knowledge' }).decorate(
   'knowledgeService',
   knowledgeService,
-);
-
-export const KnowledgeMcpServicePlugin = new Elysia({ name: 'service.knowledgeMcp' }).decorate(
-  'knowledgeMcpService',
-  knowledgeMcpService,
 );

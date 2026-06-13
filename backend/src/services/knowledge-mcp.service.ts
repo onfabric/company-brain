@@ -1,14 +1,14 @@
-import { OAUTH_SCOPES } from '#lib/auth.ts';
+import { auth, OAUTH_SCOPES } from '#lib/auth.ts';
 import { env } from '#lib/env.ts';
 import { createKnowledgeMcpServer, type KnowledgePageReader } from '#lib/knowledge-mcp-server.ts';
 import { Service } from '#services/service.ts';
 
 type FetchHandler = (request: Request) => Promise<Response>;
 
-// mcp-use's `getHandler()` mounts a widget bundler whose dev path pulls in Vite
-// and writes a `resources/` directory. The brain ships no widgets, so the
-// handler is prepared in mcp-use's production widget mode (a no-op without a
-// build manifest), which also selects in-memory session state.
+// mcp-use's `getHandler()` runs its widget bundler, whose dev path resolves Vite
+// and writes a `resources/` directory. The brain ships no widgets, so the handler
+// is prepared in mcp-use's production widget mode — a clean no-op without a build
+// manifest — which also selects in-memory session state.
 async function prepareHandler(server: ReturnType<typeof createKnowledgeMcpServer>) {
   const previous = process.env.NODE_ENV;
   process.env.NODE_ENV = 'production';
@@ -29,13 +29,13 @@ export class KnowledgeMcpService extends Service {
         baseUrl: env.publicUrl.origin,
         issuer: env.issuer,
         scopes: OAUTH_SCOPES,
+        authHandler: (request) => auth.handler(request),
       }),
     );
   }
 
-  async handleRequest(request: Request): Promise<Response> {
-    this.logger.info('handling MCP request');
-    const handle = await this.handler;
-    return handle(request);
+  /** Combined mcp-use + better-auth fetch handler, mounted once at the Elysia root. */
+  fetch(request: Request): Promise<Response> {
+    return this.handler.then((handle) => handle(request));
   }
 }

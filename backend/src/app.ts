@@ -31,7 +31,6 @@ export function createApp() {
     .use(requestResponsePlugin)
     .use(
       openapi({
-        exclude: { paths: ['/mcp'] },
         documentation: {
           info: {
             title: 'Company Brain API',

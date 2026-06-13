@@ -15,7 +15,11 @@ export type KnowledgeMcpServerConfig = {
   issuer: string;
   /** Scopes advertised in the discovery documents. */
   scopes: string[];
+  /** better-auth request handler, mounted on the same Hono app under its `/api/auth` basePath. */
+  authHandler: (request: Request) => Promise<Response>;
 };
+
+const AUTH_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'] as const;
 
 const INSTRUCTIONS =
   'Read-only access to the company knowledge base, served as HTML pages. ' +
@@ -26,7 +30,8 @@ const logger = createLogger('knowledgeMcpServer');
 
 // mcp-use owns the OAuth 2.1 surface for `/mcp`: bearer verification against the
 // better-auth JWKS, the 401 `WWW-Authenticate` challenge, and the RFC 8414 /
-// RFC 9728 discovery documents.
+// RFC 9728 discovery documents. better-auth shares the same Hono app so the
+// brain exposes the whole authn/OAuth stack behind a single Elysia mount.
 export function createKnowledgeMcpServer(
   pages: KnowledgePageReader,
   config: KnowledgeMcpServerConfig,
@@ -38,6 +43,8 @@ export function createKnowledgeMcpServer(
     baseUrl: config.baseUrl,
     oauth: oauthBetterAuthProvider({ authURL: config.issuer, scopesSupported: config.scopes }),
   });
+
+  server.app.on([...AUTH_METHODS], '/api/auth/*', (c) => config.authHandler(c.req.raw));
 
   server.tool(
     {

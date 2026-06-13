@@ -36,6 +36,11 @@ const buildResult = await Bun.build({
   compile: { outfile: SERVER_OUT },
   minify: { whitespace: true, syntax: true },
   target: 'bun',
+  // `@mcp-use/inspector` (a dev-only UI mcp-use lazily imports, and which is
+  // skipped in production) re-exports mcp-use's root barrel and so drags in its
+  // optional LangChain agent stack. Keep both external: the headless MCP server
+  // never loads either at runtime, so they must not be bundled.
+  external: ['@mcp-use/inspector', 'langchain', '@langchain/core', '@langchain/core/tools'],
 });
 
 if (!buildResult.success) {

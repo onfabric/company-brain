@@ -101,10 +101,13 @@ describe('mcp auth', () => {
     );
   });
 
-  it('accepts a valid access token', async () => {
+  it('accepts a valid access token and round-trips the initialize body', async () => {
     const token = await signToken();
     const res = await fetch(initializeRequest({ authorization: `Bearer ${token}` }));
     expect(res.status).toBe(StatusMap.OK);
+    // mcp-use answers `initialize` as an SSE frame; the server name only appears
+    // when the request body actually reaches it through the Elysia mount.
+    expect(await res.text()).toContain('"name":"company-brain"');
   });
 
   it('rejects a token from the wrong issuer', async () => {

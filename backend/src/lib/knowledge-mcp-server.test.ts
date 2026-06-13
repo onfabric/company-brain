@@ -23,6 +23,7 @@ async function connectClient(): Promise<Client> {
     baseUrl: 'http://localhost:3010',
     issuer: 'http://localhost:3010/api/auth',
     scopes: ['openid', 'mcp'],
+    authHandler: () => Promise.resolve(new Response(null, { status: 404 })),
   })
     .getServerForSession()
     .connect(serverTransport);
