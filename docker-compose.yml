@@ -279,7 +279,6 @@ services:
       - BRAIN_API_KEY
       - GOOGLE_CLIENT_ID
       - GOOGLE_CLIENT_SECRET
-      - MCP_RESOURCE
       - BRAIN_PUBLIC_URL
       - GOOGLE_WORKSPACE_DOMAIN
     ports:

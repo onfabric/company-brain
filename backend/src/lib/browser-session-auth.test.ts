@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
+(process.env as Record<string, string | undefined>).NODE_ENV = 'production';
 (process.env as Record<string, string | undefined>).DATABASE_URL ??=
   'postgresql://test:test@localhost:5432/test';
 (process.env as Record<string, string | undefined>).BRAIN_API_KEY ??=
@@ -7,7 +8,6 @@ import { describe, expect, it } from 'bun:test';
 (process.env as Record<string, string | undefined>).GOOGLE_CLIENT_ID ??= 'test-google-client-id';
 (process.env as Record<string, string | undefined>).GOOGLE_CLIENT_SECRET ??=
   'test-google-client-secret';
-(process.env as Record<string, string | undefined>).MCP_RESOURCE ??= 'http://localhost:3010/mcp';
 (process.env as Record<string, string | undefined>).BRAIN_PUBLIC_URL ??= 'http://localhost:3010';
 (process.env as Record<string, string | undefined>).GOOGLE_TOKEN_ENDPOINT ??=
   'http://localhost:18841/token';

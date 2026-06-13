@@ -8,7 +8,6 @@ import { PeopleRepository } from '#repositories/people.repository.ts';
 import { RecordsRepository } from '#repositories/records.repository.ts';
 import { HealthService } from '#services/health.service.ts';
 import { KnowledgeService } from '#services/knowledge.service.ts';
-import { KnowledgeMcpService } from '#services/knowledge-mcp.service.ts';
 import { KnowledgeTypesService } from '#services/knowledge-types.service.ts';
 import { PeopleService } from '#services/people.service.ts';
 import { RecordsService } from '#services/records.service.ts';
@@ -23,8 +22,7 @@ const healthService = new HealthService(healthRepo);
 const recordsService = new RecordsService(recordsRepo);
 const peopleService = new PeopleService(peopleRepo);
 const knowledgeTypesService = new KnowledgeTypesService(knowledgeTypesRepo);
-const knowledgeService = new KnowledgeService(knowledgeRepo);
-const knowledgeMcpService = new KnowledgeMcpService(knowledgeService);
+export const knowledgeService = new KnowledgeService(knowledgeRepo);
 
 export function loggerPlugin(name: string) {
   const logger = createLogger(name);
@@ -54,9 +52,4 @@ export const KnowledgeTypesServicePlugin = new Elysia({ name: 'service.knowledge
 export const KnowledgeServicePlugin = new Elysia({ name: 'service.knowledge' }).decorate(
   'knowledgeService',
   knowledgeService,
-);
-
-export const KnowledgeMcpServicePlugin = new Elysia({ name: 'service.knowledgeMcp' }).decorate(
-  'knowledgeMcpService',
-  knowledgeMcpService,
 );

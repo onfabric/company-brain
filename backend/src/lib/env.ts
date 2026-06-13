@@ -8,7 +8,6 @@ declare global {
       readonly BRAIN_API_KEY?: string;
       readonly GOOGLE_CLIENT_ID?: string;
       readonly GOOGLE_CLIENT_SECRET?: string;
-      readonly MCP_RESOURCE?: string;
       readonly BRAIN_PUBLIC_URL?: string;
       readonly GOOGLE_WORKSPACE_DOMAIN?: string;
       readonly GOOGLE_TOKEN_ENDPOINT?: string;
@@ -29,11 +28,8 @@ type Env = {
   // hold itself.
   googleClientId: string;
   googleClientSecret: string;
-  // Our own MCP resource identifier (the /mcp URL); .href/.origin derive from
-  // this one parsed value so it stays normalized everywhere.
-  mcpResource: URL;
-  // Origin the brain serves its AS metadata, /token, and /oidc/register on; it
-  // is the issuer advertised to MCP clients.
+  // Origin the brain serves its OAuth metadata, /token, and /register on; it is
+  // the issuer advertised to MCP clients.
   brainPublicUrl: URL;
   // Restricts MCP access to a single Google Workspace domain (hd param on
   // authorize, verified on the token's hosted-domain/email claim).
@@ -63,7 +59,6 @@ function loadEnv(): Env {
     brainApiKey: required('BRAIN_API_KEY'),
     googleClientId: required('GOOGLE_CLIENT_ID'),
     googleClientSecret: required('GOOGLE_CLIENT_SECRET'),
-    mcpResource: requiredUrl('MCP_RESOURCE'),
     brainPublicUrl: requiredUrl('BRAIN_PUBLIC_URL'),
     googleWorkspaceDomain: process.env.GOOGLE_WORKSPACE_DOMAIN || DEFAULT_WORKSPACE_DOMAIN,
     googleTokenEndpoint: process.env.GOOGLE_TOKEN_ENDPOINT || GOOGLE_TOKEN_ENDPOINT,
