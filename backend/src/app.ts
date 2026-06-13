@@ -25,8 +25,7 @@ import { recordsController } from '#routes/records/controller.ts';
 import { sessionsController } from '#routes/sessions/controller.ts';
 import { signInController } from '#routes/sign-in/controller.ts';
 import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
-import { oauthAuthorizationServerController } from '#routes/well-known/oauth-authorization-server/controller.ts';
-import { oauthProtectedResourceController } from '#routes/well-known/oauth-protected-resource/controller.ts';
+import { wellKnownController } from '#routes/well-known/controller.ts';
 
 export function createApp() {
   return new Elysia()
@@ -79,8 +78,7 @@ export function createApp() {
     .use(authPlugin)
     .use(signInController)
     .use(consentController)
-    .use(oauthAuthorizationServerController)
-    .use(oauthProtectedResourceController)
+    .use(wellKnownController)
     .use(dashboardController)
     .use(healthController)
     .use(peopleController)

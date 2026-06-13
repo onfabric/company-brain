@@ -19,7 +19,9 @@ const pages: KnowledgePageReader = {
 
 async function connectClient(): Promise<Client> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  await createKnowledgeMcpServer(pages).connect(serverTransport);
+  await createKnowledgeMcpServer(pages, 'http://localhost:3010')
+    .getServerForSession()
+    .connect(serverTransport);
   const client = new Client({ name: 'test-client', version: '0.0.0' });
   await client.connect(clientTransport);
   return client;
@@ -34,7 +36,10 @@ describe('knowledge mcp server', () => {
 
   it('returns the index page', async () => {
     const client = await connectClient();
-    const result = (await client.callTool({ name: 'get_index_page' })) as CallToolResult;
+    const result = (await client.callTool({
+      name: 'get_index_page',
+      arguments: {},
+    })) as CallToolResult;
     expect(result.isError).toBeFalsy();
     expect(result.content).toEqual([{ type: 'text', text: INDEX_HTML }]);
   });

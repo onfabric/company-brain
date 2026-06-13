@@ -1,5 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { MCPServer, text } from 'mcp-use/server';
 import { z } from 'zod';
 import { AppError } from '#lib/errors.ts';
 import { createLogger } from '#lib/logger.ts';
@@ -9,12 +8,6 @@ export type KnowledgePageReader = {
   getKnowledgeHtmlPage(id: string): Promise<string>;
 };
 
-const SERVER_INFO = {
-  name: 'company-brain',
-  title: 'Company Brain Knowledge Base',
-  version: '1.0.0',
-};
-
 const INSTRUCTIONS =
   'Read-only access to the company knowledge base, served as HTML pages. ' +
   'Call get_index_page first: the index links every page as /knowledge/pages/{id}. ' +
@@ -22,13 +15,21 @@ const INSTRUCTIONS =
 
 const logger = createLogger('knowledgeMcpServer');
 
-export function createKnowledgeMcpServer(pages: KnowledgePageReader): McpServer {
-  const server = new McpServer(SERVER_INFO, { instructions: INSTRUCTIONS });
+// Auth is fronted by the brain's own Elysia macro (a brain API key or a
+// better-auth bearer token), so the mcp-use server is built without its OAuth
+// provider: that provider's middleware only reads `Authorization` and cannot
+// see the brain's `Api-Key` header, which would lock out machine clients.
+export function createKnowledgeMcpServer(pages: KnowledgePageReader, baseUrl: string): MCPServer {
+  const server = new MCPServer({
+    name: 'company-brain',
+    version: '1.0.0',
+    instructions: INSTRUCTIONS,
+    baseUrl,
+  });
 
-  server.registerTool(
-    'get_index_page',
+  server.tool(
     {
-      title: 'Get the knowledge index page',
+      name: 'get_index_page',
       description:
         'Fetch the knowledge base index page as HTML. Start here: it links every available page ' +
         'as /knowledge/pages/{id}. Read a linked page with get_page.',
@@ -37,16 +38,15 @@ export function createKnowledgeMcpServer(pages: KnowledgePageReader): McpServer 
     () => readPage(() => pages.getKnowledgeIndexHtmlPage()),
   );
 
-  server.registerTool(
-    'get_page',
+  server.tool(
     {
-      title: 'Get a knowledge page',
+      name: 'get_page',
       description:
         'Fetch a single knowledge base page as HTML. Take the id from a /knowledge/pages/{id} ' +
         'link on the index page or on another page.',
-      inputSchema: {
+      schema: z.object({
         id: z.uuid().describe('Page id from a /knowledge/pages/{id} link.'),
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     ({ id }) => readPage(() => pages.getKnowledgeHtmlPage(id)),
@@ -55,16 +55,16 @@ export function createKnowledgeMcpServer(pages: KnowledgePageReader): McpServer 
   return server;
 }
 
-async function readPage(read: () => Promise<string>): Promise<CallToolResult> {
+async function readPage(read: () => Promise<string>) {
   try {
-    return { content: [{ type: 'text', text: await read() }] };
+    return text(await read());
   } catch (error) {
     if (error instanceof AppError) {
-      return { content: [{ type: 'text', text: error.message }], isError: true };
+      return { content: [{ type: 'text' as const, text: error.message }], isError: true };
     }
     logger.error('failed to read knowledge page', error);
     return {
-      content: [{ type: 'text', text: 'Failed to read the knowledge page' }],
+      content: [{ type: 'text' as const, text: 'Failed to read the knowledge page' }],
       isError: true,
     };
   }

@@ -6,11 +6,10 @@ import { KnowledgeMcpServicePlugin } from '#services/plugins.ts';
 export const mcpController = new Elysia()
   .use(KnowledgeMcpServicePlugin)
   .use(mcpAuth)
-  .post(
-    '/mcp',
-    ({ body, knowledgeMcpService, request }) => knowledgeMcpService.handleRequest(request, body),
-    { [REQUIRE_MCP_AUTH_MACRO_NAME]: true },
-  )
+  .post('/mcp', ({ knowledgeMcpService, request }) => knowledgeMcpService.handleRequest(request), {
+    [REQUIRE_MCP_AUTH_MACRO_NAME]: true,
+    parse: 'none',
+  })
   .get(
     '/mcp',
     ({ status }) => status(StatusMap['Method Not Allowed'], { error: 'Method Not Allowed' }),

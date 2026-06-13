@@ -1,6 +1,7 @@
+import { oauthProvider } from '@better-auth/oauth-provider';
 import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
-import { jwt, oidcProvider } from 'better-auth/plugins';
+import { jwt } from 'better-auth/plugins';
 import { sql } from '#db/client.ts';
 import { bunSqlAdapter } from '#lib/auth-adapter.ts';
 import { env, WORKSPACE_DOMAIN } from '#lib/env.ts';
@@ -9,6 +10,8 @@ export const SIGN_IN_PATH = '/sign-in';
 export const CONSENT_PATH = '/consent';
 export const MCP_SCOPE = 'mcp';
 export const AUTH_BASE_PATH = '/api/auth';
+
+const OAUTH_SCOPES = ['openid', 'profile', 'email', 'offline_access', MCP_SCOPE];
 
 function isWorkspaceEmail(email: string): boolean {
   return email.toLowerCase().endsWith(`@${WORKSPACE_DOMAIN}`);
@@ -50,12 +53,13 @@ export const auth = betterAuth({
         audience: env.mcpResource.href,
       },
     }),
-    oidcProvider({
+    oauthProvider({
       loginPage: SIGN_IN_PATH,
       consentPage: CONSENT_PATH,
       allowDynamicClientRegistration: true,
-      useJWTPlugin: true,
-      scopes: ['openid', 'profile', 'email', 'offline_access', MCP_SCOPE],
+      allowUnauthenticatedClientRegistration: true,
+      validAudiences: [env.mcpResource.href],
+      scopes: OAUTH_SCOPES,
     }),
   ],
 });

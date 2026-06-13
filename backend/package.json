@@ -20,11 +20,13 @@
     "typescript": "catalog:"
   },
   "dependencies": {
+    "@better-auth/oauth-provider": "^1.6.18",
     "@elysiajs/openapi": "^1.4.15",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "better-auth": "^1.6.18",
     "elysia": "^1.4.28",
     "jose": "^6.2.3",
+    "mcp-use": "^1.32.0",
     "sanitize-html": "^2.17.4",
     "zod": "^4.4.3"
   }

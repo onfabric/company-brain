@@ -3,103 +3,46 @@
 -- stays a clean copy-paste on regeneration — do not hand-edit the DDL below.
 SET LOCAL search_path TO auth;
 
-CREATE TABLE "user" (
-  "id" text NOT NULL PRIMARY KEY,
-  "name" text NOT NULL,
-  "email" text NOT NULL UNIQUE,
-  "emailVerified" boolean NOT NULL,
-  "image" text,
-  "createdAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+create table "user" ("id" text not null primary key, "name" text not null, "email" text not null unique, "emailVerified" boolean not null, "image" text, "createdAt" timestamptz default CURRENT_TIMESTAMP not null, "updatedAt" timestamptz default CURRENT_TIMESTAMP not null);
 
-CREATE TABLE "session" (
-  "id" text NOT NULL PRIMARY KEY,
-  "expiresAt" timestamptz NOT NULL,
-  "token" text NOT NULL UNIQUE,
-  "createdAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" timestamptz NOT NULL,
-  "ipAddress" text,
-  "userAgent" text,
-  "userId" text NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
-);
+create table "session" ("id" text not null primary key, "expiresAt" timestamptz not null, "token" text not null unique, "createdAt" timestamptz default CURRENT_TIMESTAMP not null, "updatedAt" timestamptz not null, "ipAddress" text, "userAgent" text, "userId" text not null references "user" ("id") on delete cascade);
 
-CREATE TABLE "account" (
-  "id" text NOT NULL PRIMARY KEY,
-  "accountId" text NOT NULL,
-  "providerId" text NOT NULL,
-  "userId" text NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
-  "accessToken" text,
-  "refreshToken" text,
-  "idToken" text,
-  "accessTokenExpiresAt" timestamptz,
-  "refreshTokenExpiresAt" timestamptz,
-  "scope" text,
-  "password" text,
-  "createdAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" timestamptz NOT NULL
-);
+create table "account" ("id" text not null primary key, "accountId" text not null, "providerId" text not null, "userId" text not null references "user" ("id") on delete cascade, "accessToken" text, "refreshToken" text, "idToken" text, "accessTokenExpiresAt" timestamptz, "refreshTokenExpiresAt" timestamptz, "scope" text, "password" text, "createdAt" timestamptz default CURRENT_TIMESTAMP not null, "updatedAt" timestamptz not null);
 
-CREATE TABLE "verification" (
-  "id" text NOT NULL PRIMARY KEY,
-  "identifier" text NOT NULL,
-  "value" text NOT NULL,
-  "expiresAt" timestamptz NOT NULL,
-  "createdAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+create table "verification" ("id" text not null primary key, "identifier" text not null, "value" text not null, "expiresAt" timestamptz not null, "createdAt" timestamptz default CURRENT_TIMESTAMP not null, "updatedAt" timestamptz default CURRENT_TIMESTAMP not null);
 
-CREATE TABLE "jwks" (
-  "id" text NOT NULL PRIMARY KEY,
-  "publicKey" text NOT NULL,
-  "privateKey" text NOT NULL,
-  "createdAt" timestamptz NOT NULL,
-  "expiresAt" timestamptz
-);
+create table "jwks" ("id" text not null primary key, "publicKey" text not null, "privateKey" text not null, "createdAt" timestamptz not null, "expiresAt" timestamptz);
 
-CREATE TABLE "oauthApplication" (
-  "id" text NOT NULL PRIMARY KEY,
-  "name" text NOT NULL,
-  "icon" text,
-  "metadata" text,
-  "clientId" text NOT NULL UNIQUE,
-  "clientSecret" text,
-  "redirectUrls" text NOT NULL,
-  "type" text NOT NULL,
-  "disabled" boolean,
-  "userId" text REFERENCES "user" ("id") ON DELETE CASCADE,
-  "createdAt" timestamptz NOT NULL,
-  "updatedAt" timestamptz NOT NULL
-);
+create table "oauthClient" ("id" text not null primary key, "clientId" text not null unique, "clientSecret" text, "disabled" boolean, "skipConsent" boolean, "enableEndSession" boolean, "subjectType" text, "scopes" jsonb, "userId" text references "user" ("id") on delete cascade, "createdAt" timestamptz, "updatedAt" timestamptz, "name" text, "uri" text, "icon" text, "contacts" jsonb, "tos" text, "policy" text, "softwareId" text, "softwareVersion" text, "softwareStatement" text, "redirectUris" jsonb not null, "postLogoutRedirectUris" jsonb, "tokenEndpointAuthMethod" text, "grantTypes" jsonb, "responseTypes" jsonb, "public" boolean, "type" text, "requirePKCE" boolean, "referenceId" text, "metadata" jsonb);
 
-CREATE TABLE "oauthAccessToken" (
-  "id" text NOT NULL PRIMARY KEY,
-  "accessToken" text NOT NULL UNIQUE,
-  "refreshToken" text NOT NULL UNIQUE,
-  "accessTokenExpiresAt" timestamptz NOT NULL,
-  "refreshTokenExpiresAt" timestamptz NOT NULL,
-  "clientId" text NOT NULL REFERENCES "oauthApplication" ("clientId") ON DELETE CASCADE,
-  "userId" text REFERENCES "user" ("id") ON DELETE CASCADE,
-  "scopes" text NOT NULL,
-  "createdAt" timestamptz NOT NULL,
-  "updatedAt" timestamptz NOT NULL
-);
+create table "oauthRefreshToken" ("id" text not null primary key, "token" text not null unique, "clientId" text not null references "oauthClient" ("clientId") on delete cascade, "sessionId" text references "session" ("id") on delete set null, "userId" text not null references "user" ("id") on delete cascade, "referenceId" text, "expiresAt" timestamptz not null, "createdAt" timestamptz not null, "revoked" timestamptz, "authTime" timestamptz, "scopes" jsonb not null);
 
-CREATE TABLE "oauthConsent" (
-  "id" text NOT NULL PRIMARY KEY,
-  "clientId" text NOT NULL REFERENCES "oauthApplication" ("clientId") ON DELETE CASCADE,
-  "userId" text NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
-  "scopes" text NOT NULL,
-  "consentGiven" boolean NOT NULL,
-  "createdAt" timestamptz NOT NULL,
-  "updatedAt" timestamptz NOT NULL
-);
+create table "oauthAccessToken" ("id" text not null primary key, "token" text not null unique, "clientId" text not null references "oauthClient" ("clientId") on delete cascade, "sessionId" text references "session" ("id") on delete set null, "userId" text references "user" ("id") on delete cascade, "referenceId" text, "refreshId" text references "oauthRefreshToken" ("id") on delete cascade, "expiresAt" timestamptz not null, "createdAt" timestamptz not null, "scopes" jsonb not null);
 
-CREATE INDEX "session_userId_idx" ON "session" ("userId");
-CREATE INDEX "account_userId_idx" ON "account" ("userId");
-CREATE INDEX "verification_identifier_idx" ON "verification" ("identifier");
-CREATE INDEX "oauthApplication_userId_idx" ON "oauthApplication" ("userId");
-CREATE INDEX "oauthAccessToken_clientId_idx" ON "oauthAccessToken" ("clientId");
-CREATE INDEX "oauthAccessToken_userId_idx" ON "oauthAccessToken" ("userId");
-CREATE INDEX "oauthConsent_clientId_idx" ON "oauthConsent" ("clientId");
-CREATE INDEX "oauthConsent_userId_idx" ON "oauthConsent" ("userId");
+create table "oauthConsent" ("id" text not null primary key, "clientId" text not null references "oauthClient" ("clientId") on delete cascade, "userId" text references "user" ("id") on delete cascade, "referenceId" text, "scopes" jsonb not null, "createdAt" timestamptz not null, "updatedAt" timestamptz not null);
+
+create index "session_userId_idx" on "session" ("userId");
+
+create index "account_userId_idx" on "account" ("userId");
+
+create index "verification_identifier_idx" on "verification" ("identifier");
+
+create index "oauthClient_userId_idx" on "oauthClient" ("userId");
+
+create index "oauthRefreshToken_clientId_idx" on "oauthRefreshToken" ("clientId");
+
+create index "oauthRefreshToken_sessionId_idx" on "oauthRefreshToken" ("sessionId");
+
+create index "oauthRefreshToken_userId_idx" on "oauthRefreshToken" ("userId");
+
+create index "oauthAccessToken_clientId_idx" on "oauthAccessToken" ("clientId");
+
+create index "oauthAccessToken_sessionId_idx" on "oauthAccessToken" ("sessionId");
+
+create index "oauthAccessToken_userId_idx" on "oauthAccessToken" ("userId");
+
+create index "oauthAccessToken_refreshId_idx" on "oauthAccessToken" ("refreshId");
+
+create index "oauthConsent_clientId_idx" on "oauthConsent" ("clientId");
+
+create index "oauthConsent_userId_idx" on "oauthConsent" ("userId");
