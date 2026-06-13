@@ -9,10 +9,10 @@
     "./types": "./src/types.ts"
   },
   "scripts": {
-    "start": "bun run src/index.ts",
+    "start": "NODE_ENV=production bun run src/index.ts",
     "build": "bun run build.ts",
     "check:types": "bun run --bun tsc",
-    "test": "bun test"
+    "test": "NODE_ENV=production bun test"
   },
   "devDependencies": {
     "@types/sanitize-html": "^2.16.1",

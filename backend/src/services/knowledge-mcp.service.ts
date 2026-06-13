@@ -5,33 +5,22 @@ import { Service } from '#services/service.ts';
 
 type FetchHandler = (request: Request) => Promise<Response>;
 
-// mcp-use's `getHandler()` runs its widget bundler, whose dev path resolves Vite
-// and writes a `resources/` directory. The brain ships no widgets, so the handler
-// is prepared in mcp-use's production widget mode — a clean no-op without a build
-// manifest — which also selects in-memory session state.
-async function prepareHandler(server: ReturnType<typeof createKnowledgeMcpServer>) {
-  const previous = process.env.NODE_ENV;
-  process.env.NODE_ENV = 'production';
-  try {
-    return await server.getHandler();
-  } finally {
-    process.env.NODE_ENV = previous;
-  }
-}
-
 export class KnowledgeMcpService extends Service {
   private readonly handler: Promise<FetchHandler>;
 
   constructor(pages: KnowledgePageReader) {
     super();
-    this.handler = prepareHandler(
-      createKnowledgeMcpServer(pages, {
-        baseUrl: env.publicUrl.origin,
-        issuer: env.issuer,
-        scopes: OAUTH_SCOPES,
-        authHandler: (request) => auth.handler(request),
-      }),
-    );
+    // `getHandler()` only mounts mcp-use's widget bundler / inspector (Vite, a
+    // filesystem session store) when NODE_ENV !== 'production'. The brain ships
+    // no widgets and always runs production (Dockerfile + the start/test scripts
+    // set it), so this resolves to mcp-use's clean production path.
+    const server = createKnowledgeMcpServer(pages, {
+      baseUrl: env.publicUrl.origin,
+      issuer: env.issuer,
+      scopes: OAUTH_SCOPES,
+      authHandler: (request) => auth.handler(request),
+    });
+    this.handler = server.getHandler();
   }
 
   /** Combined mcp-use + better-auth fetch handler, mounted once at the Elysia root. */
