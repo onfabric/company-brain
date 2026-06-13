@@ -1,40 +1,44 @@
 import { Elysia, StatusMap, t } from 'elysia';
-import type { OpenAPIV3 } from 'openapi-types';
-import { API_KEY_SECURITY_SCHEME, hasValidApiKey } from '#lib/api-key-auth.ts';
-import { auth } from '#lib/auth.ts';
+import { API_KEY_SECURITY_SCHEME, hasValidApiKey, type RequestHeaders } from '#lib/api-key-auth.ts';
+import { hasValidSession, SESSION_SECURITY_SCHEME } from '#lib/session-auth.ts';
 
-export const SESSION_SECURITY_SCHEME = 'betterAuthSession';
+export const AuthMethod = {
+  ApiKey: 'apiKey',
+  Session: 'session',
+} as const;
+export type AuthMethod = (typeof AuthMethod)[keyof typeof AuthMethod];
 
-export const sessionSecuritySchemes = {
-  [SESSION_SECURITY_SCHEME]: {
-    type: 'apiKey',
-    in: 'cookie',
-    name: 'better-auth.session_token',
-    description: 'better-auth session cookie set after signing in with Google',
-  },
-} satisfies Record<string, OpenAPIV3.SecuritySchemeObject>;
+export const REQUIRE_AUTH = 'requireAuth';
 
-// `auth: true` protects a route with either a valid Api-Key header or a
-// better-auth session cookie. A valid api key short-circuits the session lookup.
-export const authMacro = new Elysia({ name: 'auth' }).macro('auth', {
-  detail: {
-    security: [{ [API_KEY_SECURITY_SCHEME]: [] }, { [SESSION_SECURITY_SCHEME]: [] }],
-  },
-  response: {
-    [StatusMap.Unauthorized]: t.Object({ error: t.String() }),
-  },
-  async beforeHandle({ headers, request, status }) {
-    if (hasValidApiKey(headers) || (await hasValidSession(request.headers))) {
-      return;
-    }
-    return status(StatusMap.Unauthorized, { error: 'Unauthorized' });
-  },
+type VerifierContext = { headers: RequestHeaders; request: Request };
+
+const VERIFY: Record<AuthMethod, (ctx: VerifierContext) => boolean | Promise<boolean>> = {
+  [AuthMethod.ApiKey]: ({ headers }) => hasValidApiKey(headers),
+  [AuthMethod.Session]: ({ request }) => hasValidSession(request.headers),
+};
+
+const SECURITY_SCHEME: Record<AuthMethod, string> = {
+  [AuthMethod.ApiKey]: API_KEY_SECURITY_SCHEME,
+  [AuthMethod.Session]: SESSION_SECURITY_SCHEME,
+};
+
+// One auth plugin exposing a single `requireAuth` macro: an endpoint lists the
+// methods it accepts and passes if any one verifies (OR). Each method is a
+// self-contained strategy (verifier + OpenAPI scheme); adding one is a single
+// entry in the maps above.
+export const authPlugin = new Elysia({ name: 'auth' }).macro({
+  [REQUIRE_AUTH]: (methods: AuthMethod[]) => ({
+    detail: { security: methods.map((method) => ({ [SECURITY_SCHEME[method]]: [] })) },
+    response: {
+      [StatusMap.Unauthorized]: t.Object({ error: t.String() }),
+    },
+    async beforeHandle({ headers, request, status }) {
+      for (const method of methods) {
+        if (await VERIFY[method]({ headers, request })) {
+          return;
+        }
+      }
+      return status(StatusMap.Unauthorized, { error: 'Unauthorized' });
+    },
+  }),
 });
-
-async function hasValidSession(headers: Headers): Promise<boolean> {
-  try {
-    return (await auth.api.getSession({ headers })) !== null;
-  } catch {
-    return false;
-  }
-}

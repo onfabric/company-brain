@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { authMacro } from '#lib/auth-macro.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth-macro.ts';
 import {
   CreateKnowledgeBodySchema,
   KnowledgeQuerySchema,
@@ -14,7 +14,7 @@ const DEFAULT_OFFSET = 0;
 export const knowledgeController = new Elysia()
   .use(loggerPlugin('knowledgeController'))
   .use(KnowledgeServicePlugin)
-  .use(authMacro)
+  .use(authPlugin)
   .get(
     '/knowledge',
     async ({ query, knowledgeService, logger, status }) => {
@@ -35,7 +35,7 @@ export const knowledgeController = new Elysia()
       return status(StatusMap.OK, result);
     },
     {
-      auth: true,
+      [REQUIRE_AUTH]: [AuthMethod.ApiKey, AuthMethod.Session],
       detail: {
         tags: ['Knowledge'],
         summary: 'List and search knowledge',
@@ -64,7 +64,7 @@ export const knowledgeController = new Elysia()
       return status(StatusMap.Created, created);
     },
     {
-      auth: true,
+      [REQUIRE_AUTH]: [AuthMethod.ApiKey, AuthMethod.Session],
       parse: 'json',
       detail: {
         tags: ['Knowledge'],

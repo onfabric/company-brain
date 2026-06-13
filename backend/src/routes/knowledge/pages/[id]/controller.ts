@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { authMacro } from '#lib/auth-macro.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth-macro.ts';
 import { KNOWLEDGE_HTML_HEADERS } from '#lib/knowledge-html.ts';
 import { KnowledgeParamsSchema } from '#routes/knowledge/[id]/model.ts';
 import { KnowledgeHtmlPageResponseSchema } from '#routes/knowledge/pages/model.ts';
@@ -8,7 +8,7 @@ import { KnowledgeServicePlugin, loggerPlugin } from '#services/plugins.ts';
 export const knowledgePagesIdController = new Elysia()
   .use(loggerPlugin('knowledgePagesIdController'))
   .use(KnowledgeServicePlugin)
-  .use(authMacro)
+  .use(authPlugin)
   .get(
     '/knowledge/pages/:id',
     async ({ knowledgeService, logger, params, set, status }) => {
@@ -18,7 +18,7 @@ export const knowledgePagesIdController = new Elysia()
       return status(StatusMap.OK, html);
     },
     {
-      auth: true,
+      [REQUIRE_AUTH]: [AuthMethod.ApiKey, AuthMethod.Session],
       detail: {
         tags: ['Knowledge'],
         summary: 'Fetch a knowledge item as HTML',

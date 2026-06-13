@@ -1,12 +1,12 @@
 import { Elysia, StatusMap } from 'elysia';
-import { authMacro } from '#lib/auth-macro.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth-macro.ts';
 import { ListPeopleQuerySchema, ListPeopleResponseSchema } from '#routes/people/model.ts';
 import { loggerPlugin, PeopleServicePlugin } from '#services/plugins.ts';
 
 export const peopleController = new Elysia()
   .use(loggerPlugin('peopleController'))
   .use(PeopleServicePlugin)
-  .use(authMacro)
+  .use(authPlugin)
   .get(
     '/people',
     async ({ query, peopleService, logger, status }) => {
@@ -24,7 +24,7 @@ export const peopleController = new Elysia()
       return status(StatusMap.OK, result);
     },
     {
-      auth: true,
+      [REQUIRE_AUTH]: [AuthMethod.ApiKey, AuthMethod.Session],
       detail: {
         tags: ['People'],
         summary: 'List people',

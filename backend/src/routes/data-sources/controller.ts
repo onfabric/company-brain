@@ -1,12 +1,12 @@
 import { Elysia, StatusMap } from 'elysia';
-import { authMacro } from '#lib/auth-macro.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth-macro.ts';
 import { ListSourcesResponseSchema } from '#routes/data-sources/model.ts';
 import { loggerPlugin, RecordsServicePlugin } from '#services/plugins.ts';
 
 export const dataSourcesController = new Elysia()
   .use(loggerPlugin('dataSourcesController'))
   .use(RecordsServicePlugin)
-  .use(authMacro)
+  .use(authPlugin)
   .get(
     '/data-sources',
     async ({ recordsService, logger, status }) => {
@@ -15,7 +15,7 @@ export const dataSourcesController = new Elysia()
       return status(StatusMap.OK, result);
     },
     {
-      auth: true,
+      [REQUIRE_AUTH]: [AuthMethod.ApiKey, AuthMethod.Session],
       detail: {
         tags: ['Data Sources'],
         summary: 'List data sources',
