@@ -4,6 +4,7 @@ import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
 import { brainSessionSecuritySchemes } from '#lib/browser-session-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
+import { sessionSecuritySchemes } from '#lib/session-auth.ts';
 import { consentController } from '#routes/consent/controller.ts';
 import { dashboardController } from '#routes/dashboard/controller.ts';
 import { dataSourcesController } from '#routes/data-sources/controller.ts';
@@ -65,6 +66,7 @@ export function createApp() {
             securitySchemes: {
               ...apiKeySecuritySchemes,
               ...brainSessionSecuritySchemes,
+              ...sessionSecuritySchemes,
             },
           },
         },

@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
+import { brainAuth, REQUIRE_AUTH_MACRO_NAME } from '#lib/session-auth.ts';
 import { RecordsQuerySchema, RecordsResponseSchema } from '#routes/records/model.ts';
 import { loggerPlugin, RecordsServicePlugin } from '#services/plugins.ts';
 
@@ -9,7 +9,7 @@ const DEFAULT_OFFSET = 0;
 export const recordsController = new Elysia()
   .use(loggerPlugin('recordsController'))
   .use(RecordsServicePlugin)
-  .use(apiKeyAuth)
+  .use(brainAuth)
   .get(
     '/records',
     async ({ query, recordsService, logger, status }) => {
@@ -32,7 +32,7 @@ export const recordsController = new Elysia()
       return status(StatusMap.OK, result);
     },
     {
-      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      [REQUIRE_AUTH_MACRO_NAME]: true,
       detail: {
         tags: ['Records'],
         summary: 'List and search records',

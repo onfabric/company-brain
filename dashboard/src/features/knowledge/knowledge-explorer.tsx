@@ -1,24 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { Home, KeyRound, Loader2, RefreshCw } from 'lucide-react';
+import { Home, Loader2, RefreshCw } from 'lucide-react';
 import type { ReactNode, SyntheticEvent } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card } from '#/components/ui/card.tsx';
-import {
-  BrainApiError,
-  createKnowledgeBrowserSession,
-  type KnowledgePreview,
-  listKnowledge,
-  listKnowledgeTypes,
-} from '#/lib/brain-functions.ts';
-import { HTTP_UNAUTHORIZED } from '#/lib/constants.ts';
+import { type KnowledgePreview, listKnowledge, listKnowledgeTypes } from '#/lib/brain-functions.ts';
 import type { RecordsRouteSearch } from '#/lib/records-search.ts';
 
 type KnowledgeExplorerProps = {
-  apiKey: string;
-  apiKeyVersion: number;
   search: RecordsRouteSearch;
   onChange: (next: Partial<RecordsRouteSearch>) => void;
-  onChangeApiKey: () => void;
 };
 
 const KNOWLEDGE_PAGE_PATH_PATTERN =
@@ -27,27 +17,15 @@ const KNOWLEDGE_INDEX_PAGE_PATH = '/knowledge/pages/index';
 const KNOWLEDGE_INDEX_TYPE = 'index';
 const KNOWLEDGE_INDEX_LIMIT = 2;
 
-export function KnowledgeExplorer({
-  apiKey,
-  apiKeyVersion,
-  search,
-  onChange,
-  onChangeApiKey,
-}: KnowledgeExplorerProps) {
-  const sessionQuery = useQuery({
-    queryKey: ['knowledge-browser-session', apiKeyVersion],
-    queryFn: () => createKnowledgeBrowserSession(apiKey),
-    retry: false,
-  });
+export function KnowledgeExplorer({ search, onChange }: KnowledgeExplorerProps) {
   const indexQuery = useQuery({
-    queryKey: ['knowledge-index-page', apiKeyVersion],
-    queryFn: () => getKnowledgeIndex(apiKey),
+    queryKey: ['knowledge-index-page'],
+    queryFn: () => getKnowledgeIndex(),
     retry: false,
   });
   const selectedKnowledgeId = search.selectedKnowledgeId;
   const indexKnowledgeId = indexQuery.data?.id;
   const frameKnowledgeId = selectedKnowledgeId ?? indexKnowledgeId;
-  const error = sessionQuery.error ?? indexQuery.error;
 
   const openIndex = () => {
     onChange({ tab: 'knowledge', selectedKnowledgeId: undefined });
@@ -87,25 +65,21 @@ export function KnowledgeExplorer({
             type="button"
             size="icon"
             variant="outline"
-            title="Refresh session"
-            onClick={() => void sessionQuery.refetch()}
+            title="Reload page"
+            onClick={() => void indexQuery.refetch()}
           >
             <RefreshCw />
           </Button>
         </div>
 
         <div className="min-h-0 flex-1">
-          {sessionQuery.isLoading || indexQuery.isLoading ? (
+          {indexQuery.isLoading ? (
             <FrameState
               icon={<Loader2 className="size-5 animate-spin" />}
-              text="Opening session..."
+              text="Loading index..."
             />
-          ) : error ? (
-            <PanelError
-              title={sessionQuery.isError ? 'Could not open session' : 'Could not load index'}
-              error={error}
-              onChangeApiKey={onChangeApiKey}
-            />
+          ) : indexQuery.isError ? (
+            <PanelError title="Could not load index" error={indexQuery.error} />
           ) : (
             <iframe
               key={frameKnowledgeId}
@@ -122,8 +96,8 @@ export function KnowledgeExplorer({
   );
 }
 
-async function getKnowledgeIndex(apiKey: string): Promise<KnowledgePreview> {
-  const types = await listKnowledgeTypes(apiKey);
+async function getKnowledgeIndex(): Promise<KnowledgePreview> {
+  const types = await listKnowledgeTypes();
   const indexType = types.knowledge_types.find(
     (type) => type.name.toLowerCase() === KNOWLEDGE_INDEX_TYPE,
   );
@@ -131,7 +105,7 @@ async function getKnowledgeIndex(apiKey: string): Promise<KnowledgePreview> {
     throw new Error('Knowledge index type not found.');
   }
 
-  const indexPage = await listKnowledge(apiKey, {
+  const indexPage = await listKnowledge({
     knowledgeTypeId: indexType.id,
     limit: KNOWLEDGE_INDEX_LIMIT,
   });
@@ -172,28 +146,12 @@ function FrameState({ icon, text }: { icon?: ReactNode; text: string }) {
   );
 }
 
-function PanelError({
-  title,
-  error,
-  onChangeApiKey,
-}: {
-  title: string;
-  error: Error;
-  onChangeApiKey: () => void;
-}) {
-  const isAuthError = error instanceof BrainApiError && error.status === HTTP_UNAUTHORIZED;
-
+function PanelError({ title, error }: { title: string; error: Error }) {
   return (
     <div className="grid h-full min-h-0 flex-1 place-items-center p-8 text-center">
       <div className="max-w-xl">
         <h2 className="font-semibold">{title}</h2>
         <p className="mt-2 text-muted-foreground text-sm">{error.message}</p>
-        {isAuthError ? (
-          <Button type="button" className="mt-4" onClick={onChangeApiKey}>
-            <KeyRound />
-            Enter API key
-          </Button>
-        ) : null}
       </div>
     </div>
   );

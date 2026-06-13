@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Loader2, Pencil, Save, X } from 'lucide-react';
+import { Loader2, Pencil, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '#/components/ui/badge.tsx';
 import { Button } from '#/components/ui/button.tsx';
@@ -16,17 +16,11 @@ import {
   TableRow,
 } from '#/components/ui/table.tsx';
 import { participantLabel } from '#/features/records/record-format.ts';
-import {
-  BrainApiError,
-  type Person,
-  type PersonUpdateInput,
-  updatePerson,
-} from '#/lib/brain-functions.ts';
-import { EMPTY_COUNT, HTTP_UNAUTHORIZED } from '#/lib/constants.ts';
+import { type Person, type PersonUpdateInput, updatePerson } from '#/lib/brain-functions.ts';
+import { EMPTY_COUNT } from '#/lib/constants.ts';
 import { useInfiniteScroll } from '#/lib/use-infinite-scroll.ts';
 
 type PeopleManagerProps = {
-  apiKey: string;
   people: Person[];
   total: number;
   isLoading: boolean;
@@ -35,7 +29,6 @@ type PeopleManagerProps = {
   hasNextPage: boolean;
   fetchNextPage: () => void;
   error: Error | null;
-  onChangeApiKey: () => void;
 };
 
 type PersonDraft = {
@@ -55,7 +48,6 @@ const LOADING_ROW_KEYS = [
 ];
 
 export function PeopleManager({
-  apiKey,
   people,
   total,
   isLoading,
@@ -64,7 +56,6 @@ export function PeopleManager({
   hasNextPage,
   fetchNextPage,
   error,
-  onChangeApiKey,
 }: PeopleManagerProps) {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string>();
@@ -79,7 +70,7 @@ export function PeopleManager({
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: PersonUpdateInput }) =>
-      updatePerson(id, updates, apiKey),
+      updatePerson(id, updates),
     onSuccess: (person) => {
       setEditingId(undefined);
       setDraft(undefined);
@@ -113,12 +104,6 @@ export function PeopleManager({
             <div className="max-w-xl">
               <h2 className="font-semibold">Could not load people</h2>
               <p className="mt-2 text-muted-foreground text-sm">{error.message}</p>
-              {error instanceof BrainApiError && error.status === HTTP_UNAUTHORIZED ? (
-                <Button type="button" className="mt-4" onClick={onChangeApiKey}>
-                  <KeyRound />
-                  Enter API key
-                </Button>
-              ) : null}
             </div>
           </CardContent>
         </Card>

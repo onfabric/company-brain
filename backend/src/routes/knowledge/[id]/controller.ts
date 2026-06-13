@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
+import { brainAuth, REQUIRE_AUTH_MACRO_NAME } from '#lib/session-auth.ts';
 import {
   DeleteKnowledgeResponseSchema,
   KnowledgeItemResponseSchema,
@@ -12,7 +12,7 @@ import { KnowledgeServicePlugin, loggerPlugin } from '#services/plugins.ts';
 export const knowledgeIdController = new Elysia()
   .use(loggerPlugin('knowledgeIdController'))
   .use(KnowledgeServicePlugin)
-  .use(apiKeyAuth)
+  .use(brainAuth)
   .get(
     '/knowledge/:id',
     async ({ params, knowledgeService, logger, status }) => {
@@ -21,7 +21,7 @@ export const knowledgeIdController = new Elysia()
       return status(StatusMap.OK, knowledge);
     },
     {
-      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      [REQUIRE_AUTH_MACRO_NAME]: true,
       detail: {
         tags: ['Knowledge'],
         summary: 'Fetch a single knowledge item',
@@ -41,7 +41,7 @@ export const knowledgeIdController = new Elysia()
       return status(StatusMap.OK, updated);
     },
     {
-      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      [REQUIRE_AUTH_MACRO_NAME]: true,
       parse: 'json',
       detail: {
         tags: ['Knowledge'],
@@ -64,7 +64,7 @@ export const knowledgeIdController = new Elysia()
       return status(StatusMap.OK, { id });
     },
     {
-      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      [REQUIRE_AUTH_MACRO_NAME]: true,
       detail: {
         tags: ['Knowledge'],
         summary: 'Delete a knowledge item',

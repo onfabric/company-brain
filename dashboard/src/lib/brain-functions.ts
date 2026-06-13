@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { redirectToSignIn } from '#/lib/auth.ts';
 import {
   API_MAX_LIMIT,
   DEFAULT_LIMIT,
@@ -145,7 +146,7 @@ export type ListKnowledgeInput = {
   offset?: number;
 };
 
-export async function listRecords(input: RecordsQueryInput, apiKey: string) {
+export async function listRecords(input: RecordsQueryInput) {
   const params = new URLSearchParams();
   const query = input.q?.trim();
   if (query) {
@@ -173,14 +174,14 @@ export async function listRecords(input: RecordsQueryInput, apiKey: string) {
   params.set('limit', String(input.limit));
   params.set('offset', String(input.offset));
 
-  return await fetchBrain(`/records?${params.toString()}`, RecordsResponseSchema, apiKey);
+  return await fetchBrain(`/records?${params.toString()}`, RecordsResponseSchema);
 }
 
-export async function listDataSources(apiKey: string) {
-  return await fetchBrain('/data-sources', SourcesResponseSchema, apiKey);
+export async function listDataSources() {
+  return await fetchBrain('/data-sources', SourcesResponseSchema);
 }
 
-export async function listPeople(apiKey: string, input: ListPeopleInput = {}) {
+export async function listPeople(input: ListPeopleInput = {}) {
   const params = new URLSearchParams();
   if (input.isExternal !== undefined) {
     params.set('is_external', String(input.isExternal));
@@ -202,10 +203,10 @@ export async function listPeople(apiKey: string, input: ListPeopleInput = {}) {
     params.set('offset', String(input.offset));
   }
   const query = params.toString();
-  return await fetchBrain(`/people${query ? `?${query}` : ''}`, PeopleResponseSchema, apiKey);
+  return await fetchBrain(`/people${query ? `?${query}` : ''}`, PeopleResponseSchema);
 }
 
-export async function listKnowledge(apiKey: string, input: ListKnowledgeInput = {}) {
+export async function listKnowledge(input: ListKnowledgeInput = {}) {
   const params = new URLSearchParams({ view: 'preview' });
   const search = input.q?.trim();
   if (search) {
@@ -220,40 +221,19 @@ export async function listKnowledge(apiKey: string, input: ListKnowledgeInput = 
   if (input.offset !== undefined) {
     params.set('offset', String(input.offset));
   }
-  return await fetchBrain(
-    `/knowledge?${params.toString()}`,
-    KnowledgePreviewResponseSchema,
-    apiKey,
-  );
+  return await fetchBrain(`/knowledge?${params.toString()}`, KnowledgePreviewResponseSchema);
 }
 
-export async function listKnowledgeTypes(apiKey: string) {
-  return await fetchBrain('/knowledge-types', KnowledgeTypesResponseSchema, apiKey);
+export async function listKnowledgeTypes() {
+  return await fetchBrain('/knowledge-types', KnowledgeTypesResponseSchema);
 }
 
-export async function createKnowledgeBrowserSession(apiKey: string) {
-  const headers = new Headers();
-  headers.set('api-key', apiKey);
-  const response = await fetch('/sessions', {
-    method: 'POST',
-    headers,
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new BrainApiError(errorMessage(response.status, message), response.status);
-  }
-
-  return true;
+export async function getPerson(id: string) {
+  return await fetchBrain(`/people/${id}`, PersonDetailsSchema);
 }
 
-export async function getPerson(id: string, apiKey: string) {
-  return await fetchBrain(`/people/${id}`, PersonDetailsSchema, apiKey);
-}
-
-export async function updatePerson(id: string, input: PersonUpdateInput, apiKey: string) {
-  return await fetchBrain(`/people/${id}`, PersonDetailsSchema, apiKey, {
+export async function updatePerson(id: string, input: PersonUpdateInput) {
+  return await fetchBrain(`/people/${id}`, PersonDetailsSchema, {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -273,18 +253,20 @@ function exclusiveEndOfDayIso(date: string) {
 async function fetchBrain<T>(
   path: string,
   schema: z.ZodType<T>,
-  apiKey: string,
   init: RequestInit = {},
 ): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('accept', 'application/json');
-  headers.set('api-key', apiKey);
   const response = await fetch(path, {
     ...init,
     headers,
+    credentials: 'include',
   });
 
   if (!response.ok) {
+    if (response.status === HTTP_UNAUTHORIZED) {
+      redirectToSignIn();
+    }
     const message = await response.text();
     throw new BrainApiError(errorMessage(response.status, message), response.status);
   }
@@ -294,7 +276,7 @@ async function fetchBrain<T>(
 
 function errorMessage(status: number, message: string) {
   if (status === HTTP_UNAUTHORIZED) {
-    return 'That API key was rejected.';
+    return 'Your session has expired. Redirecting to sign in...';
   }
   if (message.length > EMPTY_COUNT) {
     return `Brain API ${status}: ${message}`;

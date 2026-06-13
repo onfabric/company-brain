@@ -19,18 +19,11 @@ import type { RecordsRouteSearch } from '#/lib/records-search.ts';
 type RecordsFiltersProps = {
   search: RecordsRouteSearch;
   sources: Source[];
-  apiKey: string;
   isFetching: boolean;
   onChange: (next: Partial<RecordsRouteSearch>) => void;
 };
 
-export function RecordsFilters({
-  search,
-  sources,
-  apiKey,
-  isFetching,
-  onChange,
-}: RecordsFiltersProps) {
+export function RecordsFilters({ search, sources, isFetching, onChange }: RecordsFiltersProps) {
   const [draft, setDraft] = useState(search.q ?? '');
 
   useEffect(() => {
@@ -93,7 +86,6 @@ export function RecordsFilters({
       </div>
 
       <ParticipantFilter
-        apiKey={apiKey}
         personId={search.personId}
         onSelect={(personId) => onChange({ personId })}
       />

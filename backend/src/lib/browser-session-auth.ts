@@ -4,6 +4,7 @@ import { type CookieOptions, Elysia, StatusMap, t } from 'elysia';
 import type { OpenAPIV3 } from 'openapi-types';
 import { API_KEY_SECURITY_SCHEME, hasValidApiKey, type RequestHeaders } from '#lib/api-key-auth.ts';
 import { env } from '#lib/env.ts';
+import { hasValidSession, SESSION_SECURITY_SCHEME } from '#lib/session-auth.ts';
 
 export const BRAIN_SESSION_COOKIE = 'brain_session';
 export const BRAIN_SESSION_TTL_SECONDS = 60 * 60 * 24;
@@ -39,17 +40,22 @@ export const knowledgePageAuth = new Elysia({ name: 'knowledgePageAuth' }).macro
   REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME,
   {
     detail: {
-      security: [{ [API_KEY_SECURITY_SCHEME]: [] }, { [BRAIN_SESSION_SECURITY_SCHEME]: [] }],
+      security: [
+        { [API_KEY_SECURITY_SCHEME]: [] },
+        { [BRAIN_SESSION_SECURITY_SCHEME]: [] },
+        { [SESSION_SECURITY_SCHEME]: [] },
+      ],
     },
     response: {
       [StatusMap.Unauthorized]: t.Object({ error: t.String() }),
     },
     cookie: BrainSessionCookieSchema,
-    beforeHandle({ cookie, headers, status }) {
+    async beforeHandle({ cookie, headers, request, status }) {
       const sessionToken = cookie[BRAIN_SESSION_COOKIE]?.value;
       const authorized =
         hasValidApiKey(headers) ||
-        (sessionToken !== undefined && isValidBrainSessionToken(sessionToken));
+        (sessionToken !== undefined && isValidBrainSessionToken(sessionToken)) ||
+        (await hasValidSession(request.headers));
       if (!authorized) {
         return status(StatusMap.Unauthorized, { error: 'Unauthorized' });
       }

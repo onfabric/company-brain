@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
+import { brainAuth, REQUIRE_AUTH_MACRO_NAME } from '#lib/session-auth.ts';
 import {
   CreateKnowledgeBodySchema,
   KnowledgeQuerySchema,
@@ -14,7 +14,7 @@ const DEFAULT_OFFSET = 0;
 export const knowledgeController = new Elysia()
   .use(loggerPlugin('knowledgeController'))
   .use(KnowledgeServicePlugin)
-  .use(apiKeyAuth)
+  .use(brainAuth)
   .get(
     '/knowledge',
     async ({ query, knowledgeService, logger, status }) => {
@@ -35,7 +35,7 @@ export const knowledgeController = new Elysia()
       return status(StatusMap.OK, result);
     },
     {
-      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      [REQUIRE_AUTH_MACRO_NAME]: true,
       detail: {
         tags: ['Knowledge'],
         summary: 'List and search knowledge',
@@ -64,7 +64,7 @@ export const knowledgeController = new Elysia()
       return status(StatusMap.Created, created);
     },
     {
-      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      [REQUIRE_AUTH_MACRO_NAME]: true,
       parse: 'json',
       detail: {
         tags: ['Knowledge'],
