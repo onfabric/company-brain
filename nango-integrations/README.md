@@ -30,11 +30,11 @@ The Nango server is not started from this folder. The CLI compiles these functio
 
 ## Integration Bootstrap
 
-`bun run bootstrap:integrations dev` creates the Nango integrations used by the Company Brain syncs if they do not already exist. Re-run with `--update-existing` to repair display names, webhook forwarding, client IDs, and scopes on existing integrations.
+`bun run bootstrap:integrations dev` creates the programmatically managed Nango integrations used by the Company Brain syncs if they do not already exist. Re-run with `--update-existing` to repair display names, webhook forwarding, client IDs, and scopes on existing integrations. Pass `--only notion,slack` to create or update only specific integrations.
 
-`bun run bootstrap:connections dev` creates non-OAuth connections that CI can safely provision. It currently creates or updates `agent-conversations/local-agent-sync` with `credentials.type = "NONE"` and connection metadata `{ "webhookSecret": "..." }`.
+`bun run bootstrap:connections dev` creates non-OAuth connections that CI can safely provision. It currently creates or updates `agent-conversations/local-agent-sync` with `credentials.type = "NONE"` and connection metadata `{ "webhookSecret": "..." }`. Pass the same `--only` selection used for integrations to restrict bootstrapped connections.
 
-Circleback MCP is intentionally not created or checked by bootstrap. Create and manage the Nango integration manually; the sync and MCP client remain in this package so they can run against that manual integration.
+Circleback MCP is intentionally not created by bootstrap or included in default connection checks/deploys. Create and manage the Nango integration manually; the sync and MCP client remain in this package so they can run against that manual integration with `--only circleback-mcp`.
 
 Deploy order matters on a fresh environment:
 

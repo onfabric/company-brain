@@ -7,7 +7,7 @@
     "build:backend-client": "bun run _scripts/build-backend-client.ts",
     "nango": "bun run _scripts/run-local-cli.ts",
     "compile": "bun run build:backend-client && bun run nango compile",
-    "deploy": "bun run build:backend-client && bun run nango deploy",
+    "deploy": "bun run _scripts/deploy-syncs.ts",
     "dev": "bun run build:backend-client && bun run nango dev",
     "dryrun": "bun run build:backend-client && bun run nango dryrun",
     "bootstrap:integrations": "bun run _scripts/bootstrap-integrations.ts",

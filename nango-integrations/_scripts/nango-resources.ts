@@ -30,6 +30,12 @@ export type ConnectionData = {
   provider_config_key: string;
 };
 
+export type SyncSpec = {
+  integrationId: string;
+  syncName: string;
+  label: string;
+};
+
 export type ConnectionsData = {
   connections: ConnectionData[];
 };
@@ -58,6 +64,8 @@ export const GITHUB_SCOPES = [
 ].join(',');
 
 export const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'].join(',');
+
+export const MANUAL_INTEGRATION_IDS = ['circleback-mcp'];
 
 export const INTEGRATIONS: IntegrationSpec[] = [
   {
@@ -136,6 +144,11 @@ export const REQUIRED_CONNECTIONS: ConnectionSpec[] = [
     defaultConnectionId: 'gmail',
   },
   {
+    integrationId: 'circleback-mcp',
+    connectionIdEnv: 'CIRCLEBACK_CONNECTION_ID',
+    defaultConnectionId: 'circleback',
+  },
+  {
     integrationId: 'agent-conversations',
     connectionIdEnv: 'AGENT_CONVERSATIONS_CONNECTION_ID',
     defaultConnectionId: 'local-agent-sync',
@@ -146,9 +159,91 @@ export const REQUIRED_CONNECTIONS: ConnectionSpec[] = [
   },
 ];
 
+export const SYNC_SPECS: SyncSpec[] = [
+  {
+    integrationId: 'notion',
+    syncName: 'pages',
+    label: 'Notion pages',
+  },
+  {
+    integrationId: 'slack',
+    syncName: 'threads',
+    label: 'Slack threads',
+  },
+  {
+    integrationId: 'github',
+    syncName: 'pull-requests',
+    label: 'GitHub pull requests',
+  },
+  {
+    integrationId: 'google-mail',
+    syncName: 'threads',
+    label: 'Gmail threads',
+  },
+  {
+    integrationId: 'circleback-mcp',
+    syncName: 'meetings',
+    label: 'Circleback meetings',
+  },
+  {
+    integrationId: 'agent-conversations',
+    syncName: 'conversations',
+    label: 'Agent conversations',
+  },
+];
+
+export const DEFAULT_SYNC_SPECS: SyncSpec[] = SYNC_SPECS.filter(
+  (sync) => !MANUAL_INTEGRATION_IDS.includes(sync.integrationId),
+);
+export const DEFAULT_REQUIRED_CONNECTIONS: ConnectionSpec[] = REQUIRED_CONNECTIONS.filter(
+  (connection) => !MANUAL_INTEGRATION_IDS.includes(connection.integrationId),
+);
 export const BOOTSTRAPPED_CONNECTIONS: BootstrappedConnectionSpec[] =
   REQUIRED_CONNECTIONS.filter(isBootstrappedConnection);
 export const NOT_FOUND_STATUS = 404;
+
+export function parseIntegrationSelection(value: string | undefined): string[] | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const selected = value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return selected.length > 0 ? selected : undefined;
+}
+
+export function resolveSelectedSyncs(selected: string[] | undefined): SyncSpec[] {
+  if (!selected) {
+    return DEFAULT_SYNC_SPECS;
+  }
+
+  const selectedSet = new Set(selected);
+  const knownIds = new Set(SYNC_SPECS.map((sync) => sync.integrationId));
+  const unknown = [...selectedSet].filter((id) => !knownIds.has(id));
+  if (unknown.length > 0) {
+    throw new Error(`Unknown integration selection: ${unknown.join(', ')}`);
+  }
+
+  return SYNC_SPECS.filter((sync) => selectedSet.has(sync.integrationId));
+}
+
+export function resolveSelectedIntegrations(selected: string[] | undefined): IntegrationSpec[] {
+  if (!selected) {
+    return INTEGRATIONS;
+  }
+
+  const selectedSet = new Set(selected);
+  const knownIds = new Set(INTEGRATIONS.map((integration) => integration.id));
+  const unknown = [...selectedSet].filter((id) => !knownIds.has(id));
+  if (unknown.length > 0) {
+    throw new Error(`Unknown integration selection: ${unknown.join(', ')}`);
+  }
+
+  return INTEGRATIONS.filter((integration) => selectedSet.has(integration.id));
+}
 
 export async function parseConnectionResponse(
   response: Response,
