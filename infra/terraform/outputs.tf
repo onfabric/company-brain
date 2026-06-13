@@ -12,6 +12,22 @@ output "hostname" {
   value = var.hostname
 }
 
+output "nango_hostname" {
+  value = var.nango_hostname
+}
+
+output "nango_connect_hostname" {
+  value = var.nango_connect_hostname
+}
+
+output "brain_hostname" {
+  value = var.brain_hostname
+}
+
+output "dozzle_hostname" {
+  value = var.dozzle_hostname
+}
+
 output "nango_ecr_repository_url" {
   description = "ECR repo for the Nango image."
   value       = aws_ecr_repository.nango.repository_url
@@ -33,7 +49,7 @@ output "artifacts_bucket" {
 
 output "github_deploy_role_arn" {
   description = "Set as AWS_DEPLOY_ROLE_ARN in GitHub repo variables."
-  value       = aws_iam_role.github_deploy.arn
+  value       = var.enable_github_deploy ? aws_iam_role.github_deploy[0].arn : null
 }
 
 output "instance_id" {

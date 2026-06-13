@@ -31,6 +31,36 @@ variable "hostname" {
   default     = "nango-dev.onfabric.io"
 }
 
+variable "nango_hostname" {
+  type        = string
+  description = "Public hostname for the Nango dashboard/API."
+  default     = "nango-dev.onfabric.io"
+}
+
+variable "nango_connect_hostname" {
+  type        = string
+  description = "Public hostname for the Nango Connect UI."
+  default     = "nango-auth-dev.onfabric.io"
+}
+
+variable "brain_hostname" {
+  type        = string
+  description = "Public hostname for the Company Brain service."
+  default     = "brain-dev.onfabric.io"
+}
+
+variable "dozzle_hostname" {
+  type        = string
+  description = "Public hostname for Dozzle logs."
+  default     = "dozzle-dev.onfabric.io"
+}
+
+variable "enable_github_deploy" {
+  type        = bool
+  description = "Create the GitHub Actions OIDC deploy role. Local AWS CLI deployments do not need it."
+  default     = false
+}
+
 variable "github_repo" {
   type        = string
   description = "owner/repo allowed to assume the deploy role via OIDC."

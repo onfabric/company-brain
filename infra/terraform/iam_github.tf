@@ -5,15 +5,18 @@
 # provider up and create the narrowly-scoped role the CD workflow uses.
 
 data "aws_iam_openid_connect_provider" "github" {
-  url = "https://token.actions.githubusercontent.com"
+  count = var.enable_github_deploy ? 1 : 0
+  url   = "https://token.actions.githubusercontent.com"
 }
 
 data "aws_iam_policy_document" "github_assume" {
+  count = var.enable_github_deploy ? 1 : 0
+
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
     principals {
       type        = "Federated"
-      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
+      identifiers = [data.aws_iam_openid_connect_provider.github[0].arn]
     }
     condition {
       test     = "StringEquals"
@@ -29,11 +32,15 @@ data "aws_iam_policy_document" "github_assume" {
 }
 
 resource "aws_iam_role" "github_deploy" {
+  count = var.enable_github_deploy ? 1 : 0
+
   name               = "company-brain-${var.environment}-github-deploy"
-  assume_role_policy = data.aws_iam_policy_document.github_assume.json
+  assume_role_policy = data.aws_iam_policy_document.github_assume[0].json
 }
 
 data "aws_iam_policy_document" "github_deploy" {
+  count = var.enable_github_deploy ? 1 : 0
+
   # Push images to ECR.
   statement {
     sid       = "EcrAuth"
@@ -103,7 +110,9 @@ data "aws_iam_policy_document" "github_deploy" {
 }
 
 resource "aws_iam_role_policy" "github_deploy" {
+  count = var.enable_github_deploy ? 1 : 0
+
   name   = "company-brain-${var.environment}-github-deploy"
-  role   = aws_iam_role.github_deploy.id
-  policy = data.aws_iam_policy_document.github_deploy.json
+  role   = aws_iam_role.github_deploy[0].id
+  policy = data.aws_iam_policy_document.github_deploy[0].json
 }
