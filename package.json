@@ -2,7 +2,11 @@
   "name": "company-brain-monorepo",
   "type": "module",
   "private": true,
+  "bin": {
+    "company-brain": "./cli/src/main.ts"
+  },
   "scripts": {
+    "company-brain": "bun cli/src/main.ts",
     "test": "bun run --filter '*' test",
     "check:types": "bun run --filter '*' check:types",
     "check:codestyle": "bun run --bun biome check",
@@ -12,6 +16,7 @@
   "workspaces": {
     "packages": [
       "agent-sync/",
+      "cli/",
       "nango-integrations/",
       "backend/",
       "dashboard/"

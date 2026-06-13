@@ -25,13 +25,10 @@ export type BootstrappedConnectionSpec = ConnectionSpec & {
   bootstrap: NonNullable<ConnectionSpec['bootstrap']>;
 };
 
-export type ConnectionData = {
-  connection_id: string;
-  provider_config_key: string;
-};
-
-export type ConnectionsData = {
-  connections: ConnectionData[];
+export type SyncSpec = {
+  integrationId: string;
+  syncName: string;
+  label: string;
 };
 
 export const SLACK_SCOPES = [
@@ -58,6 +55,8 @@ export const GITHUB_SCOPES = [
 ].join(',');
 
 export const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'].join(',');
+
+export const MANUAL_INTEGRATION_IDS = ['circleback-mcp'];
 
 export const INTEGRATIONS: IntegrationSpec[] = [
   {
@@ -136,6 +135,11 @@ export const REQUIRED_CONNECTIONS: ConnectionSpec[] = [
     defaultConnectionId: 'gmail',
   },
   {
+    integrationId: 'circleback-mcp',
+    connectionIdEnv: 'CIRCLEBACK_CONNECTION_ID',
+    defaultConnectionId: 'circleback',
+  },
+  {
     integrationId: 'agent-conversations',
     connectionIdEnv: 'AGENT_CONVERSATIONS_CONNECTION_ID',
     defaultConnectionId: 'local-agent-sync',
@@ -146,55 +150,98 @@ export const REQUIRED_CONNECTIONS: ConnectionSpec[] = [
   },
 ];
 
+export const SYNC_SPECS: SyncSpec[] = [
+  {
+    integrationId: 'notion',
+    syncName: 'pages',
+    label: 'Notion pages',
+  },
+  {
+    integrationId: 'slack',
+    syncName: 'threads',
+    label: 'Slack threads',
+  },
+  {
+    integrationId: 'github',
+    syncName: 'pull-requests',
+    label: 'GitHub pull requests',
+  },
+  {
+    integrationId: 'google-mail',
+    syncName: 'threads',
+    label: 'Gmail threads',
+  },
+  {
+    integrationId: 'circleback-mcp',
+    syncName: 'meetings',
+    label: 'Circleback meetings',
+  },
+  {
+    integrationId: 'agent-conversations',
+    syncName: 'conversations',
+    label: 'Agent conversations',
+  },
+];
+
+export const DEFAULT_SYNC_SPECS: SyncSpec[] = SYNC_SPECS.filter(
+  (sync) => !MANUAL_INTEGRATION_IDS.includes(sync.integrationId),
+);
+export const DEFAULT_REQUIRED_CONNECTIONS: ConnectionSpec[] = REQUIRED_CONNECTIONS.filter(
+  (connection) => !MANUAL_INTEGRATION_IDS.includes(connection.integrationId),
+);
 export const BOOTSTRAPPED_CONNECTIONS: BootstrappedConnectionSpec[] =
   REQUIRED_CONNECTIONS.filter(isBootstrappedConnection);
-export const NOT_FOUND_STATUS = 404;
 
-export async function parseConnectionResponse(
-  response: Response,
-  integrationId: string,
-  connectionId: string,
-): Promise<ConnectionData> {
-  const body = (await response.json()) as unknown;
-  if (isConnectionData(body)) {
-    return body;
+export const INTEGRATION_IDS = INTEGRATIONS.map((integration) => integration.id);
+export const SYNC_INTEGRATION_IDS = SYNC_SPECS.map((sync) => sync.integrationId);
+export const CONNECTION_INTEGRATION_IDS = REQUIRED_CONNECTIONS.map(
+  (connection) => connection.integrationId,
+);
+
+export function resolveSelectedSyncs(selected: string[] | undefined): SyncSpec[] {
+  if (!selected) {
+    return DEFAULT_SYNC_SPECS;
   }
 
-  if (isRecord(body) && isConnectionData(body.data)) {
-    return body.data;
+  const selectedSet = new Set(selected);
+  const knownIds = new Set(SYNC_INTEGRATION_IDS);
+  const unknown = [...selectedSet].filter((id) => !knownIds.has(id));
+  if (unknown.length > 0) {
+    throw new Error(`Unknown integration selection: ${unknown.join(', ')}`);
   }
 
-  throw new Error(`Nango returned no connection data for ${integrationId}/${connectionId}`);
+  return SYNC_SPECS.filter((sync) => selectedSet.has(sync.integrationId));
 }
 
-export async function parseConnectionsResponse(
-  response: Response,
-  integrationId: string,
-): Promise<ConnectionsData> {
-  const body = (await response.json()) as unknown;
-  if (!isRecord(body) || !Array.isArray(body.connections)) {
-    throw new Error(`Nango returned no connection list for ${integrationId}`);
+export function resolveSelectedIntegrations(selected: string[] | undefined): IntegrationSpec[] {
+  if (!selected) {
+    return INTEGRATIONS;
   }
 
-  return {
-    connections: body.connections.filter(isConnectionData),
-  };
+  const selectedSet = new Set(selected);
+  const knownIds = new Set(INTEGRATION_IDS);
+  const unknown = [...selectedSet].filter((id) => !knownIds.has(id));
+  if (unknown.length > 0) {
+    throw new Error(`Unknown integration selection: ${unknown.join(', ')}`);
+  }
+
+  return INTEGRATIONS.filter((integration) => selectedSet.has(integration.id));
+}
+
+export function oauthConnectionHints(integrationIds: string[]): string[] {
+  const selected = new Set(integrationIds);
+  const oauthIds = new Set(
+    INTEGRATIONS.filter((integration) => integration.oauth).map((integration) => integration.id),
+  );
+
+  return REQUIRED_CONNECTIONS.filter(
+    (connection) =>
+      selected.has(connection.integrationId) && oauthIds.has(connection.integrationId),
+  ).map((connection) => `${connection.integrationId}/${connection.defaultConnectionId}`);
 }
 
 function isBootstrappedConnection(
   connection: ConnectionSpec,
 ): connection is BootstrappedConnectionSpec {
   return Boolean(connection.bootstrap);
-}
-
-function isConnectionData(value: unknown): value is ConnectionData {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return typeof value.connection_id === 'string' && typeof value.provider_config_key === 'string';
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }

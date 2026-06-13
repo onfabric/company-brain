@@ -1,3 +1,4 @@
+import { builtinModules } from 'node:module';
 import { rolldown } from 'rolldown';
 import { dts } from 'rolldown-plugin-dts';
 
@@ -5,13 +6,19 @@ import { dts } from 'rolldown-plugin-dts';
 // sandbox, `elysia`/`bun` only appear in the emitted .d.ts (and are resolvable when
 // type-checking the syncs). Everything else — including the backend's App type — is
 // bundled/inlined so the output is self-contained.
+const NODE_BUILTINS = builtinModules.filter((name) => !name.startsWith('_'));
 const KEEP_EXTERNAL = [
+  ...NODE_BUILTINS,
   /^nango$/,
   /^elysia(\/|$)/,
   /^bun$/,
   /^node:/,
   /^@sinclair\//,
   /^@elysiajs\//,
+  /^mcp-use(\/|$)/,
+  /^@mcp-use\//,
+  /^langchain(\/|$)/,
+  /^@langchain\//,
 ];
 
 console.log('Building backend client...');
