@@ -2,13 +2,16 @@ import {
   oauthProviderAuthServerMetadata,
   oauthProviderOpenIdConfigMetadata,
 } from '@better-auth/oauth-provider';
-import { Elysia, type Static, StatusMap } from 'elysia';
+import { Elysia, type HTTPHeaders, type Static, StatusMap } from 'elysia';
 import { AUTH_BASE_PATH, auth } from '#lib/auth.ts';
 import { env } from '#lib/env.ts';
 import { MCP_SCOPE } from '#lib/mcp-oauth.ts';
 import { ProtectedResourceMetadataSchema } from '#routes/well-known/model.ts';
 
-const CORS_HEADERS = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET' };
+const CORS_HEADERS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET',
+} satisfies HTTPHeaders;
 
 // RFC 8414 / OpenID discovery. better-auth's basePath keeps these documents off
 // the root, so its companion handlers re-serve them where MCP clients probe.
@@ -45,8 +48,7 @@ export const wellKnownController = new Elysia()
   .get(
     '/.well-known/oauth-protected-resource/mcp',
     ({ set }) => {
-      set.headers['access-control-allow-origin'] = CORS_HEADERS['access-control-allow-origin'];
-      set.headers['access-control-allow-methods'] = CORS_HEADERS['access-control-allow-methods'];
+      Object.assign(set.headers, CORS_HEADERS);
       return protectedResource;
     },
     { response: { [StatusMap.OK]: ProtectedResourceMetadataSchema }, detail: { hide: true } },
@@ -54,8 +56,7 @@ export const wellKnownController = new Elysia()
   .get(
     '/.well-known/oauth-protected-resource',
     ({ set }) => {
-      set.headers['access-control-allow-origin'] = CORS_HEADERS['access-control-allow-origin'];
-      set.headers['access-control-allow-methods'] = CORS_HEADERS['access-control-allow-methods'];
+      Object.assign(set.headers, CORS_HEADERS);
       return protectedResource;
     },
     { response: { [StatusMap.OK]: ProtectedResourceMetadataSchema }, detail: { hide: true } },
