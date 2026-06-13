@@ -5,6 +5,7 @@ import { jwt } from 'better-auth/plugins';
 import { sql } from '#db/client.ts';
 import { bunSqlAdapter } from '#lib/auth-adapter.ts';
 import { env } from '#lib/env.ts';
+import { createLogger } from '#lib/logger.ts';
 
 export const SIGN_IN_PATH = '/sign-in';
 export const CONSENT_PATH = '/consent';
@@ -12,6 +13,8 @@ export const MCP_SCOPE = 'mcp';
 export const AUTH_BASE_PATH = '/api/auth';
 
 export const OAUTH_SCOPES = ['openid', 'profile', 'email', 'offline_access', MCP_SCOPE];
+
+const logger = createLogger('better-auth');
 
 function isWorkspaceEmail(email: string): boolean {
   return email.toLowerCase().endsWith(`@${env.workspaceDomain}`);
@@ -21,6 +24,16 @@ export const auth = betterAuth({
   baseURL: env.publicUrl.href,
   basePath: AUTH_BASE_PATH,
   secret: env.betterAuthSecret,
+  // The handler is mounted inside mcp-use's Hono app, so better-auth errors never
+  // reach the brain's Elysia error handler; surface them here for observability.
+  onAPIError: {
+    onError(error) {
+      const { status, body } = error as { status?: number; body?: Record<string, unknown> };
+      logger.error(
+        `api error ${status ?? ''} ${body?.error ?? ''}: ${body?.error_description ?? error}`,
+      );
+    },
+  },
   // better-auth runs on the same Bun.sql client as the rest of the brain, via a
   // custom adapter that targets its own `auth` schema (migration 0011).
   database: bunSqlAdapter(sql),

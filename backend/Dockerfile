@@ -27,6 +27,8 @@ FROM gcr.io/distroless/base-debian12:debug AS release
 WORKDIR /app
 COPY --from=build /monorepo/backend/dist/ ./
 ENV NODE_ENV=production
+# mcp-use request logging verbosity (info|debug|trace); overridable at runtime.
+ENV MCP_DEBUG_LEVEL=debug
 EXPOSE 3010/tcp
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD ["/busybox/wget", "-q", "--spider", "http://localhost:3010/health"]
