@@ -1,7 +1,6 @@
 import { openapi } from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
 import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
-import { authPlugin } from '#lib/auth-session.ts';
 import { brainSessionSecuritySchemes } from '#lib/browser-session-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
@@ -71,7 +70,6 @@ export function createApp() {
         },
       }),
     )
-    .use(authPlugin)
     .use(signInController)
     .use(consentController)
     .use(dashboardController)
