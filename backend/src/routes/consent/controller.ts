@@ -2,9 +2,11 @@ import { Elysia, t } from 'elysia';
 import { authPlugin, REQUIRE_AUTH_MACRO_NAME } from '#lib/auth-session.ts';
 import { consentHTML } from '#lib/oauth-pages.ts';
 
-// better-auth redirects here with the consent code, client id, and requested
-// scopes after authentication; the session macro binds the page to the
-// logged-in user (401 otherwise), and accepting posts back to better-auth.
+/**
+ * better-auth redirects here with the consent code, client id, and requested
+ * scopes after authentication; the session macro binds the page to the
+ * logged-in user (401 otherwise), and accepting posts back to better-auth.
+ */
 export const consentController = new Elysia().use(authPlugin).get(
   '/consent',
   ({ query, set }) => {

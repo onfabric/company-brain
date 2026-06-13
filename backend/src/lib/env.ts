@@ -12,7 +12,7 @@ declare global {
   }
 }
 
-const DEFAULT_PORT = 3010;
+const DEFAULT_PORT = '3010';
 const DEFAULT_PUBLIC_URL = 'http://localhost:3010';
 
 // The brain authenticates @onfabric.io workspace accounts only; this is both a
@@ -55,7 +55,7 @@ function loadEnv(): Env {
   const publicUrl = new URL(optional('BRAIN_PUBLIC_URL', DEFAULT_PUBLIC_URL));
   return {
     databaseUrl: required('DATABASE_URL'),
-    port: process.env.PORT ? Number(process.env.PORT) : DEFAULT_PORT,
+    port: Number(optional('PORT', DEFAULT_PORT)),
     brainApiKey: required('BRAIN_API_KEY'),
     publicUrl,
     mcpResource: new URL('/mcp', publicUrl),
