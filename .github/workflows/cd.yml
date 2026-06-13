@@ -139,7 +139,7 @@ jobs:
           deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
           ecr-repository-url: ${{ needs.terraform-apply.outputs.brain_ecr_repository_url }}
           context: .
-          dockerfile: Dockerfile
+          dockerfile: backend/Dockerfile
           cache-scope: brain
 
   build-docker-pg-backup:
@@ -178,9 +178,8 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
           ecr-repository-url: ${{ needs.terraform-apply.outputs.logto_setup_ecr_repository_url }}
-          context: .
-          dockerfile: Dockerfile
-          target: logto-setup
+          context: logto-setup
+          dockerfile: logto-setup/Dockerfile
           cache-scope: logto-setup
 
   build-bundle:
