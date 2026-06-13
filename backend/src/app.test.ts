@@ -83,40 +83,18 @@ describe('api key auth', () => {
     expect(res.status).not.toBe(StatusMap.Unauthorized);
   });
 
-  it('mints a browser session cookie with a valid api key', async () => {
+  it('lets a knowledge page past auth with a valid api key', async () => {
     const { createApp } = await import('#app.ts');
     const { API_KEY_HEADER } = await import('#lib/api-key-auth.ts');
-    const { BRAIN_SESSION_COOKIE } = await import('#lib/browser-session-auth.ts');
-    const res = await createApp().handle(
-      new Request('https://localhost/sessions', {
-        method: 'POST',
-        headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
-      }),
-    );
-
-    expect(res.status).toBe(StatusMap['No Content']);
-    const cookie = res.headers.get('set-cookie');
-    expect(cookie).toContain(`${BRAIN_SESSION_COOKIE}=`);
-    expect(cookie).toContain('HttpOnly');
-    expect(cookie).toContain('Path=/knowledge/pages');
-    expect(cookie).toContain('SameSite=Lax');
-    expect(cookie).toContain('Secure');
-  });
-
-  it('lets a knowledge page past auth with a valid session cookie', async () => {
-    const { createApp } = await import('#app.ts');
-    const { BRAIN_SESSION_COOKIE, createBrainSessionToken } = await import(
-      '#lib/browser-session-auth.ts'
-    );
     const res = await createApp().handle(
       new Request('http://localhost/knowledge/pages/index', {
-        headers: { cookie: `${BRAIN_SESSION_COOKIE}=${createBrainSessionToken()}` },
+        headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
       }),
     );
     expect(res.status).not.toBe(StatusMap.Unauthorized);
   });
 
-  it('rejects navigable knowledge pages without api key or session cookie', async () => {
+  it('rejects navigable knowledge pages without api key or session', async () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(
       new Request('http://localhost/knowledge/pages/019e8882-07f1-771c-993e-f6825a9224bb'),
@@ -124,7 +102,7 @@ describe('api key auth', () => {
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
 
-  it('rejects the knowledge index page without api key or session cookie', async () => {
+  it('rejects the knowledge index page without api key or session', async () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(new Request('http://localhost/knowledge/pages/index'));
     expect(res.status).toBe(StatusMap.Unauthorized);

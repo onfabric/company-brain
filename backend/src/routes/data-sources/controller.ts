@@ -1,12 +1,12 @@
 import { Elysia, StatusMap } from 'elysia';
-import { brainAuth, REQUIRE_AUTH_MACRO_NAME } from '#lib/session-auth.ts';
+import { authMacro } from '#lib/auth-macro.ts';
 import { ListSourcesResponseSchema } from '#routes/data-sources/model.ts';
 import { loggerPlugin, RecordsServicePlugin } from '#services/plugins.ts';
 
 export const dataSourcesController = new Elysia()
   .use(loggerPlugin('dataSourcesController'))
   .use(RecordsServicePlugin)
-  .use(brainAuth)
+  .use(authMacro)
   .get(
     '/data-sources',
     async ({ recordsService, logger, status }) => {
@@ -15,7 +15,7 @@ export const dataSourcesController = new Elysia()
       return status(StatusMap.OK, result);
     },
     {
-      [REQUIRE_AUTH_MACRO_NAME]: true,
+      auth: true,
       detail: {
         tags: ['Data Sources'],
         summary: 'List data sources',

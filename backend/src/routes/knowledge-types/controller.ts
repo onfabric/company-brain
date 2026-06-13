@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { brainAuth, REQUIRE_AUTH_MACRO_NAME } from '#lib/session-auth.ts';
+import { authMacro } from '#lib/auth-macro.ts';
 import {
   CreateKnowledgeTypeBodySchema,
   KnowledgeTypeSchema,
@@ -10,7 +10,7 @@ import { KnowledgeTypesServicePlugin, loggerPlugin } from '#services/plugins.ts'
 export const knowledgeTypesController = new Elysia()
   .use(loggerPlugin('knowledgeTypesController'))
   .use(KnowledgeTypesServicePlugin)
-  .use(brainAuth)
+  .use(authMacro)
   .get(
     '/knowledge-types',
     async ({ knowledgeTypesService, logger, status }) => {
@@ -19,7 +19,7 @@ export const knowledgeTypesController = new Elysia()
       return status(StatusMap.OK, { knowledge_types });
     },
     {
-      [REQUIRE_AUTH_MACRO_NAME]: true,
+      auth: true,
       detail: {
         tags: ['Knowledge Types'],
         summary: 'List knowledge types',
@@ -38,7 +38,7 @@ export const knowledgeTypesController = new Elysia()
       return status(StatusMap.Created, created);
     },
     {
-      [REQUIRE_AUTH_MACRO_NAME]: true,
+      auth: true,
       parse: 'json',
       detail: {
         tags: ['Knowledge Types'],

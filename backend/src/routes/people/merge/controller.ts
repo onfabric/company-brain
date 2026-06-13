@@ -1,12 +1,12 @@
 import { Elysia, StatusMap } from 'elysia';
-import { brainAuth, REQUIRE_AUTH_MACRO_NAME } from '#lib/session-auth.ts';
+import { authMacro } from '#lib/auth-macro.ts';
 import { MergePeopleBodySchema, MergePeopleResponseSchema } from '#routes/people/merge/model.ts';
 import { loggerPlugin, PeopleServicePlugin } from '#services/plugins.ts';
 
 export const peopleMergeController = new Elysia()
   .use(loggerPlugin('peopleMergeController'))
   .use(PeopleServicePlugin)
-  .use(brainAuth)
+  .use(authMacro)
   .post(
     '/people/merge',
     async ({ body, peopleService, logger, status }) => {
@@ -15,7 +15,7 @@ export const peopleMergeController = new Elysia()
       return status(StatusMap.OK, result);
     },
     {
-      [REQUIRE_AUTH_MACRO_NAME]: true,
+      auth: true,
       parse: 'json',
       detail: {
         tags: ['People'],

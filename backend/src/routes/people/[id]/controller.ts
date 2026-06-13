@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { brainAuth, REQUIRE_AUTH_MACRO_NAME } from '#lib/session-auth.ts';
+import { authMacro } from '#lib/auth-macro.ts';
 import {
   GetPersonResponseSchema,
   PersonParamsSchema,
@@ -12,7 +12,7 @@ import { loggerPlugin, PeopleServicePlugin } from '#services/plugins.ts';
 export const peopleIdController = new Elysia()
   .use(loggerPlugin('peopleIdController'))
   .use(PeopleServicePlugin)
-  .use(brainAuth)
+  .use(authMacro)
   .get(
     '/people/:id',
     async ({ params, peopleService, logger, status }) => {
@@ -21,7 +21,7 @@ export const peopleIdController = new Elysia()
       return status(StatusMap.OK, person);
     },
     {
-      [REQUIRE_AUTH_MACRO_NAME]: true,
+      auth: true,
       detail: {
         tags: ['People'],
         summary: 'Get a person',
@@ -41,7 +41,7 @@ export const peopleIdController = new Elysia()
       return status(StatusMap.OK, person);
     },
     {
-      [REQUIRE_AUTH_MACRO_NAME]: true,
+      auth: true,
       parse: 'json',
       detail: {
         tags: ['People'],

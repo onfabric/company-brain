@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { brainAuth, REQUIRE_AUTH_MACRO_NAME } from '#lib/session-auth.ts';
+import { authMacro } from '#lib/auth-macro.ts';
 import {
   DeleteKnowledgeTypeResponseSchema,
   KnowledgeTypeParamsSchema,
@@ -11,7 +11,7 @@ import { KnowledgeTypesServicePlugin, loggerPlugin } from '#services/plugins.ts'
 export const knowledgeTypesIdController = new Elysia()
   .use(loggerPlugin('knowledgeTypesIdController'))
   .use(KnowledgeTypesServicePlugin)
-  .use(brainAuth)
+  .use(authMacro)
   .patch(
     '/knowledge-types/:id',
     async ({ params, body, knowledgeTypesService, logger, status }) => {
@@ -20,7 +20,7 @@ export const knowledgeTypesIdController = new Elysia()
       return status(StatusMap.OK, updated);
     },
     {
-      [REQUIRE_AUTH_MACRO_NAME]: true,
+      auth: true,
       parse: 'json',
       detail: {
         tags: ['Knowledge Types'],
@@ -42,7 +42,7 @@ export const knowledgeTypesIdController = new Elysia()
       return status(StatusMap.OK, { id });
     },
     {
-      [REQUIRE_AUTH_MACRO_NAME]: true,
+      auth: true,
       detail: {
         tags: ['Knowledge Types'],
         summary: 'Delete a knowledge type',

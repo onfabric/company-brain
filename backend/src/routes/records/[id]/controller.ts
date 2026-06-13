@@ -1,12 +1,12 @@
 import { Elysia, StatusMap } from 'elysia';
-import { brainAuth, REQUIRE_AUTH_MACRO_NAME } from '#lib/session-auth.ts';
+import { authMacro } from '#lib/auth-macro.ts';
 import { RecordParamsSchema, RecordResponseSchema } from '#routes/records/[id]/model.ts';
 import { loggerPlugin, RecordsServicePlugin } from '#services/plugins.ts';
 
 export const recordsIdController = new Elysia()
   .use(loggerPlugin('recordsIdController'))
   .use(RecordsServicePlugin)
-  .use(brainAuth)
+  .use(authMacro)
   .get(
     '/records/:id',
     async ({ params, recordsService, logger, status }) => {
@@ -15,7 +15,7 @@ export const recordsIdController = new Elysia()
       return status(StatusMap.OK, record);
     },
     {
-      [REQUIRE_AUTH_MACRO_NAME]: true,
+      auth: true,
       detail: {
         tags: ['Records'],
         summary: 'Fetch a single record',
