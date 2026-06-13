@@ -1,9 +1,5 @@
-import {
-  type IntegrationSpec,
-  NOT_FOUND_STATUS,
-  resolveSelectedIntegrations,
-} from '../nango-resources.js';
-import { type NangoApi, parseJson } from './nango-api.js';
+import { type IntegrationSpec, resolveSelectedIntegrations } from './catalog.js';
+import { type NangoApi, NOT_FOUND_STATUS, parseJson } from './nango-api.js';
 
 type IntegrationCredentials = {
   type?: string;

@@ -9,11 +9,12 @@ import {
 } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
+import { oauthConnectionHints } from '../../../../nango-integrations/_scripts/lib/catalog.ts';
+import { parseSelection } from '../../../../nango-integrations/_scripts/lib/selection.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 import { readLocalConfig, writeLocalConfig } from '../../lib/local-config.ts';
 import { bootstrapNangoIntegrations, nangoIntegrationSpecs } from '../../lib/nango.ts';
 import { ensureNangoEnvBase, readNangoEnv, upsertNangoEnv } from '../../lib/nango-env.ts';
-import { parseSelectionAnswer } from '../../lib/selection.ts';
 
 type IntegrationSpec = (typeof nangoIntegrationSpecs)[number];
 
@@ -165,12 +166,9 @@ async function resolveSelection(
   }
 
   if (only) {
-    const ids = parseSelectionAnswer(
+    const ids = parseSelection(
       only,
-      nangoIntegrationSpecs.map((integration) => ({
-        id: integration.id,
-        label: integration.displayName,
-      })),
+      nangoIntegrationSpecs.map((integration) => integration.id),
     );
     return nangoIntegrationSpecs.filter((integration) => ids.includes(integration.id));
   }
@@ -258,18 +256,4 @@ function selectedConnectionHints(integrationIds: string[]): string[] {
   const hints = oauthConnectionHints(integrationIds);
 
   return hints.length > 0 ? hints : ['No OAuth connections are needed for this selection.'];
-}
-
-function oauthConnectionHints(integrationIds: string[]): string[] {
-  const selectedIds = new Set(integrationIds);
-  const connectionHints: Array<[string, string]> = [
-    ['notion', 'notion/notion'],
-    ['slack', 'slack/slack'],
-    ['github', 'github/github'],
-    ['google-mail', 'google-mail/gmail'],
-  ];
-
-  return connectionHints.flatMap(([integrationId, hint]) =>
-    selectedIds.has(integrationId) ? [hint] : [],
-  );
 }

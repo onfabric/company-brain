@@ -25,19 +25,10 @@ export type BootstrappedConnectionSpec = ConnectionSpec & {
   bootstrap: NonNullable<ConnectionSpec['bootstrap']>;
 };
 
-export type ConnectionData = {
-  connection_id: string;
-  provider_config_key: string;
-};
-
 export type SyncSpec = {
   integrationId: string;
   syncName: string;
   label: string;
-};
-
-export type ConnectionsData = {
-  connections: ConnectionData[];
 };
 
 export const SLACK_SCOPES = [
@@ -200,20 +191,12 @@ export const DEFAULT_REQUIRED_CONNECTIONS: ConnectionSpec[] = REQUIRED_CONNECTIO
 );
 export const BOOTSTRAPPED_CONNECTIONS: BootstrappedConnectionSpec[] =
   REQUIRED_CONNECTIONS.filter(isBootstrappedConnection);
-export const NOT_FOUND_STATUS = 404;
 
-export function parseIntegrationSelection(value: string | undefined): string[] | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const selected = value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  return selected.length > 0 ? selected : undefined;
-}
+export const INTEGRATION_IDS = INTEGRATIONS.map((integration) => integration.id);
+export const SYNC_INTEGRATION_IDS = SYNC_SPECS.map((sync) => sync.integrationId);
+export const CONNECTION_INTEGRATION_IDS = REQUIRED_CONNECTIONS.map(
+  (connection) => connection.integrationId,
+);
 
 export function resolveSelectedSyncs(selected: string[] | undefined): SyncSpec[] {
   if (!selected) {
@@ -221,7 +204,7 @@ export function resolveSelectedSyncs(selected: string[] | undefined): SyncSpec[]
   }
 
   const selectedSet = new Set(selected);
-  const knownIds = new Set(SYNC_SPECS.map((sync) => sync.integrationId));
+  const knownIds = new Set(SYNC_INTEGRATION_IDS);
   const unknown = [...selectedSet].filter((id) => !knownIds.has(id));
   if (unknown.length > 0) {
     throw new Error(`Unknown integration selection: ${unknown.join(', ')}`);
@@ -236,7 +219,7 @@ export function resolveSelectedIntegrations(selected: string[] | undefined): Int
   }
 
   const selectedSet = new Set(selected);
-  const knownIds = new Set(INTEGRATIONS.map((integration) => integration.id));
+  const knownIds = new Set(INTEGRATION_IDS);
   const unknown = [...selectedSet].filter((id) => !knownIds.has(id));
   if (unknown.length > 0) {
     throw new Error(`Unknown integration selection: ${unknown.join(', ')}`);
@@ -245,51 +228,20 @@ export function resolveSelectedIntegrations(selected: string[] | undefined): Int
   return INTEGRATIONS.filter((integration) => selectedSet.has(integration.id));
 }
 
-export async function parseConnectionResponse(
-  response: Response,
-  integrationId: string,
-  connectionId: string,
-): Promise<ConnectionData> {
-  const body = (await response.json()) as unknown;
-  if (isConnectionData(body)) {
-    return body;
-  }
+export function oauthConnectionHints(integrationIds: string[]): string[] {
+  const selected = new Set(integrationIds);
+  const oauthIds = new Set(
+    INTEGRATIONS.filter((integration) => integration.oauth).map((integration) => integration.id),
+  );
 
-  if (isRecord(body) && isConnectionData(body.data)) {
-    return body.data;
-  }
-
-  throw new Error(`Nango returned no connection data for ${integrationId}/${connectionId}`);
-}
-
-export async function parseConnectionsResponse(
-  response: Response,
-  integrationId: string,
-): Promise<ConnectionsData> {
-  const body = (await response.json()) as unknown;
-  if (!isRecord(body) || !Array.isArray(body.connections)) {
-    throw new Error(`Nango returned no connection list for ${integrationId}`);
-  }
-
-  return {
-    connections: body.connections.filter(isConnectionData),
-  };
+  return REQUIRED_CONNECTIONS.filter(
+    (connection) =>
+      selected.has(connection.integrationId) && oauthIds.has(connection.integrationId),
+  ).map((connection) => `${connection.integrationId}/${connection.defaultConnectionId}`);
 }
 
 function isBootstrappedConnection(
   connection: ConnectionSpec,
 ): connection is BootstrappedConnectionSpec {
   return Boolean(connection.bootstrap);
-}
-
-function isConnectionData(value: unknown): value is ConnectionData {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return typeof value.connection_id === 'string' && typeof value.provider_config_key === 'string';
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }

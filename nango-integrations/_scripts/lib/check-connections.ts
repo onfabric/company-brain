@@ -1,13 +1,16 @@
 import { appendFile } from 'node:fs/promises';
-import type { ConnectionData, ConnectionSpec } from '../nango-resources.js';
 import {
+  type ConnectionSpec,
   DEFAULT_REQUIRED_CONNECTIONS,
+  REQUIRED_CONNECTIONS,
+} from './catalog.js';
+import {
+  type ConnectionData,
+  type NangoApi,
   NOT_FOUND_STATUS,
   parseConnectionResponse,
   parseConnectionsResponse,
-  REQUIRED_CONNECTIONS,
-} from '../nango-resources.js';
-import type { NangoApi } from './nango-api.js';
+} from './nango-api.js';
 
 type MissingConnection = {
   integrationId: string;

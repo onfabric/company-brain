@@ -1,59 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 
 import {
-  parseConnectionResponse,
-  parseConnectionsResponse,
-  parseIntegrationSelection,
+  oauthConnectionHints,
   resolveSelectedIntegrations,
   resolveSelectedSyncs,
-} from './nango-resources.js';
-
-const connection = {
-  connection_id: 'local-agent-sync',
-  provider_config_key: 'agent-conversations',
-};
-
-describe('parseConnectionResponse', () => {
-  it('accepts public connection responses', async () => {
-    const parsed = await parseConnectionResponse(
-      new Response(JSON.stringify(connection)),
-      'agent-conversations',
-      'local-agent-sync',
-    );
-
-    expect(parsed).toEqual(connection);
-  });
-
-  it('accepts wrapped connection responses', async () => {
-    const parsed = await parseConnectionResponse(
-      new Response(JSON.stringify({ data: connection })),
-      'agent-conversations',
-      'local-agent-sync',
-    );
-
-    expect(parsed).toEqual(connection);
-  });
-
-  it('rejects responses without connection data', async () => {
-    await expect(
-      parseConnectionResponse(
-        new Response(JSON.stringify({ error: { code: 'not_found' } })),
-        'agent-conversations',
-        'local-agent-sync',
-      ),
-    ).rejects.toThrow('Nango returned no connection data for agent-conversations/local-agent-sync');
-  });
-});
-
-describe('parseIntegrationSelection', () => {
-  it('parses comma-separated integration ids', () => {
-    expect(parseIntegrationSelection('notion, slack')).toEqual(['notion', 'slack']);
-  });
-
-  it('returns undefined for empty input', () => {
-    expect(parseIntegrationSelection(' , ')).toBeUndefined();
-  });
-});
+} from './catalog.js';
 
 describe('resolveSelectedSyncs', () => {
   it('returns default syncs when no selection is supplied', () => {
@@ -115,22 +66,15 @@ describe('resolveSelectedIntegrations', () => {
   });
 });
 
-describe('parseConnectionsResponse', () => {
-  it('accepts public connection list responses', async () => {
-    const parsed = await parseConnectionsResponse(
-      new Response(JSON.stringify({ connections: [connection] })),
-      'agent-conversations',
-    );
-
-    expect(parsed).toEqual({ connections: [connection] });
+describe('oauthConnectionHints', () => {
+  it('returns connection hints only for selected OAuth integrations', () => {
+    expect(oauthConnectionHints(['notion', 'google-mail'])).toEqual([
+      'notion/notion',
+      'google-mail/gmail',
+    ]);
   });
 
-  it('rejects responses without a connection list', async () => {
-    await expect(
-      parseConnectionsResponse(
-        new Response(JSON.stringify({ error: { code: 'not_found' } })),
-        'agent-conversations',
-      ),
-    ).rejects.toThrow('Nango returned no connection list for agent-conversations');
+  it('omits integrations without OAuth connections', () => {
+    expect(oauthConnectionHints(['agent-conversations'])).toEqual([]);
   });
 });

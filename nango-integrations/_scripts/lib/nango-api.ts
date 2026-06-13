@@ -1,4 +1,13 @@
-import { NOT_FOUND_STATUS } from '../nango-resources.js';
+export const NOT_FOUND_STATUS = 404;
+
+export type ConnectionData = {
+  connection_id: string;
+  provider_config_key: string;
+};
+
+export type ConnectionsData = {
+  connections: ConnectionData[];
+};
 
 export type NangoRequestOptions = {
   method: 'GET' | 'POST' | 'PATCH';
@@ -44,4 +53,47 @@ export class NangoApi {
 
 export async function parseJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
+}
+
+export async function parseConnectionResponse(
+  response: Response,
+  integrationId: string,
+  connectionId: string,
+): Promise<ConnectionData> {
+  const body = (await response.json()) as unknown;
+  if (isConnectionData(body)) {
+    return body;
+  }
+
+  if (isRecord(body) && isConnectionData(body.data)) {
+    return body.data;
+  }
+
+  throw new Error(`Nango returned no connection data for ${integrationId}/${connectionId}`);
+}
+
+export async function parseConnectionsResponse(
+  response: Response,
+  integrationId: string,
+): Promise<ConnectionsData> {
+  const body = (await response.json()) as unknown;
+  if (!isRecord(body) || !Array.isArray(body.connections)) {
+    throw new Error(`Nango returned no connection list for ${integrationId}`);
+  }
+
+  return {
+    connections: body.connections.filter(isConnectionData),
+  };
+}
+
+function isConnectionData(value: unknown): value is ConnectionData {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return typeof value.connection_id === 'string' && typeof value.provider_config_key === 'string';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }

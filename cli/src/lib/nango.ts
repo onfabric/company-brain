@@ -1,13 +1,8 @@
-import {
-  INTEGRATIONS,
-  REQUIRED_CONNECTIONS,
-  SYNC_SPECS,
-} from '../../../nango-integrations/_scripts/nango-resources.ts';
+import { INTEGRATIONS, SYNC_SPECS } from '../../../nango-integrations/_scripts/lib/catalog.ts';
 import { nangoIntegrationsPath } from './paths.ts';
 import { run } from './shell.ts';
 
 export const nangoIntegrationSpecs = INTEGRATIONS;
-export const nangoRequiredConnectionSpecs = REQUIRED_CONNECTIONS;
 export const nangoSyncSpecs = SYNC_SPECS;
 
 export async function bootstrapNangoIntegrations(

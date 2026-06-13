@@ -1,6 +1,6 @@
+import { parseSelection } from '../../../nango-integrations/_scripts/lib/selection.ts';
 import type { LocalConfig } from './local-config.ts';
 import { checkNangoConnections, deployNangoSyncs, nangoSyncSpecs } from './nango.ts';
-import { parseSelectionAnswer } from './selection.ts';
 
 export type SyncSpec = (typeof nangoSyncSpecs)[number];
 
@@ -15,9 +15,9 @@ export function resolveSyncSelection(
   }
 
   if (only) {
-    const ids = parseSelectionAnswer(
+    const ids = parseSelection(
       only,
-      nangoSyncSpecs.map((sync) => ({ id: sync.integrationId, label: sync.label })),
+      nangoSyncSpecs.map((sync) => sync.integrationId),
     );
     return nangoSyncSpecs.filter((sync) => ids.includes(sync.integrationId));
   }

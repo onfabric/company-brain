@@ -1,10 +1,5 @@
-import {
-  BOOTSTRAPPED_CONNECTIONS,
-  NOT_FOUND_STATUS,
-  parseConnectionResponse,
-  resolveSelectedIntegrations,
-} from '../nango-resources.js';
-import type { NangoApi } from './nango-api.js';
+import { BOOTSTRAPPED_CONNECTIONS, resolveSelectedIntegrations } from './catalog.js';
+import { type NangoApi, NOT_FOUND_STATUS, parseConnectionResponse } from './nango-api.js';
 
 export type BootstrapConnectionsOptions = {
   api: NangoApi;
