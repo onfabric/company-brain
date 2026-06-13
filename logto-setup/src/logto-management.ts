@@ -1,8 +1,6 @@
-import { MANAGEMENT_API_RESOURCE, requiredEnv, requiredUrlEnv } from './env.ts';
+import { MANAGEMENT_API_RESOURCE, m2mCredentials, requiredUrlEnv } from './env.ts';
 
 const upstream = requiredUrlEnv('LOGTO_UPSTREAM_URL');
-const m2mClientId = requiredEnv('LOGTO_M2M_CLIENT_ID');
-const m2mClientSecret = requiredEnv('LOGTO_M2M_CLIENT_SECRET');
 
 const TOKEN_REFRESH_MARGIN_MS = 30_000;
 const MILLISECONDS_PER_SECOND = 1_000;
@@ -13,11 +11,15 @@ export async function managementToken(): Promise<string> {
   if (cached && cached.expiresAt > Date.now() + TOKEN_REFRESH_MARGIN_MS) {
     return cached.token;
   }
+  const creds = m2mCredentials();
+  if (!creds) {
+    throw new Error('Logto M2M credentials are not configured');
+  }
   const res = await fetch(new URL('oidc/token', upstream), {
     method: 'POST',
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
-      authorization: `Basic ${Buffer.from(`${m2mClientId}:${m2mClientSecret}`).toString('base64')}`,
+      authorization: `Basic ${Buffer.from(`${creds.clientId}:${creds.clientSecret}`).toString('base64')}`,
     },
     body: new URLSearchParams({
       grant_type: 'client_credentials',

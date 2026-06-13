@@ -24,8 +24,13 @@ NANGO_DB_PASSWORD="$(secret nango_db_password)"
 BRAIN_DB_PASSWORD="$(secret brain_db_password)"
 BRAIN_API_KEY="$(secret brain_api_key)"
 LOGTO_DB_PASSWORD="$(secret logto_db_password)"
+# Terraform seeds these as the placeholder `not-configured` until the one-time
+# Logto console bootstrap; blank them so the brain reports DCR unavailable and
+# logto-configure skips, instead of both failing the deploy with bad creds.
 LOGTO_M2M_CLIENT_ID="$(secret logto_m2m_client_id)"
 LOGTO_M2M_CLIENT_SECRET="$(secret logto_m2m_client_secret)"
+[ "$LOGTO_M2M_CLIENT_ID" = "not-configured" ] && LOGTO_M2M_CLIENT_ID=""
+[ "$LOGTO_M2M_CLIENT_SECRET" = "not-configured" ] && LOGTO_M2M_CLIENT_SECRET=""
 
 # Dozzle simple-auth users file (full users.yml, generated via `dozzle generate`),
 # mounted into the container at /data/users.yml by the prod compose override.

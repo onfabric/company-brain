@@ -15,7 +15,11 @@ async function managementToken(): Promise<string> {
   if (cached && cached.expiresAt > Date.now() + TOKEN_REFRESH_MARGIN_MS) {
     return cached.token;
   }
-  const credentials = `${env.logtoM2mClientId}:${env.logtoM2mClientSecret}`;
+  if (!env.logtoM2mCredentials) {
+    throw new Error('Logto Management API credentials are not configured');
+  }
+  const { clientId, clientSecret } = env.logtoM2mCredentials;
+  const credentials = `${clientId}:${clientSecret}`;
   const res = await fetch(new URL('oidc/token', env.logtoUpstreamUrl), {
     method: 'POST',
     headers: {

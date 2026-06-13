@@ -16,6 +16,8 @@ declare global {
 
 const DEFAULT_PORT = '3010';
 
+export type LogtoM2mCredentials = { clientId: string; clientSecret: string };
+
 type Env = {
   databaseUrl: string;
   port: number;
@@ -29,8 +31,10 @@ type Env = {
   mcpOauthJwksUrl: URL;
   mcpResource: URL;
   logtoUpstreamUrl: URL;
-  logtoM2mClientId: string;
-  logtoM2mClientSecret: string;
+  // Optional: Logto's Management API credentials come from a one-time console
+  // bootstrap, so the brain boots and serves /mcp without them — only the DCR
+  // bridge (/oidc/register) needs them, and reports null as not-configured.
+  logtoM2mCredentials: LogtoM2mCredentials | null;
 };
 
 function required(name: keyof NodeJS.ProcessEnv): string {
@@ -49,6 +53,12 @@ function optional(name: keyof NodeJS.ProcessEnv, defaultValue: string): string {
   return process.env[name] || defaultValue;
 }
 
+function logtoM2mCredentials(): LogtoM2mCredentials | null {
+  const clientId = process.env.LOGTO_M2M_CLIENT_ID;
+  const clientSecret = process.env.LOGTO_M2M_CLIENT_SECRET;
+  return clientId && clientSecret ? { clientId, clientSecret } : null;
+}
+
 function loadEnv(): Env {
   return {
     databaseUrl: required('DATABASE_URL'),
@@ -58,8 +68,7 @@ function loadEnv(): Env {
     mcpOauthJwksUrl: requiredUrl('MCP_OAUTH_JWKS_URL'),
     mcpResource: requiredUrl('MCP_RESOURCE'),
     logtoUpstreamUrl: requiredUrl('LOGTO_UPSTREAM_URL'),
-    logtoM2mClientId: required('LOGTO_M2M_CLIENT_ID'),
-    logtoM2mClientSecret: required('LOGTO_M2M_CLIENT_SECRET'),
+    logtoM2mCredentials: logtoM2mCredentials(),
   };
 }
 

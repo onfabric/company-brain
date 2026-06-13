@@ -1,4 +1,4 @@
-import { MCP_SCOPE, requiredEnv, requiredUrlEnv } from './env.ts';
+import { MCP_SCOPE, m2mCredentials, requiredUrlEnv } from './env.ts';
 import {
   findMcpScope,
   type LogtoResource,
@@ -63,6 +63,13 @@ async function ensureDevUser(): Promise<void> {
     await managementApi('POST', 'users', { username: 'dev', password });
     console.log('created dev user');
   }
+}
+
+// Skip cleanly (rather than fail the deploy) until the one-time console
+// bootstrap sets the M2M credentials; the next deploy provisions for real.
+if (!m2mCredentials()) {
+  console.log('Logto M2M credentials not configured; skipping provisioning.');
+  process.exit(0);
 }
 
 await waitForLogto();

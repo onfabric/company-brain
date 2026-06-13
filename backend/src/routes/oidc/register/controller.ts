@@ -1,5 +1,6 @@
 import { Elysia, StatusMap } from 'elysia';
 import { isAllowedRedirectUri } from '#lib/dcr-registration.ts';
+import { env } from '#lib/env.ts';
 import { PUBLIC_CORS_MACRO_NAME, publicCors } from '#lib/public-cors.ts';
 import {
   ClientRegistrationErrorSchema,
@@ -21,6 +22,12 @@ export const oidcRegisterController = new Elysia()
   .post(
     '/oidc/register',
     async ({ body, logtoDcrService, status }) => {
+      if (!env.logtoM2mCredentials) {
+        return status(StatusMap['Service Unavailable'], {
+          error: 'temporarily_unavailable',
+          error_description: 'dynamic client registration is not configured',
+        });
+      }
       if (!body.redirect_uris.every(isAllowedRedirectUri)) {
         return status(StatusMap['Bad Request'], {
           error: 'invalid_redirect_uri',
@@ -45,6 +52,7 @@ export const oidcRegisterController = new Elysia()
       response: {
         [StatusMap.Created]: ClientRegistrationResponseSchema,
         [StatusMap['Bad Request']]: ClientRegistrationErrorSchema,
+        [StatusMap['Service Unavailable']]: ClientRegistrationErrorSchema,
       },
       detail: { hide: true },
     },
