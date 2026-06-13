@@ -1,7 +1,7 @@
 import { openapi } from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
 import { apiKeySecuritySchemes } from '#lib/auth/api-key.ts';
-import { sessionSecuritySchemes } from '#lib/auth/session.ts';
+import { sessionSecuritySchemes } from '#lib/auth/better-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
 import { consentController } from '#routes/consent/controller.ts';
