@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
-import { intro, note, outro } from '@clack/prompts';
+import { styleText } from 'node:util';
+import { intro, log, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import {
   type ComposeService,
@@ -38,7 +39,7 @@ export const command = defineCommand('local doctor', {
           : 'Run `bun run company-brain local setup`.',
       },
     ];
-    note(formatChecks(configChecks), 'Config');
+    renderSection('Config', configChecks);
 
     const issues = await verifyLocalPrerequisites();
     const serviceChecks: DoctorCheck[] = [
@@ -64,7 +65,7 @@ export const command = defineCommand('local doctor', {
         detail: error instanceof Error ? error.message : String(error),
       });
     }
-    note(formatChecks(serviceChecks), 'Services');
+    renderSection('Services', serviceChecks);
 
     const endpointChecks: DoctorCheck[] = [
       {
@@ -83,7 +84,7 @@ export const command = defineCommand('local doctor', {
         detail: 'http://localhost:3010/health',
       },
     ];
-    note(formatChecks(endpointChecks), 'Endpoints');
+    renderSection('Endpoints', endpointChecks);
 
     const nangoEnv = await readNangoEnv();
     const localConfig = await readLocalConfig();
@@ -119,26 +120,38 @@ export const command = defineCommand('local doctor', {
             : 'Deploy after connecting sources, or rerun `bun run company-brain nango integrations`.',
       },
     ];
-    note(formatChecks(nangoChecks), 'Nango setup');
+    renderSection('Nango setup', nangoChecks);
 
     const failed = [...configChecks, ...serviceChecks, ...endpointChecks, ...nangoChecks].filter(
       (check) => !check.ok,
     );
-    outro(failed.length === 0 ? 'Local setup looks healthy.' : formatAttentionOutro(failed));
+    outro(
+      failed.length === 0
+        ? styleText('green', 'Local setup looks healthy.')
+        : styleText('yellow', formatAttentionOutro(failed)),
+    );
   },
 });
 
-function formatChecks(checks: DoctorCheck[]): string {
-  return checks.map(formatCheck).join('\n');
+function renderSection(title: string, checks: DoctorCheck[]): void {
+  log.info(styleText('blue', title), { spacing: 0 });
+  for (const check of checks) {
+    log.message(formatCheck(check), {
+      symbol: check.ok ? styleText('green', '◆') : styleText('yellow', '▲'),
+      spacing: 0,
+    });
+  }
 }
 
 function formatCheck(check: DoctorCheck): string {
-  const detail = check.detail ? `\n   ${indentDetail(check.detail)}` : '';
-  return `${check.ok ? 'Ready' : 'Needs attention'}: ${check.label}${detail}`;
-}
+  const color = check.ok ? 'green' : 'yellow';
+  const lines = [`${check.ok ? 'Ready' : 'Needs attention'}: ${check.label}`];
 
-function indentDetail(detail: string): string {
-  return detail.replaceAll('\n', '\n   ');
+  if (check.detail) {
+    lines.push(...check.detail.split('\n').map((line) => `   ${line}`));
+  }
+
+  return lines.map((line) => styleText(color, line)).join('\n');
 }
 
 function formatComposeSummary(services: ComposeService[], verbose: boolean): string {
