@@ -2,11 +2,10 @@ import { Elysia, StatusMap, t } from 'elysia';
 import { API_KEY_SECURITY_SCHEME, hasValidApiKey, type RequestHeaders } from '#lib/auth/api-key.ts';
 import { hasValidSession, SESSION_SECURITY_SCHEME } from '#lib/auth/session.ts';
 
-export const AuthMethod = {
-  ApiKey: 'apiKey',
-  Session: 'session',
-} as const;
-export type AuthMethod = (typeof AuthMethod)[keyof typeof AuthMethod];
+export enum AuthMethod {
+  ApiKey = 'apiKey',
+  Session = 'session',
+}
 
 export const REQUIRE_AUTH = 'requireAuth';
 
