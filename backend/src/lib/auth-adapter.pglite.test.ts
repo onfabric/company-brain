@@ -75,11 +75,15 @@ const insertSession = async () => {
   return { user, session };
 };
 
+// PGlite spins up a WASM Postgres before the migrations run; that cold start can
+// exceed bun's default 5s hook timeout on slower CI runners.
+const SETUP_TIMEOUT_MS = 30_000;
+
 beforeAll(async () => {
   db = new PGlite();
   await migrate(db);
   adapter = bunSqlAdapter(pgliteShim(db))({} as Parameters<ReturnType<typeof bunSqlAdapter>>[0]);
-});
+}, SETUP_TIMEOUT_MS);
 
 afterAll(async () => {
   await db.close();
