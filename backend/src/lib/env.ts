@@ -27,12 +27,13 @@ type Env = {
   // and the base for every discovery document. Parsed once so every derivation
   // (issuer, resource, callback) is consistently normalized.
   publicUrl: URL;
-  // The MCP resource identifier a token's `aud` is checked against, and the
-  // `resource` advertised in RFC 9728 metadata.
+  // The MCP resource identifier: the audience better-auth stamps on access
+  // tokens and the `resource` mcp-use advertises in RFC 9728 metadata.
   mcpResource: URL;
-  // The brain's own OAuth issuer (the better-auth base), compared byte-for-byte
-  // against a token's `iss` claim.
+  // The brain's own OAuth issuer (the better-auth base). mcp-use derives the
+  // provider's `authURL`/JWKS from it and verifies the token `iss` against it.
   issuer: string;
+  // Where the issuer publishes its JWKS (`<issuer>/jwks`); mcp-use fetches it.
   jwksUrl: URL;
   betterAuthSecret: string;
   googleClientId: string;

@@ -11,7 +11,7 @@ export const CONSENT_PATH = '/consent';
 export const MCP_SCOPE = 'mcp';
 export const AUTH_BASE_PATH = '/api/auth';
 
-const OAUTH_SCOPES = ['openid', 'profile', 'email', 'offline_access', MCP_SCOPE];
+export const OAUTH_SCOPES = ['openid', 'profile', 'email', 'offline_access', MCP_SCOPE];
 
 function isWorkspaceEmail(email: string): boolean {
   return email.toLowerCase().endsWith(`@${WORKSPACE_DOMAIN}`);

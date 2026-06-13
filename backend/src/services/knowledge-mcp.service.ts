@@ -1,3 +1,4 @@
+import { OAUTH_SCOPES } from '#lib/auth.ts';
 import { env } from '#lib/env.ts';
 import { createKnowledgeMcpServer, type KnowledgePageReader } from '#lib/knowledge-mcp-server.ts';
 import { Service } from '#services/service.ts';
@@ -23,7 +24,13 @@ export class KnowledgeMcpService extends Service {
 
   constructor(pages: KnowledgePageReader) {
     super();
-    this.handler = prepareHandler(createKnowledgeMcpServer(pages, env.publicUrl.origin));
+    this.handler = prepareHandler(
+      createKnowledgeMcpServer(pages, {
+        baseUrl: env.publicUrl.origin,
+        issuer: env.issuer,
+        scopes: OAUTH_SCOPES,
+      }),
+    );
   }
 
   async handleRequest(request: Request): Promise<Response> {

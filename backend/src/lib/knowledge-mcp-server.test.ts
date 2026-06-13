@@ -19,7 +19,11 @@ const pages: KnowledgePageReader = {
 
 async function connectClient(): Promise<Client> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  await createKnowledgeMcpServer(pages, 'http://localhost:3010')
+  await createKnowledgeMcpServer(pages, {
+    baseUrl: 'http://localhost:3010',
+    issuer: 'http://localhost:3010/api/auth',
+    scopes: ['openid', 'mcp'],
+  })
     .getServerForSession()
     .connect(serverTransport);
   const client = new Client({ name: 'test-client', version: '0.0.0' });

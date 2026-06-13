@@ -4,7 +4,6 @@ import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
 import { authPlugin } from '#lib/auth-session.ts';
 import { brainSessionSecuritySchemes } from '#lib/browser-session-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
-import { mcpBearerSecuritySchemes } from '#lib/mcp-oauth.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
 import { consentController } from '#routes/consent/controller.ts';
 import { dashboardController } from '#routes/dashboard/controller.ts';
@@ -25,7 +24,6 @@ import { recordsController } from '#routes/records/controller.ts';
 import { sessionsController } from '#routes/sessions/controller.ts';
 import { signInController } from '#routes/sign-in/controller.ts';
 import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
-import { wellKnownController } from '#routes/well-known/controller.ts';
 
 export function createApp() {
   return new Elysia()
@@ -69,7 +67,6 @@ export function createApp() {
             securitySchemes: {
               ...apiKeySecuritySchemes,
               ...brainSessionSecuritySchemes,
-              ...mcpBearerSecuritySchemes,
             },
           },
         },
@@ -78,7 +75,6 @@ export function createApp() {
     .use(authPlugin)
     .use(signInController)
     .use(consentController)
-    .use(wellKnownController)
     .use(dashboardController)
     .use(healthController)
     .use(peopleController)

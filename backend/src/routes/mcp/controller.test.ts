@@ -1,6 +1,4 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { StatusMap } from 'elysia';
 
 const testEnv = process.env as Record<string, string | undefined>;
@@ -51,34 +49,20 @@ function initializeRequest(headers: Record<string, string>): Request {
 }
 
 describe('mcp controller', () => {
-  it('rejects requests without an api key', async () => {
+  it('rejects unauthenticated requests', async () => {
     const res = await fetch(initializeRequest({}));
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
 
-  it('rejects requests with a wrong api key', async () => {
-    const res = await fetch(initializeRequest({ 'api-key': 'not-the-key' }));
+  it('rejects the brain api key (OAuth-only on /mcp)', async () => {
+    const res = await fetch(initializeRequest({ 'api-key': API_KEY }));
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
 
-  it('serves the MCP handshake and tool listing over streamable http', async () => {
-    const transport = new StreamableHTTPClientTransport(mcpUrl, {
-      requestInit: { headers: { 'api-key': API_KEY } },
-    });
-    const client = new Client({ name: 'test-client', version: '0.0.0' });
-    await client.connect(transport);
-    try {
-      const { tools } = await client.listTools();
-      expect(tools.map((tool) => tool.name).sort()).toEqual(['get_index_page', 'get_page']);
-    } finally {
-      await client.close();
-    }
-  });
-
-  it('responds 405 to GET and DELETE', async () => {
+  it('delegates GET and DELETE to mcp-use rather than answering 405', async () => {
     for (const method of ['GET', 'DELETE']) {
-      const res = await fetch(mcpUrl, { method, headers: { 'api-key': API_KEY } });
-      expect(res.status).toBe(StatusMap['Method Not Allowed']);
+      const res = await fetch(mcpUrl, { method });
+      expect(res.status).toBe(StatusMap.Unauthorized);
     }
   });
 });

@@ -1,4 +1,4 @@
-import { MCPServer, text } from 'mcp-use/server';
+import { MCPServer, oauthBetterAuthProvider, text } from 'mcp-use/server';
 import { z } from 'zod';
 import { AppError } from '#lib/errors.ts';
 import { createLogger } from '#lib/logger.ts';
@@ -8,6 +8,15 @@ export type KnowledgePageReader = {
   getKnowledgeHtmlPage(id: string): Promise<string>;
 };
 
+export type KnowledgeMcpServerConfig = {
+  /** Public origin the MCP endpoint and discovery documents are reachable at. */
+  baseUrl: string;
+  /** better-auth base URL whose JWKS verifies bearer tokens and whose metadata is proxied. */
+  issuer: string;
+  /** Scopes advertised in the discovery documents. */
+  scopes: string[];
+};
+
 const INSTRUCTIONS =
   'Read-only access to the company knowledge base, served as HTML pages. ' +
   'Call get_index_page first: the index links every page as /knowledge/pages/{id}. ' +
@@ -15,16 +24,19 @@ const INSTRUCTIONS =
 
 const logger = createLogger('knowledgeMcpServer');
 
-// Auth is fronted by the brain's own Elysia macro (a brain API key or a
-// better-auth bearer token), so the mcp-use server is built without its OAuth
-// provider: that provider's middleware only reads `Authorization` and cannot
-// see the brain's `Api-Key` header, which would lock out machine clients.
-export function createKnowledgeMcpServer(pages: KnowledgePageReader, baseUrl: string): MCPServer {
+// mcp-use owns the OAuth 2.1 surface for `/mcp`: bearer verification against the
+// better-auth JWKS, the 401 `WWW-Authenticate` challenge, and the RFC 8414 /
+// RFC 9728 discovery documents.
+export function createKnowledgeMcpServer(
+  pages: KnowledgePageReader,
+  config: KnowledgeMcpServerConfig,
+): MCPServer<true> {
   const server = new MCPServer({
     name: 'company-brain',
     version: '1.0.0',
     instructions: INSTRUCTIONS,
-    baseUrl,
+    baseUrl: config.baseUrl,
+    oauth: oauthBetterAuthProvider({ authURL: config.issuer, scopesSupported: config.scopes }),
   });
 
   server.tool(
