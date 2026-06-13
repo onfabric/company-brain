@@ -42,6 +42,16 @@ class MockPeopleRepository extends PeopleRepositoryContract {
     return Promise.resolve(this.identities.filter((identity) => ids.includes(identity.id)));
   }
 
+  findByNameOrEmail(values: string[]): Promise<PersonIdentity[]> {
+    return Promise.resolve(
+      this.identities.filter(
+        (identity) =>
+          (identity.name !== null && values.includes(identity.name)) ||
+          (identity.email !== null && values.includes(identity.email)),
+      ),
+    );
+  }
+
   updatePerson(id: string, updates: PersonUpdate): Promise<PersonRow | null> {
     this.updateCalls.push({ id, updates });
     return Promise.resolve(this.person);
@@ -124,12 +134,18 @@ describe('PeopleService.listPeople', () => {
 
     await service.listPeople({
       isExternal: true,
+      hasReadableIdentity: true,
       sortBy: 'records_count',
       sortOrder: 'desc',
     });
 
     expect(repo.listCalls).toEqual([
-      { isExternal: true, sortBy: 'records_count', sortOrder: 'desc' },
+      {
+        isExternal: true,
+        hasReadableIdentity: true,
+        sortBy: 'records_count',
+        sortOrder: 'desc',
+      },
     ]);
   });
 });
