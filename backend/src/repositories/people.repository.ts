@@ -32,6 +32,7 @@ const DEFAULT_PERSON_SORT_ORDER = 'asc' satisfies PersonSortOrder;
 
 export type PersonFilters = {
   isExternal?: People['is_external'];
+  // Used by MCP discovery to hide people that cannot be selected by readable name/email filters.
   hasReadableIdentity?: boolean;
   sortBy?: PersonSortField;
   sortOrder?: PersonSortOrder;
