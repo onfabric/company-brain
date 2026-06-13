@@ -24,11 +24,12 @@ const recordsService = new RecordsService(recordsRepo);
 const peopleService = new PeopleService(peopleRepo);
 const knowledgeTypesService = new KnowledgeTypesService(knowledgeTypesRepo);
 const knowledgeService = new KnowledgeService(knowledgeRepo);
-export const knowledgeMcpService = new KnowledgeMcpService(
-  knowledgeService,
-  recordsService,
-  peopleService,
-);
+export const knowledgeMcpService = new KnowledgeMcpService({
+  knowledge: knowledgeService,
+  records: recordsService,
+  people: peopleService,
+  knowledgeTypes: knowledgeTypesService,
+});
 
 export function loggerPlugin(name: string) {
   const logger = createLogger(name);

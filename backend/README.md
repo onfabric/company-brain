@@ -16,20 +16,36 @@ bun run check:types
 ## MCP
 
 `POST /mcp` is a stateless [Streamable HTTP MCP](https://modelcontextprotocol.io)
-endpoint exposing the knowledge pages to agents, gated by the same `api-key`
-header as the REST API. Tools: `get_index_page` (the entry point — links every
-page) and `get_page` (follows a `/knowledge/pages/{id}` link). Example client
-configuration:
+endpoint exposing knowledge pages, structured knowledge CRUD, knowledge type
+management, and source-record discovery to agents. It is OAuth-gated; the REST
+`api-key` header is not accepted on `/mcp`.
+
+Discovery tools:
+
+- `get_index_page`, `get_page` — read navigable HTML knowledge pages.
+- `get_knowledge_types` — find exact type names for knowledge tools.
+- `get_people` — find exact person names or emails for knowledge tools and
+  readable people filters for records.
+- `get_data_sources`, `get_records` — discover source records.
+
+Knowledge tools:
+
+- `search_knowledge`, `get_knowledge`
+- `create_knowledge`, `update_knowledge`, `delete_knowledge`
+- `create_knowledge_type`, `update_knowledge_type`
+
+Knowledge tools use exact `knowledge_type` names, exact `people` names or
+emails, and `record_ids`; discover those values before writing. Paginated MCP
+tools cap `limit` at 50.
+
+Example client configuration:
 
 ```json
 {
   "mcpServers": {
     "company-brain": {
       "type": "http",
-      "url": "https://brain-dev.onfabric.io/mcp",
-      "headers": {
-        "api-key": "<BRAIN_API_KEY>"
-      }
+      "url": "https://brain-dev.onfabric.io/mcp"
     }
   }
 }
