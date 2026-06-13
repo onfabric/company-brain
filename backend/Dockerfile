@@ -3,8 +3,8 @@
 # Build context must be the monorepo root. Build from the monorepo root with:
 #   docker build -f backend/Dockerfile -t company-brain/brain .
 
-# Bun image pinned to patch for reproducible builds; keep the minor in sync with
-# .bun-version and mise.toml (and logto-setup/Dockerfile).
+# Keep the bun version in sync with .bun-version, mise.toml, and
+# logto-setup/Dockerfile.
 FROM oven/bun:1.3.14-slim AS base
 WORKDIR /monorepo
 
