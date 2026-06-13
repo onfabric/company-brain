@@ -42,32 +42,20 @@ resource "aws_ssm_parameter" "better_auth_secret" {
   value = random_password.better_auth_secret.result
 }
 
-# Google OAuth client credentials for the brain's in-process better-auth server.
-# Can't be generated here: create the OAuth client in the Google Cloud console
-# (authorized redirect URI https://<brain-hostname>/api/auth/callback/google),
-# then fill both slots with:
-#   aws ssm put-parameter --name <prefix>/google_client_id --type SecureString \
-#     --value "<client-id>" --overwrite
-#   aws ssm put-parameter --name <prefix>/google_client_secret --type SecureString \
-#     --value "<client-secret>" --overwrite
+# Google OAuth client for the brain's in-process better-auth server. Created
+# once in the Google Cloud console (authorized redirect URI
+# https://<brain-hostname>/api/auth/callback/google) and supplied by CD from the
+# GitHub Actions variable/secret, so the deploy stays fully reproducible.
 resource "aws_ssm_parameter" "google_client_id" {
   name  = "${var.ssm_secret_prefix}/google_client_id"
   type  = "SecureString"
-  value = "unset"
-
-  lifecycle {
-    ignore_changes = [value]
-  }
+  value = var.google_client_id
 }
 
 resource "aws_ssm_parameter" "google_client_secret" {
   name  = "${var.ssm_secret_prefix}/google_client_secret"
   type  = "SecureString"
-  value = "unset"
-
-  lifecycle {
-    ignore_changes = [value]
-  }
+  value = var.google_client_secret
 }
 
 # Dozzle simple-auth users.yml. Can't be generated here (it holds a bcrypt

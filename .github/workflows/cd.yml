@@ -54,6 +54,9 @@ jobs:
 
       - run: terraform init -input=false
       - run: terraform plan -input=false -var-file=dev.tfvars -out=tfplan
+        env:
+          TF_VAR_google_client_id: ${{ vars.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_ID }}
+          TF_VAR_google_client_secret: ${{ secrets.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_SECRET }}
 
       # Auto-applying a plan that destroys or replaces resources already
       # terminated the instance once (a floating-AMI bump on 2026-06-10).
