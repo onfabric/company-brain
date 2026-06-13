@@ -1,6 +1,9 @@
 -- Generated verbatim with `bunx @better-auth/cli generate`. SET LOCAL scopes the
 -- unqualified CLI output to the `auth` schema (created in 0011) so this file
 -- stays a clean copy-paste on regeneration — do not hand-edit the DDL below.
+-- SET LOCAL is transaction-scoped (the runner wraps each migration in its own
+-- transaction), so it resets at commit and does NOT carry into later migrations;
+-- a future migration touching `auth` must qualify or set its own search_path.
 SET LOCAL search_path TO auth;
 
 create table "user" ("id" text not null primary key, "name" text not null, "email" text not null unique, "emailVerified" boolean not null, "image" text, "createdAt" timestamptz default CURRENT_TIMESTAMP not null, "updatedAt" timestamptz default CURRENT_TIMESTAMP not null);
