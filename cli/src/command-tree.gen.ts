@@ -6,9 +6,6 @@ import type { command as localDoctorCmd } from './commands/local/doctor.ts';
 import type { command as localSetupCmd } from './commands/local/setup.ts';
 import type { command as nangoIntegrationsCmd } from './commands/nango/integrations.ts';
 import type { command as nangoSyncsCmd } from './commands/nango/syncs.ts';
-import type { command as setupIntegrationsCmd } from './commands/setup/integrations.ts';
-import type { command as setupLocalCmd } from './commands/setup/local.ts';
-import type { command as setupSyncsCmd } from './commands/setup/syncs.ts';
 
 declare module '@parshjs/core' {
   interface CommandRegistry {
@@ -25,18 +22,6 @@ declare module '@parshjs/core' {
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
     'nango syncs': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'setup integrations': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'setup local': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'setup syncs': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -90,40 +75,6 @@ export const commandTree: RuntimeNode = {
           command: {
             path: 'nango syncs',
             load: () => import('./commands/nango/syncs.ts').then((m) => m.command),
-          },
-          literalChildren: {},
-          paramChild: null,
-        },
-      },
-      paramChild: null,
-    },
-    setup: {
-      segment: { kind: 'literal', value: 'setup' },
-      command: null,
-      literalChildren: {
-        integrations: {
-          segment: { kind: 'literal', value: 'integrations' },
-          command: {
-            path: 'setup integrations',
-            load: () => import('./commands/setup/integrations.ts').then((m) => m.command),
-          },
-          literalChildren: {},
-          paramChild: null,
-        },
-        local: {
-          segment: { kind: 'literal', value: 'local' },
-          command: {
-            path: 'setup local',
-            load: () => import('./commands/setup/local.ts').then((m) => m.command),
-          },
-          literalChildren: {},
-          paramChild: null,
-        },
-        syncs: {
-          segment: { kind: 'literal', value: 'syncs' },
-          command: {
-            path: 'setup syncs',
-            load: () => import('./commands/setup/syncs.ts').then((m) => m.command),
           },
           literalChildren: {},
           paramChild: null,

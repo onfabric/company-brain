@@ -56,9 +56,8 @@ For non-interactive use, pass the integrations explicitly:
 bun run company-brain nango integrations --only notion,slack
 ```
 
-This step creates the selected integrations, waits for you to create the OAuth
-connections, then deploys syncs for those same integrations. Use `--skip-syncs`
-if you only want to create integrations.
+This step only creates the selected integrations. Syncs are deployed separately
+after you create the OAuth connections.
 
 ## Connect Sources
 
@@ -78,8 +77,8 @@ in Nango yourself, then deploy that sync explicitly.
 
 ## Deploy Syncs
 
-If you skipped sync deployment, or if a connection was not ready the first time,
-deploy syncs for every integration you installed:
+After you create the OAuth connections in Nango, deploy syncs for every
+integration you installed:
 
 ```bash
 bun run company-brain nango syncs
@@ -91,10 +90,8 @@ For non-interactive use or manual overrides:
 bun run company-brain nango syncs --only notion,slack
 ```
 
-`--only` overrides the installed-integration list, accepts numbers such as
-`--only 1,2`, and `--all` deploys every sync, including manually managed syncs.
-You can also make `nango integrations` deploy syncs without prompting by passing
-`--deploy-syncs` after connections already exist.
+`--only` overrides the installed-integration list and accepts numbers such as
+`--only 1,2`. `--all` deploys every sync, including manually managed syncs.
 
 Available sync integrations are:
 

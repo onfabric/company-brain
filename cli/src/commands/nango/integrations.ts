@@ -1,5 +1,4 @@
 import {
-  confirm,
   intro,
   isCancel,
   multiselect,
@@ -15,7 +14,6 @@ import { readLocalConfig, writeLocalConfig } from '../../lib/local-config.ts';
 import { bootstrapNangoIntegrations, nangoIntegrationSpecs } from '../../lib/nango.ts';
 import { ensureNangoEnvBase, readNangoEnv, upsertNangoEnv } from '../../lib/nango-env.ts';
 import { parseSelectionAnswer } from '../../lib/selection.ts';
-import { deploySelectedSyncs, syncsForIntegrationIds } from '../../lib/sync-deployment.ts';
 
 type IntegrationSpec = (typeof nangoIntegrationSpecs)[number];
 
@@ -39,25 +37,11 @@ export const command = defineCommand('nango integrations', {
       schema: z.boolean().optional(),
       description: 'Install every Company Brain integration.',
     },
-    deploySyncs: {
-      schema: z.boolean().optional(),
-      aliases: ['deploy-syncs'],
-      description: 'Deploy syncs for the selected integrations after bootstrapping them.',
-    },
-    skipSyncs: {
-      schema: z.boolean().optional(),
-      aliases: ['skip-syncs'],
-      description: 'Only create integrations; do not prompt to deploy syncs.',
-    },
   },
   handler: async ({ options, rootOptions, print }) => {
     intro('Company Brain Nango integrations');
     await ensureNangoEnvBase();
     const nonInteractive = isNonInteractive(rootOptions.nonInteractive);
-
-    if (options.deploySyncs && options.skipSyncs) {
-      throw new Error('Use either --deploy-syncs or --skip-syncs, not both.');
-    }
 
     const selected = await resolveSelection(
       options.only,
@@ -75,7 +59,7 @@ export const command = defineCommand('nango integrations', {
         'Use this callback URL for local OAuth apps:',
         'http://localhost:3003/oauth/callback',
         '',
-        'The script creates only the integrations you select, then can deploy syncs for those integrations after connections are ready.',
+        'This creates only the integrations you select. Create OAuth connections next, then deploy syncs.',
       ].join('\n'),
       'OAuth setup',
     );
@@ -105,14 +89,20 @@ export const command = defineCommand('nango integrations', {
     await writeLocalConfig({ ...config, installedIntegrationIds: integrationIds });
 
     print.success('Selected local Nango integrations are configured.');
-    await maybeDeploySyncs({
-      integrationIds,
-      skipSyncs: Boolean(options.skipSyncs),
-      deploySyncs: Boolean(options.deploySyncs),
-      nonInteractive,
-      verbose: Boolean(rootOptions.verbose),
-      print,
-    });
+    note(
+      [
+        'Open the Nango dashboard and create OAuth connections for the providers you want now:',
+        'http://localhost:3003',
+        '',
+        'Suggested connection IDs:',
+        ...selectedConnectionHints(integrationIds),
+        '',
+        'After the connections are ready, run:',
+        `bun run company-brain nango syncs --only ${integrationIds.join(',')}`,
+      ].join('\n'),
+      'Next',
+    );
+    outro('Integrations are ready.');
   },
 });
 
@@ -282,82 +272,4 @@ function oauthConnectionHints(integrationIds: string[]): string[] {
   return connectionHints.flatMap(([integrationId, hint]) =>
     selectedIds.has(integrationId) ? [hint] : [],
   );
-}
-
-async function maybeDeploySyncs({
-  integrationIds,
-  skipSyncs,
-  deploySyncs,
-  nonInteractive,
-  verbose,
-  print,
-}: {
-  integrationIds: string[];
-  skipSyncs: boolean;
-  deploySyncs: boolean;
-  nonInteractive: boolean;
-  verbose: boolean;
-  print: { success: (message: string) => void };
-}): Promise<void> {
-  const connectionHints = oauthConnectionHints(integrationIds);
-  const syncs = syncsForIntegrationIds(integrationIds);
-  const command = `bun run company-brain nango syncs --only ${integrationIds.join(',')}`;
-
-  note(
-    [
-      'Open the Nango dashboard and create OAuth connections for the providers you want now:',
-      'http://localhost:3003',
-      '',
-      'Suggested connection IDs:',
-      ...selectedConnectionHints(integrationIds),
-    ].join('\n'),
-    'Connection setup',
-  );
-
-  if (syncs.length === 0) {
-    outro('Integrations are ready.');
-    return;
-  }
-
-  if (skipSyncs || (nonInteractive && !deploySyncs)) {
-    note(['When connections are ready, run:', command].join('\n'), 'Deploy syncs');
-    outro('Integrations are ready.');
-    return;
-  }
-
-  const shouldDeploy = deploySyncs || connectionHints.length === 0 || (await confirmSyncDeploy());
-  if (!shouldDeploy) {
-    note(['When connections are ready, run:', command].join('\n'), 'Deploy syncs');
-    outro('Integrations are ready.');
-    return;
-  }
-
-  note(
-    syncs.map((sync) => sync.label).join('\n'),
-    'Company Brain will ingest data from these syncs',
-  );
-
-  const deployedIntegrationIds = await deploySelectedSyncs(syncs, verbose);
-  const config = await readLocalConfig();
-  await writeLocalConfig({
-    ...config,
-    installedIntegrationIds: integrationIds,
-    selectedIntegrationIds: deployedIntegrationIds,
-  });
-
-  print.success('Selected syncs are deployed.');
-  outro('Company Brain ingestion is ready.');
-}
-
-async function confirmSyncDeploy(): Promise<boolean> {
-  const answer = await confirm({
-    message: 'Have you created the Nango connections and want to deploy syncs now?',
-    initialValue: true,
-  });
-
-  if (isCancel(answer)) {
-    throw new Error('Sync deployment cancelled.');
-  }
-
-  return answer;
 }

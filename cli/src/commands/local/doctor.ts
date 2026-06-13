@@ -117,7 +117,7 @@ export const command = defineCommand('local doctor', {
         detail:
           localConfig.selectedIntegrationIds.length > 0
             ? localConfig.selectedIntegrationIds.join(', ')
-            : 'Deploy after connecting sources, or rerun `bun run company-brain nango integrations`.',
+            : 'Run `bun run company-brain nango syncs` after connecting sources.',
       },
     ];
     renderSection('Nango setup', nangoChecks);
