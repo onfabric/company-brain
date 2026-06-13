@@ -1,4 +1,4 @@
-import { MCPServer, oauthBetterAuthProvider, text } from 'mcp-use/server';
+import { error, MCPServer, oauthBetterAuthProvider, text } from 'mcp-use/server';
 import { z } from 'zod';
 import { AppError } from '#lib/errors.ts';
 import { createLogger } from '#lib/logger.ts';
@@ -77,14 +77,11 @@ export function createKnowledgeMcpServer(
 async function readPage(read: () => Promise<string>) {
   try {
     return text(await read());
-  } catch (error) {
-    if (error instanceof AppError) {
-      return { content: [{ type: 'text' as const, text: error.message }], isError: true };
+  } catch (err) {
+    if (err instanceof AppError) {
+      return error(err.message);
     }
-    logger.error('failed to read knowledge page', error);
-    return {
-      content: [{ type: 'text' as const, text: 'Failed to read the knowledge page' }],
-      isError: true,
-    };
+    logger.error('failed to read knowledge page', err);
+    return error('Failed to read the knowledge page');
   }
 }
