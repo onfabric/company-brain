@@ -52,9 +52,10 @@ export function signInHTML(callbackURL: string): string {
   );
 }
 
-// The consent endpoint takes a JSON body with a boolean `accept`, so accept/deny
-// post via fetch and follow the returned `redirectURI` back to the client.
-export function consentHTML(clientName: string, scopes: string[], consentCode: string): string {
+// The consent endpoint verifies the signed authorize request the page was
+// redirected with, so accept/deny replay this page's full query string as
+// `oauth_query` and follow the returned `redirect_uri` back to the client.
+export function consentHTML(clientName: string, scopes: string[]): string {
   const scopeItems = scopes.map((scope) => `<li>${escapeHtml(scope)}</li>`).join('');
   return shell(
     'Authorize access',
@@ -65,15 +66,14 @@ export function consentHTML(clientName: string, scopes: string[], consentCode: s
       <button id="allow" class="primary">Allow</button>
     </div>
     <script>
-      const code = ${JSON.stringify(consentCode)};
       async function consent(accept) {
         const res = await fetch('/api/auth/oauth2/consent', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ accept, consent_code: code }),
+          body: JSON.stringify({ accept, oauth_query: window.location.search.replace(/^\\?/, '') }),
         });
         const data = await res.json().catch(() => ({}));
-        if (data.redirectURI) { window.location.href = data.redirectURI; }
+        if (data.redirect_uri) { window.location.href = data.redirect_uri; }
       }
       document.getElementById('allow').addEventListener('click', () => consent(true));
       document.getElementById('deny').addEventListener('click', () => consent(false));
