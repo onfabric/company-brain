@@ -33,12 +33,19 @@ export const authPlugin = new Elysia({ name: 'auth' }).macro({
       [StatusMap.Unauthorized]: t.Object({ error: t.String() }),
     },
     async beforeHandle({ headers, request, status }) {
-      for (const method of methods) {
-        if (await VERIFY[method]({ headers, request })) {
-          return;
-        }
+      if (!(await isAuthorized(methods, { headers, request }))) {
+        return status(StatusMap.Unauthorized, { error: 'Unauthorized' });
       }
-      return status(StatusMap.Unauthorized, { error: 'Unauthorized' });
     },
   }),
 });
+
+async function isAuthorized(methods: AuthMethod[], ctx: VerifierContext): Promise<boolean> {
+  for (const method of methods) {
+    const verify = VERIFY[method];
+    if (await verify(ctx)) {
+      return true;
+    }
+  }
+  return false;
+}
