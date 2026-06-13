@@ -2,6 +2,7 @@ import { oauthProvider } from '@better-auth/oauth-provider';
 import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
 import { jwt } from 'better-auth/plugins';
+import { StatusMap } from 'elysia';
 import { sql } from '#db/client.ts';
 import { bunSqlAdapter } from '#lib/auth-adapter.ts';
 import { env } from '#lib/env.ts';
@@ -24,16 +25,6 @@ export const auth = betterAuth({
   baseURL: env.publicUrl.href,
   basePath: AUTH_BASE_PATH,
   secret: env.betterAuthSecret,
-  // The handler is mounted inside mcp-use's Hono app, so better-auth errors never
-  // reach the brain's Elysia error handler; surface them here for observability.
-  onAPIError: {
-    onError(error) {
-      const { status, body } = error as { status?: number; body?: Record<string, unknown> };
-      logger.error(
-        `api error ${status ?? ''} ${body?.error ?? ''}: ${body?.error_description ?? error}`,
-      );
-    },
-  },
   // better-auth runs on the same Bun.sql client as the rest of the brain, via a
   // custom adapter that targets its own `auth` schema (migration 0011).
   database: bunSqlAdapter(sql),
@@ -81,3 +72,18 @@ export const auth = betterAuth({
     }),
   ],
 });
+
+// The OAuth plugin serialises errors (e.g. token-exchange failures) into 4xx JSON
+// responses instead of routing them through `onAPIError`, and the handler is
+// mounted inside mcp-use's Hono app, bypassing Elysia's error handler — so log the
+// `{ error, error_description }` body of any failed auth response for observability.
+export async function handleAuthRequest(request: Request): Promise<Response> {
+  const response = await auth.handler(request);
+  if (response.status >= StatusMap['Bad Request']) {
+    const { pathname } = new URL(request.url);
+    logger.error(
+      `${request.method} ${pathname} ${response.status}: ${await response.clone().text()}`,
+    );
+  }
+  return response;
+}
