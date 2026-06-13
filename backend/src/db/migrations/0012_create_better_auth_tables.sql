@@ -1,9 +1,9 @@
--- Generated with `bunx @better-auth/cli generate` and adapted to the `auth`
--- schema: better-auth owns and manages these tables, so they live in their own
--- schema rather than alongside the app-owned `brain.*` tables.
-CREATE SCHEMA IF NOT EXISTS auth;
+-- Generated verbatim with `bunx @better-auth/cli generate`. SET LOCAL scopes the
+-- unqualified CLI output to the `auth` schema (created in 0011) so this file
+-- stays a clean copy-paste on regeneration — do not hand-edit the DDL below.
+SET LOCAL search_path TO auth;
 
-CREATE TABLE auth."user" (
+CREATE TABLE "user" (
   "id" text NOT NULL PRIMARY KEY,
   "name" text NOT NULL,
   "email" text NOT NULL UNIQUE,
@@ -13,7 +13,7 @@ CREATE TABLE auth."user" (
   "updatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE auth."session" (
+CREATE TABLE "session" (
   "id" text NOT NULL PRIMARY KEY,
   "expiresAt" timestamptz NOT NULL,
   "token" text NOT NULL UNIQUE,
@@ -21,14 +21,14 @@ CREATE TABLE auth."session" (
   "updatedAt" timestamptz NOT NULL,
   "ipAddress" text,
   "userAgent" text,
-  "userId" text NOT NULL REFERENCES auth."user" ("id") ON DELETE CASCADE
+  "userId" text NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
 );
 
-CREATE TABLE auth."account" (
+CREATE TABLE "account" (
   "id" text NOT NULL PRIMARY KEY,
   "accountId" text NOT NULL,
   "providerId" text NOT NULL,
-  "userId" text NOT NULL REFERENCES auth."user" ("id") ON DELETE CASCADE,
+  "userId" text NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
   "accessToken" text,
   "refreshToken" text,
   "idToken" text,
@@ -40,7 +40,7 @@ CREATE TABLE auth."account" (
   "updatedAt" timestamptz NOT NULL
 );
 
-CREATE TABLE auth."verification" (
+CREATE TABLE "verification" (
   "id" text NOT NULL PRIMARY KEY,
   "identifier" text NOT NULL,
   "value" text NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE auth."verification" (
   "updatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE auth."jwks" (
+CREATE TABLE "jwks" (
   "id" text NOT NULL PRIMARY KEY,
   "publicKey" text NOT NULL,
   "privateKey" text NOT NULL,
@@ -57,7 +57,7 @@ CREATE TABLE auth."jwks" (
   "expiresAt" timestamptz
 );
 
-CREATE TABLE auth."oauthApplication" (
+CREATE TABLE "oauthApplication" (
   "id" text NOT NULL PRIMARY KEY,
   "name" text NOT NULL,
   "icon" text,
@@ -67,39 +67,39 @@ CREATE TABLE auth."oauthApplication" (
   "redirectUrls" text NOT NULL,
   "type" text NOT NULL,
   "disabled" boolean,
-  "userId" text REFERENCES auth."user" ("id") ON DELETE CASCADE,
+  "userId" text REFERENCES "user" ("id") ON DELETE CASCADE,
   "createdAt" timestamptz NOT NULL,
   "updatedAt" timestamptz NOT NULL
 );
 
-CREATE TABLE auth."oauthAccessToken" (
+CREATE TABLE "oauthAccessToken" (
   "id" text NOT NULL PRIMARY KEY,
   "accessToken" text NOT NULL UNIQUE,
   "refreshToken" text NOT NULL UNIQUE,
   "accessTokenExpiresAt" timestamptz NOT NULL,
   "refreshTokenExpiresAt" timestamptz NOT NULL,
-  "clientId" text NOT NULL REFERENCES auth."oauthApplication" ("clientId") ON DELETE CASCADE,
-  "userId" text REFERENCES auth."user" ("id") ON DELETE CASCADE,
+  "clientId" text NOT NULL REFERENCES "oauthApplication" ("clientId") ON DELETE CASCADE,
+  "userId" text REFERENCES "user" ("id") ON DELETE CASCADE,
   "scopes" text NOT NULL,
   "createdAt" timestamptz NOT NULL,
   "updatedAt" timestamptz NOT NULL
 );
 
-CREATE TABLE auth."oauthConsent" (
+CREATE TABLE "oauthConsent" (
   "id" text NOT NULL PRIMARY KEY,
-  "clientId" text NOT NULL REFERENCES auth."oauthApplication" ("clientId") ON DELETE CASCADE,
-  "userId" text NOT NULL REFERENCES auth."user" ("id") ON DELETE CASCADE,
+  "clientId" text NOT NULL REFERENCES "oauthApplication" ("clientId") ON DELETE CASCADE,
+  "userId" text NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
   "scopes" text NOT NULL,
   "consentGiven" boolean NOT NULL,
   "createdAt" timestamptz NOT NULL,
   "updatedAt" timestamptz NOT NULL
 );
 
-CREATE INDEX "session_userId_idx" ON auth."session" ("userId");
-CREATE INDEX "account_userId_idx" ON auth."account" ("userId");
-CREATE INDEX "verification_identifier_idx" ON auth."verification" ("identifier");
-CREATE INDEX "oauthApplication_userId_idx" ON auth."oauthApplication" ("userId");
-CREATE INDEX "oauthAccessToken_clientId_idx" ON auth."oauthAccessToken" ("clientId");
-CREATE INDEX "oauthAccessToken_userId_idx" ON auth."oauthAccessToken" ("userId");
-CREATE INDEX "oauthConsent_clientId_idx" ON auth."oauthConsent" ("clientId");
-CREATE INDEX "oauthConsent_userId_idx" ON auth."oauthConsent" ("userId");
+CREATE INDEX "session_userId_idx" ON "session" ("userId");
+CREATE INDEX "account_userId_idx" ON "account" ("userId");
+CREATE INDEX "verification_identifier_idx" ON "verification" ("identifier");
+CREATE INDEX "oauthApplication_userId_idx" ON "oauthApplication" ("userId");
+CREATE INDEX "oauthAccessToken_clientId_idx" ON "oauthAccessToken" ("clientId");
+CREATE INDEX "oauthAccessToken_userId_idx" ON "oauthAccessToken" ("userId");
+CREATE INDEX "oauthConsent_clientId_idx" ON "oauthConsent" ("clientId");
+CREATE INDEX "oauthConsent_userId_idx" ON "oauthConsent" ("userId");
