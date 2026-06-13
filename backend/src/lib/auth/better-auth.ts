@@ -4,7 +4,7 @@ import { APIError } from 'better-auth/api';
 import { jwt } from 'better-auth/plugins';
 import { StatusMap } from 'elysia';
 import { sql } from '#db/client.ts';
-import { bunSqlAdapter } from '#lib/auth-adapter.ts';
+import { bunSqlAdapter } from '#lib/auth/adapter.ts';
 import { env } from '#lib/env.ts';
 import { createLogger } from '#lib/logger.ts';
 

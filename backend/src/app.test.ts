@@ -74,7 +74,7 @@ describe('api key auth', () => {
 
   it('lets a protected route past auth with a valid api key', async () => {
     const { createApp } = await import('#app.ts');
-    const { API_KEY_HEADER } = await import('#lib/api-key-auth.ts');
+    const { API_KEY_HEADER } = await import('#lib/auth/api-key.ts');
     const res = await createApp().handle(
       new Request('http://localhost/people', {
         headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
@@ -85,7 +85,7 @@ describe('api key auth', () => {
 
   it('lets a knowledge page past auth with a valid api key', async () => {
     const { createApp } = await import('#app.ts');
-    const { API_KEY_HEADER } = await import('#lib/api-key-auth.ts');
+    const { API_KEY_HEADER } = await import('#lib/auth/api-key.ts');
     const res = await createApp().handle(
       new Request('http://localhost/knowledge/pages/index', {
         headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },

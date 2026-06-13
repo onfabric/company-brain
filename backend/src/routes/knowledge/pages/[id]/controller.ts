@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth-macro.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth/plugin.ts';
 import { KNOWLEDGE_HTML_HEADERS } from '#lib/knowledge-html.ts';
 import { KnowledgeParamsSchema } from '#routes/knowledge/[id]/model.ts';
 import { KnowledgeHtmlPageResponseSchema } from '#routes/knowledge/pages/model.ts';

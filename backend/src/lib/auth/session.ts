@@ -1,5 +1,5 @@
 import type { OpenAPIV3 } from 'openapi-types';
-import { auth } from '#lib/auth.ts';
+import { auth } from '#lib/auth/better-auth.ts';
 
 export const SESSION_SECURITY_SCHEME = 'betterAuthSession';
 

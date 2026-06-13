@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth-macro.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth/plugin.ts';
 import { RecordParamsSchema, RecordResponseSchema } from '#routes/records/[id]/model.ts';
 import { loggerPlugin, RecordsServicePlugin } from '#services/plugins.ts';
 

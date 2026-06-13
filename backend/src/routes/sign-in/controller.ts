@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { signInHTML } from '#lib/oauth-pages.ts';
+import { signInHTML } from '#lib/auth/oauth-pages.ts';
 
 const DEFAULT_CALLBACK_URL = '/dashboard';
 

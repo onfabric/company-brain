@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
-import { auth } from '#lib/auth.ts';
-import { consentHTML } from '#lib/oauth-pages.ts';
+import { auth } from '#lib/auth/better-auth.ts';
+import { consentHTML } from '#lib/auth/oauth-pages.ts';
 import { ConsentQuerySchema } from '#routes/consent/model.ts';
 
 // The consent redirect only carries the client id, so resolve the registered

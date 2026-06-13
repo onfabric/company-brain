@@ -1,6 +1,6 @@
 import { Elysia, StatusMap, t } from 'elysia';
-import { API_KEY_SECURITY_SCHEME, hasValidApiKey, type RequestHeaders } from '#lib/api-key-auth.ts';
-import { hasValidSession, SESSION_SECURITY_SCHEME } from '#lib/session-auth.ts';
+import { API_KEY_SECURITY_SCHEME, hasValidApiKey, type RequestHeaders } from '#lib/auth/api-key.ts';
+import { hasValidSession, SESSION_SECURITY_SCHEME } from '#lib/auth/session.ts';
 
 export const AuthMethod = {
   ApiKey: 'apiKey',

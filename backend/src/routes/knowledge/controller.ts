@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth-macro.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth/plugin.ts';
 import {
   CreateKnowledgeBodySchema,
   KnowledgeQuerySchema,
