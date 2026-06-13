@@ -32,6 +32,8 @@ const DEFAULT_PERSON_SORT_ORDER = 'asc' satisfies PersonSortOrder;
 
 export type PersonFilters = {
   isExternal?: People['is_external'];
+  // Used by MCP discovery to hide people that cannot be selected by readable name/email filters.
+  hasReadableIdentity?: boolean;
   sortBy?: PersonSortField;
   sortOrder?: PersonSortOrder;
   query?: string;
@@ -49,6 +51,7 @@ export abstract class PeopleRepositoryContract {
   abstract countPeople(filters?: PersonFilters): Promise<number>;
   abstract getPerson(id: People['id']): Promise<PersonRow | null>;
   abstract findByIds(ids: People['id'][]): Promise<PersonIdentity[]>;
+  abstract findByNameOrEmail(values: string[]): Promise<PersonIdentity[]>;
   abstract updatePerson(id: People['id'], updates: PersonUpdate): Promise<PersonRow | null>;
   abstract merge(fromId: People['id'], intoId: People['id']): Promise<MergeCounts>;
 }
@@ -57,6 +60,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
   listPeople(filters: PersonFilters = {}): Promise<PersonRow[]> {
     return this.selectPeople({
       isExternal: filters.isExternal,
+      hasReadableIdentity: filters.hasReadableIdentity,
       sortBy: filters.sortBy,
       sortOrder: filters.sortOrder,
       query: filters.query,
@@ -67,7 +71,11 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
 
   async countPeople(filters: PersonFilters = {}): Promise<number> {
     const where = this.whereClause(
-      this.filterConditions({ isExternal: filters.isExternal, query: filters.query }),
+      this.filterConditions({
+        isExternal: filters.isExternal,
+        hasReadableIdentity: filters.hasReadableIdentity,
+        query: filters.query,
+      }),
     );
     const [row] = await this.sql<{ total: number }[]>`
       SELECT COUNT(*)::int AS total FROM brain.people p ${where}
@@ -88,6 +96,22 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
       SELECT id, name, email
       FROM brain.people
       WHERE id IN ${this.sql(ids)}
+    `;
+  }
+
+  findByNameOrEmail(values: string[]): Promise<PersonIdentity[]> {
+    const normalized = [...new Set(values.map((value) => value.trim().toLowerCase()))].filter(
+      (value) => value.length > 0,
+    );
+    if (normalized.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.sql<PersonIdentity[]>`
+      SELECT id, name, email
+      FROM brain.people
+      WHERE (name IS NOT NULL OR email IS NOT NULL)
+        AND (lower(name) IN ${this.sql(normalized)} OR lower(email) IN ${this.sql(normalized)})
+      ORDER BY name ASC NULLS LAST, email ASC NULLS LAST, id ASC
     `;
   }
 
@@ -141,14 +165,19 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
   // separately by selectPeople since it is only used for single-person lookups.
   private filterConditions({
     isExternal,
+    hasReadableIdentity,
     query,
   }: {
     isExternal?: People['is_external'];
+    hasReadableIdentity?: boolean;
     query?: string;
   }): SqlFragment[] {
     const conditions: SqlFragment[] = [];
     if (isExternal !== undefined) {
       conditions.push(this.sql`p.is_external = ${isExternal}`);
+    }
+    if (hasReadableIdentity) {
+      conditions.push(this.sql`(p.name IS NOT NULL OR p.email IS NOT NULL)`);
     }
     const trimmedQuery = query?.trim();
     if (trimmedQuery) {
@@ -178,6 +207,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
   private selectPeople({
     id,
     isExternal,
+    hasReadableIdentity,
     sortBy,
     sortOrder,
     query,
@@ -186,6 +216,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
   }: {
     id?: People['id'];
     isExternal?: People['is_external'];
+    hasReadableIdentity?: boolean;
     sortBy?: PersonSortField;
     sortOrder?: PersonSortOrder;
     query?: string;
@@ -193,7 +224,9 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     offset?: number;
   } = {}): Promise<PersonRow[]> {
     const conditions: SqlFragment[] =
-      id !== undefined ? [this.sql`p.id = ${id}`] : this.filterConditions({ isExternal, query });
+      id !== undefined
+        ? [this.sql`p.id = ${id}`]
+        : this.filterConditions({ isExternal, hasReadableIdentity, query });
     const where = this.whereClause(conditions);
     const limitClause = limit !== undefined ? this.sql`LIMIT ${limit}` : this.sql``;
     const offsetClause = offset ? this.sql`OFFSET ${offset}` : this.sql``;
