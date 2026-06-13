@@ -1,15 +1,15 @@
 import { Elysia, StatusMap } from 'elysia';
-import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
+import { mcpAuth, REQUIRE_MCP_AUTH_MACRO_NAME } from '#lib/mcp-oauth.ts';
 import { MethodNotAllowedResponseSchema } from '#routes/mcp/model.ts';
 import { KnowledgeMcpServicePlugin } from '#services/plugins.ts';
 
 export const mcpController = new Elysia()
   .use(KnowledgeMcpServicePlugin)
-  .use(apiKeyAuth)
+  .use(mcpAuth)
   .post(
     '/mcp',
     ({ body, knowledgeMcpService, request }) => knowledgeMcpService.handleRequest(request, body),
-    { [REQUIRE_API_KEY_MACRO_NAME]: true },
+    { [REQUIRE_MCP_AUTH_MACRO_NAME]: true },
   )
   .get(
     '/mcp',
