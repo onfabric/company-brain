@@ -50,7 +50,10 @@ export const auth = betterAuth({
     jwt({
       jwt: {
         issuer: env.issuer,
-        audience: env.mcpResource.href,
+        // The audience clients request is the resource mcp-use advertises in its
+        // protected-resource metadata — the bare origin (the 401 challenge points
+        // to the root document, whose `resource` is the origin, not `/mcp`).
+        audience: env.publicUrl.origin,
       },
     }),
     oauthProvider({
@@ -58,7 +61,9 @@ export const auth = betterAuth({
       consentPage: CONSENT_PATH,
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
-      validAudiences: [env.mcpResource.href],
+      // Accept both the origin (RFC 8707 strict clients follow the root PRM) and
+      // the `/mcp` resource (the path-suffixed PRM) so either resolves a token.
+      validAudiences: [env.publicUrl.origin, env.mcpResource.href],
       scopes: OAUTH_SCOPES,
     }),
   ],
