@@ -38,14 +38,7 @@ type PersonDraft = {
 };
 
 const SOURCE_BADGE_LIMIT = 3;
-const LOADING_ROW_KEYS = [
-  'people-loading-row-a',
-  'people-loading-row-b',
-  'people-loading-row-c',
-  'people-loading-row-d',
-  'people-loading-row-e',
-  'people-loading-row-f',
-];
+const SKELETON_ROW_KEYS = Array.from({ length: 6 }, (_, i) => `people-skeleton-row-${i}`);
 
 export function PeopleManager({
   people,
@@ -87,7 +80,7 @@ export function PeopleManager({
       <section className="flex min-h-0 flex-1 flex-col p-4">
         <Card className="overflow-hidden">
           <CardContent className="grid gap-3 p-4">
-            {LOADING_ROW_KEYS.map((key) => (
+            {SKELETON_ROW_KEYS.map((key) => (
               <Skeleton key={key} className="h-14 w-full" />
             ))}
           </CardContent>

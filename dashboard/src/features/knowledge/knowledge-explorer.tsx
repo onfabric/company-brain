@@ -4,11 +4,10 @@ import type { ReactNode, SyntheticEvent } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card } from '#/components/ui/card.tsx';
 import { type KnowledgePreview, listKnowledge, listKnowledgeTypes } from '#/lib/brain-functions.ts';
-import type { RecordsRouteSearch } from '#/lib/records-search.ts';
 
 type KnowledgeExplorerProps = {
-  search: RecordsRouteSearch;
-  onChange: (next: Partial<RecordsRouteSearch>) => void;
+  selectedKnowledgeId: string | undefined;
+  onSelect: (knowledgeId: string | undefined) => void;
 };
 
 const KNOWLEDGE_PAGE_PATH_PATTERN =
@@ -17,18 +16,17 @@ const KNOWLEDGE_INDEX_PAGE_PATH = '/knowledge/pages/index';
 const KNOWLEDGE_INDEX_TYPE = 'index';
 const KNOWLEDGE_INDEX_LIMIT = 2;
 
-export function KnowledgeExplorer({ search, onChange }: KnowledgeExplorerProps) {
+export function KnowledgeExplorer({ selectedKnowledgeId, onSelect }: KnowledgeExplorerProps) {
   const indexQuery = useQuery({
     queryKey: ['knowledge-index-page'],
     queryFn: () => getKnowledgeIndex(),
     retry: false,
   });
-  const selectedKnowledgeId = search.selectedKnowledgeId;
   const indexKnowledgeId = indexQuery.data?.id;
   const frameKnowledgeId = selectedKnowledgeId ?? indexKnowledgeId;
 
   const openIndex = () => {
-    onChange({ tab: 'knowledge', selectedKnowledgeId: undefined });
+    onSelect(undefined);
   };
 
   const handleFrameLoad = (event: SyntheticEvent<HTMLIFrameElement>) => {
@@ -44,7 +42,7 @@ export function KnowledgeExplorer({ search, onChange }: KnowledgeExplorerProps) 
       return;
     }
     if (id && id !== selectedKnowledgeId) {
-      onChange({ tab: 'knowledge', selectedKnowledgeId: id });
+      onSelect(id);
     }
   };
 
