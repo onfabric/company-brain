@@ -7,12 +7,6 @@
   },
   "scripts": {
     "company-brain": "bun cli/src/main.ts",
-    "brain": "bun cli/src/main.ts",
-    "setup:local": "bun run company-brain local setup",
-    "doctor:local": "bun run company-brain local doctor",
-    "setup:integrations": "bun run company-brain nango integrations",
-    "setup:syncs": "bun run company-brain nango syncs",
-    "deploy:syncs": "bun run company-brain nango syncs",
     "test": "bun run --filter '*' test",
     "check:types": "bun run --filter '*' check:types",
     "check:codestyle": "bun run --bun biome check",

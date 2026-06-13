@@ -128,9 +128,6 @@ bun run company-brain nango integrations
 bun run company-brain nango syncs
 ```
 
-The shorter root scripts, such as `bun run setup:local`, are convenience
-aliases around the same CLI.
-
 ## Contributing
 
 See [AGENTS.md](./AGENTS.md) for contributor and agent guidance.
