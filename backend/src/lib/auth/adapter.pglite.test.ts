@@ -4,7 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 import type { SQL } from 'bun';
 import { bunSqlAdapter } from '#lib/auth/adapter.ts';
 
-const migrationsDir = join(import.meta.dir, '..', 'db', 'migrations');
+const migrationsDir = join(import.meta.dir, '..', '..', 'db', 'migrations');
 const readMigration = (file: string): Promise<string> => Bun.file(join(migrationsDir, file)).text();
 
 // PGlite resolves a query to `{ rows, affectedRows }`; the Bun.sql adapter expects
