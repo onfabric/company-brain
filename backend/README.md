@@ -51,6 +51,14 @@ Example client configuration:
 }
 ```
 
+## Auth
+
+The REST API accepts either the `Api-Key` header or a better-auth session cookie
+(Google sign-in, restricted to the workspace domain). The dashboard SPA relies on
+the session cookie: when a request is unauthenticated it redirects the browser to
+`/sign-in`, which signs in with Google and returns to the `callbackURL`. `/mcp`
+stays OAuth-only and never accepts the `Api-Key` header.
+
 ## Build
 
 `bun run build` compiles a standalone binary to `dist/server` and copies the

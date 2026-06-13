@@ -74,7 +74,7 @@ describe('api key auth', () => {
 
   it('lets a protected route past auth with a valid api key', async () => {
     const { createApp } = await import('#app.ts');
-    const { API_KEY_HEADER } = await import('#lib/api-key-auth.ts');
+    const { API_KEY_HEADER } = await import('#lib/auth/api-key.ts');
     const res = await createApp().handle(
       new Request('http://localhost/people', {
         headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
@@ -83,40 +83,18 @@ describe('api key auth', () => {
     expect(res.status).not.toBe(StatusMap.Unauthorized);
   });
 
-  it('mints a browser session cookie with a valid api key', async () => {
+  it('lets a knowledge page past auth with a valid api key', async () => {
     const { createApp } = await import('#app.ts');
-    const { API_KEY_HEADER } = await import('#lib/api-key-auth.ts');
-    const { BRAIN_SESSION_COOKIE } = await import('#lib/browser-session-auth.ts');
-    const res = await createApp().handle(
-      new Request('https://localhost/sessions', {
-        method: 'POST',
-        headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
-      }),
-    );
-
-    expect(res.status).toBe(StatusMap['No Content']);
-    const cookie = res.headers.get('set-cookie');
-    expect(cookie).toContain(`${BRAIN_SESSION_COOKIE}=`);
-    expect(cookie).toContain('HttpOnly');
-    expect(cookie).toContain('Path=/knowledge/pages');
-    expect(cookie).toContain('SameSite=Lax');
-    expect(cookie).toContain('Secure');
-  });
-
-  it('lets a knowledge page past auth with a valid session cookie', async () => {
-    const { createApp } = await import('#app.ts');
-    const { BRAIN_SESSION_COOKIE, createBrainSessionToken } = await import(
-      '#lib/browser-session-auth.ts'
-    );
+    const { API_KEY_HEADER } = await import('#lib/auth/api-key.ts');
     const res = await createApp().handle(
       new Request('http://localhost/knowledge/pages/index', {
-        headers: { cookie: `${BRAIN_SESSION_COOKIE}=${createBrainSessionToken()}` },
+        headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
       }),
     );
     expect(res.status).not.toBe(StatusMap.Unauthorized);
   });
 
-  it('rejects navigable knowledge pages without api key or session cookie', async () => {
+  it('rejects navigable knowledge pages without api key or session', async () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(
       new Request('http://localhost/knowledge/pages/019e8882-07f1-771c-993e-f6825a9224bb'),
@@ -124,7 +102,7 @@ describe('api key auth', () => {
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
 
-  it('rejects the knowledge index page without api key or session cookie', async () => {
+  it('rejects the knowledge index page without api key or session', async () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(new Request('http://localhost/knowledge/pages/index'));
     expect(res.status).toBe(StatusMap.Unauthorized);
@@ -136,5 +114,36 @@ describe('api key auth', () => {
       new Request('http://localhost/webhooks/batch-save', { method: 'POST' }),
     );
     expect(res.status).not.toBe(StatusMap.Unauthorized);
+  });
+
+  it('rejects a protected route with an invalid session cookie', async () => {
+    const { createApp } = await import('#app.ts');
+    const res = await createApp().handle(
+      new Request('http://localhost/people', {
+        headers: { cookie: 'better-auth.session_token=not-a-real-session' },
+      }),
+    );
+    expect(res.status).toBe(StatusMap.Unauthorized);
+  });
+});
+
+describe('sign-in page', () => {
+  it('sends the user back to the requested dashboard path after login', async () => {
+    const { createApp } = await import('#app.ts');
+    const res = await createApp().handle(
+      new Request('http://localhost/sign-in?callbackURL=%2Fdashboard%3Ftab%3Dpeople'),
+    );
+    expect(res.status).toBe(StatusMap.OK);
+    expect(await res.text()).toContain('/dashboard?tab=people');
+  });
+
+  it('ignores an off-site callback and falls back to the dashboard', async () => {
+    const { createApp } = await import('#app.ts');
+    const res = await createApp().handle(
+      new Request('http://localhost/sign-in?callbackURL=https%3A%2F%2Fevil.example'),
+    );
+    const body = await res.text();
+    expect(body).toContain('/dashboard');
+    expect(body).not.toContain('evil.example');
   });
 });

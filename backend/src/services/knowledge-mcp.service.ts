@@ -1,4 +1,4 @@
-import { handleAuthRequest, OAUTH_SCOPES } from '#lib/auth.ts';
+import { handleAuthRequest, OAUTH_SCOPES } from '#lib/auth/better-auth.ts';
 import { env } from '#lib/env.ts';
 import { createKnowledgeMcpServer, type KnowledgeMcpServices } from '#lib/knowledge-mcp-server.ts';
 import { Service } from '#services/service.ts';

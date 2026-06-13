@@ -14,7 +14,7 @@ testEnv.GOOGLE_CLIENT_SECRET ??= 'test-google-client-secret';
 testEnv.BRAIN_PUBLIC_URL ??= 'http://localhost:18851';
 
 const { env } = await import('#lib/env.ts');
-const { OAUTH_SCOPES } = await import('#lib/auth.ts');
+const { OAUTH_SCOPES } = await import('#lib/auth/better-auth.ts');
 const ISSUER = env.issuer;
 const RESOURCE = env.mcpResource.href;
 const JWKS_PORT = Number(env.jwksUrl.port);

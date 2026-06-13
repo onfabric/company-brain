@@ -17,12 +17,11 @@ import {
 import { cn } from '#/lib/utils.ts';
 
 type ParticipantFilterProps = {
-  apiKey: string;
   personId?: string;
   onSelect: (personId: string | undefined) => void;
 };
 
-export function ParticipantFilter({ apiKey, personId, onSelect }: ParticipantFilterProps) {
+export function ParticipantFilter({ personId, onSelect }: ParticipantFilterProps) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const query = useDebouncedValue(input, SEARCH_DEBOUNCE_MS);
@@ -30,7 +29,7 @@ export function ParticipantFilter({ apiKey, personId, onSelect }: ParticipantFil
   const searchQuery = useQuery({
     queryKey: ['people-search', query],
     queryFn: () =>
-      listPeople(apiKey, {
+      listPeople({
         query: query || undefined,
         limit: PARTICIPANT_SEARCH_LIMIT,
         sortBy: DEFAULT_PEOPLE_SORT_FIELD,
@@ -41,7 +40,7 @@ export function ParticipantFilter({ apiKey, personId, onSelect }: ParticipantFil
 
   const selectedQuery = useQuery({
     queryKey: ['person', personId],
-    queryFn: () => getPerson(personId ?? '', apiKey),
+    queryFn: () => getPerson(personId ?? ''),
     enabled: Boolean(personId),
   });
 

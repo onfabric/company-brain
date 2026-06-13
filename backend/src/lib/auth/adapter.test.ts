@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import type { SQL } from 'bun';
-import { bunSqlAdapter } from '#lib/auth-adapter.ts';
+import { bunSqlAdapter } from '#lib/auth/adapter.ts';
 
 type Call = { text: string; params: unknown[] };
 

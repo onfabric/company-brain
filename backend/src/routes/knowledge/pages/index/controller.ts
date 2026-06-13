@@ -1,8 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import {
-  knowledgePageAuth,
-  REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME,
-} from '#lib/browser-session-auth.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth/plugin.ts';
 import { KNOWLEDGE_HTML_HEADERS } from '#lib/knowledge-html.ts';
 import { KnowledgeHtmlPageResponseSchema } from '#routes/knowledge/pages/model.ts';
 import { KnowledgeServicePlugin, loggerPlugin } from '#services/plugins.ts';
@@ -10,7 +7,7 @@ import { KnowledgeServicePlugin, loggerPlugin } from '#services/plugins.ts';
 export const knowledgePagesIndexController = new Elysia()
   .use(loggerPlugin('knowledgePagesIndexController'))
   .use(KnowledgeServicePlugin)
-  .use(knowledgePageAuth)
+  .use(authPlugin)
   .get(
     '/knowledge/pages/index',
     async ({ knowledgeService, logger, set, status }) => {
@@ -20,12 +17,12 @@ export const knowledgePagesIndexController = new Elysia()
       return status(StatusMap.OK, html);
     },
     {
-      [REQUIRE_KNOWLEDGE_PAGE_AUTH_MACRO_NAME]: true,
+      [REQUIRE_AUTH]: [AuthMethod.ApiKey, AuthMethod.Session],
       detail: {
         tags: ['Knowledge'],
         summary: 'Fetch the knowledge index as HTML',
         description:
-          'Returns the canonical knowledge index page. Accepts either the API key header or a session cookie minted by POST /sessions.',
+          'Returns the canonical knowledge index page. Accepts either the API key header or a better-auth session cookie.',
       },
       response: {
         [StatusMap.OK]: KnowledgeHtmlPageResponseSchema,

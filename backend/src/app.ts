@@ -1,7 +1,7 @@
 import { openapi } from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
-import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
-import { brainSessionSecuritySchemes } from '#lib/browser-session-auth.ts';
+import { apiKeySecuritySchemes } from '#lib/auth/api-key.ts';
+import { sessionSecuritySchemes } from '#lib/auth/better-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
 import { consentController } from '#routes/consent/controller.ts';
@@ -20,7 +20,6 @@ import { peopleController } from '#routes/people/controller.ts';
 import { peopleMergeController } from '#routes/people/merge/controller.ts';
 import { recordsIdController } from '#routes/records/[id]/controller.ts';
 import { recordsController } from '#routes/records/controller.ts';
-import { sessionsController } from '#routes/sessions/controller.ts';
 import { signInController } from '#routes/sign-in/controller.ts';
 import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
 
@@ -56,15 +55,11 @@ export function createApp() {
               name: 'Knowledge Types',
               description: 'Manage the controlled vocabulary of knowledge types.',
             },
-            {
-              name: 'Sessions',
-              description: 'Mint browser session cookies for navigable knowledge pages.',
-            },
           ],
           components: {
             securitySchemes: {
               ...apiKeySecuritySchemes,
-              ...brainSessionSecuritySchemes,
+              ...sessionSecuritySchemes,
             },
           },
         },
@@ -86,7 +81,6 @@ export function createApp() {
     .use(knowledgeTypesIdController)
     .use(recordsController)
     .use(recordsIdController)
-    .use(sessionsController)
     .use(mcpController)
     .use(batchSaveController);
 }

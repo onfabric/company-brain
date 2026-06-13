@@ -1,8 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createRootRoute, Outlet } from '@tanstack/react-router';
+import { createRootRoute, Outlet, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
+import { getAuthSession, signInUrl } from '#/lib/auth.ts';
 
 export const Route = createRootRoute({
+  beforeLoad: async () => {
+    const session = await getAuthSession();
+    if (!session) {
+      throw redirect({ href: signInUrl() });
+    }
+  },
   component: RootLayout,
 });
 

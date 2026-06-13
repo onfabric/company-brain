@@ -1,41 +1,23 @@
-import {
-  keepPreviousData,
-  useInfiniteQuery,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { BookOpen, FileText, KeyRound, Loader2, LogOut, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { BookOpen, FileText, Loader2, LogOut, Users } from 'lucide-react';
+import { useMemo } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card } from '#/components/ui/card.tsx';
 import { Skeleton } from '#/components/ui/skeleton.tsx';
 import { KnowledgeExplorer } from '#/features/knowledge/knowledge-explorer.tsx';
 import { PeopleManager } from '#/features/people/people-manager.tsx';
-import { ApiKeyGate } from '#/features/records/api-key-gate.tsx';
 import { RecordPreview } from '#/features/records/record-preview.tsx';
 import { RecordsFilters } from '#/features/records/records-filters.tsx';
 import { RecordsTable } from '#/features/records/records-table.tsx';
-import {
-  clearStoredBrainApiKey,
-  readStoredBrainApiKey,
-  storeBrainApiKey,
-} from '#/lib/api-key-storage.ts';
-import {
-  BrainApiError,
-  listDataSources,
-  listPeople,
-  listRecords,
-  type RecordHit,
-} from '#/lib/brain-functions.ts';
+import { signOut } from '#/lib/auth.ts';
+import { listDataSources, listPeople, listRecords, type RecordHit } from '#/lib/brain-functions.ts';
 import {
   DEFAULT_LIMIT,
   DEFAULT_PEOPLE_SORT_FIELD,
   DEFAULT_PEOPLE_SORT_ORDER,
   EMPTY_COUNT,
   EMPTY_OFFSET,
-  FIRST_PAGE,
-  HTTP_UNAUTHORIZED,
   PEOPLE_PAGE_SIZE,
 } from '#/lib/constants.ts';
 import {
@@ -73,55 +55,12 @@ const LOADING_ROW_KEYS = [
 ];
 
 export function RecordsDashboard({ search }: RecordsDashboardProps) {
-  const [apiKey, setApiKey] = useState<string | undefined>(() => readStoredBrainApiKey());
-  const [apiKeyVersion, setApiKeyVersion] = useState(EMPTY_COUNT);
-  const queryClient = useQueryClient();
-
-  const updateApiKey = (nextApiKey: string) => {
-    storeBrainApiKey(nextApiKey);
-    setApiKey(nextApiKey);
-    setApiKeyVersion((version) => version + FIRST_PAGE);
-  };
-
-  const clearApiKey = () => {
-    clearStoredBrainApiKey();
-    setApiKey(undefined);
-    queryClient.removeQueries();
-  };
-
-  if (!apiKey) {
-    return <ApiKeyGate onSubmit={updateApiKey} />;
-  }
-
-  return (
-    <AuthenticatedRecordsDashboard
-      apiKey={apiKey}
-      apiKeyVersion={apiKeyVersion}
-      search={search}
-      onChangeApiKey={clearApiKey}
-    />
-  );
-}
-
-type AuthenticatedRecordsDashboardProps = {
-  apiKey: string;
-  apiKeyVersion: number;
-  search: RecordsRouteSearch;
-  onChangeApiKey: () => void;
-};
-
-function AuthenticatedRecordsDashboard({
-  apiKey,
-  apiKeyVersion,
-  search,
-  onChangeApiKey,
-}: AuthenticatedRecordsDashboardProps) {
   const navigate = useNavigate({ from: '/' });
   const activeTab = search.tab ?? 'records';
   const recordsInput = toRecordsQueryInput(search);
   const recordsQuery = useInfiniteQuery({
-    queryKey: ['records', apiKeyVersion, recordsInput],
-    queryFn: ({ pageParam }) => listRecords({ ...recordsInput, offset: pageParam }, apiKey),
+    queryKey: ['records', recordsInput],
+    queryFn: ({ pageParam }) => listRecords({ ...recordsInput, offset: pageParam }),
     initialPageParam: EMPTY_OFFSET,
     getNextPageParam: (lastPage, allPages) => {
       const matchTotal = allPages[EMPTY_COUNT]?.total ?? EMPTY_COUNT;
@@ -132,14 +71,14 @@ function AuthenticatedRecordsDashboard({
     retry: false,
   });
   const sourcesQuery = useQuery({
-    queryKey: ['data-sources', apiKeyVersion],
-    queryFn: () => listDataSources(apiKey),
+    queryKey: ['data-sources'],
+    queryFn: () => listDataSources(),
     retry: false,
   });
   const peopleQuery = useInfiniteQuery({
-    queryKey: ['people', apiKeyVersion, DEFAULT_PEOPLE_SORT_FIELD, DEFAULT_PEOPLE_SORT_ORDER],
+    queryKey: ['people', DEFAULT_PEOPLE_SORT_FIELD, DEFAULT_PEOPLE_SORT_ORDER],
     queryFn: ({ pageParam }) =>
-      listPeople(apiKey, {
+      listPeople({
         sortBy: DEFAULT_PEOPLE_SORT_FIELD,
         sortOrder: DEFAULT_PEOPLE_SORT_ORDER,
         limit: PEOPLE_PAGE_SIZE,
@@ -233,7 +172,7 @@ function AuthenticatedRecordsDashboard({
               Knowledge
             </Button>
           </div>
-          <Button type="button" variant="outline" onClick={onChangeApiKey}>
+          <Button type="button" variant="outline" onClick={() => void signOut()}>
             <LogOut />
             Log out
           </Button>
@@ -246,7 +185,6 @@ function AuthenticatedRecordsDashboard({
             <RecordsFilters
               search={search}
               sources={sources}
-              apiKey={apiKey}
               isFetching={recordsQuery.isFetching}
               onChange={updateSearch}
             />
@@ -258,7 +196,7 @@ function AuthenticatedRecordsDashboard({
                 {recordsQuery.isLoading ? (
                   <LoadingRows />
                 ) : recordsQuery.isError ? (
-                  <ErrorState error={recordsQuery.error} onChangeApiKey={onChangeApiKey} />
+                  <ErrorState error={recordsQuery.error} />
                 ) : records.length === EMPTY_COUNT ? (
                   <EmptyState />
                 ) : (
@@ -287,7 +225,6 @@ function AuthenticatedRecordsDashboard({
 
       {activeTab === 'people' ? (
         <PeopleManager
-          apiKey={apiKey}
           people={people}
           total={peopleTotal}
           isLoading={peopleQuery.isLoading}
@@ -296,18 +233,11 @@ function AuthenticatedRecordsDashboard({
           hasNextPage={peopleQuery.hasNextPage}
           fetchNextPage={peopleQuery.fetchNextPage}
           error={peopleQuery.error}
-          onChangeApiKey={onChangeApiKey}
         />
       ) : null}
 
       {activeTab === 'knowledge' ? (
-        <KnowledgeExplorer
-          apiKey={apiKey}
-          apiKeyVersion={apiKeyVersion}
-          search={search}
-          onChange={updateSearch}
-          onChangeApiKey={onChangeApiKey}
-        />
+        <KnowledgeExplorer search={search} onChange={updateSearch} />
       ) : null}
     </main>
   );
@@ -347,20 +277,12 @@ function LoadingMore() {
   );
 }
 
-function ErrorState({ error, onChangeApiKey }: { error: Error; onChangeApiKey: () => void }) {
-  const isAuthError = error instanceof BrainApiError && error.status === HTTP_UNAUTHORIZED;
-
+function ErrorState({ error }: { error: Error }) {
   return (
     <div className="grid min-h-72 place-items-center p-8 text-center">
       <div className="max-w-xl">
         <h2 className="font-semibold">Could not load records</h2>
         <p className="mt-2 text-muted-foreground text-sm">{error.message}</p>
-        {isAuthError ? (
-          <Button type="button" className="mt-4" onClick={onChangeApiKey}>
-            <KeyRound />
-            Enter API key
-          </Button>
-        ) : null}
       </div>
     </div>
   );

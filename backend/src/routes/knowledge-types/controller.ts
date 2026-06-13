@@ -1,5 +1,5 @@
 import { Elysia, StatusMap } from 'elysia';
-import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth/plugin.ts';
 import {
   CreateKnowledgeTypeBodySchema,
   KnowledgeTypeSchema,
@@ -10,7 +10,7 @@ import { KnowledgeTypesServicePlugin, loggerPlugin } from '#services/plugins.ts'
 export const knowledgeTypesController = new Elysia()
   .use(loggerPlugin('knowledgeTypesController'))
   .use(KnowledgeTypesServicePlugin)
-  .use(apiKeyAuth)
+  .use(authPlugin)
   .get(
     '/knowledge-types',
     async ({ knowledgeTypesService, logger, status }) => {
@@ -19,7 +19,7 @@ export const knowledgeTypesController = new Elysia()
       return status(StatusMap.OK, { knowledge_types });
     },
     {
-      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      [REQUIRE_AUTH]: [AuthMethod.ApiKey, AuthMethod.Session],
       detail: {
         tags: ['Knowledge Types'],
         summary: 'List knowledge types',
@@ -38,7 +38,7 @@ export const knowledgeTypesController = new Elysia()
       return status(StatusMap.Created, created);
     },
     {
-      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      [REQUIRE_AUTH]: [AuthMethod.ApiKey, AuthMethod.Session],
       parse: 'json',
       detail: {
         tags: ['Knowledge Types'],

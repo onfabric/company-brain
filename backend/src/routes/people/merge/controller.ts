@@ -1,12 +1,12 @@
 import { Elysia, StatusMap } from 'elysia';
-import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth/plugin.ts';
 import { MergePeopleBodySchema, MergePeopleResponseSchema } from '#routes/people/merge/model.ts';
 import { loggerPlugin, PeopleServicePlugin } from '#services/plugins.ts';
 
 export const peopleMergeController = new Elysia()
   .use(loggerPlugin('peopleMergeController'))
   .use(PeopleServicePlugin)
-  .use(apiKeyAuth)
+  .use(authPlugin)
   .post(
     '/people/merge',
     async ({ body, peopleService, logger, status }) => {
@@ -15,7 +15,7 @@ export const peopleMergeController = new Elysia()
       return status(StatusMap.OK, result);
     },
     {
-      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      [REQUIRE_AUTH]: [AuthMethod.ApiKey, AuthMethod.Session],
       parse: 'json',
       detail: {
         tags: ['People'],

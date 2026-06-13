@@ -1,12 +1,12 @@
 import { Elysia, StatusMap } from 'elysia';
-import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
+import { AuthMethod, authPlugin, REQUIRE_AUTH } from '#lib/auth/plugin.ts';
 import { RecordParamsSchema, RecordResponseSchema } from '#routes/records/[id]/model.ts';
 import { loggerPlugin, RecordsServicePlugin } from '#services/plugins.ts';
 
 export const recordsIdController = new Elysia()
   .use(loggerPlugin('recordsIdController'))
   .use(RecordsServicePlugin)
-  .use(apiKeyAuth)
+  .use(authPlugin)
   .get(
     '/records/:id',
     async ({ params, recordsService, logger, status }) => {
@@ -15,7 +15,7 @@ export const recordsIdController = new Elysia()
       return status(StatusMap.OK, record);
     },
     {
-      [REQUIRE_API_KEY_MACRO_NAME]: true,
+      [REQUIRE_AUTH]: [AuthMethod.ApiKey, AuthMethod.Session],
       detail: {
         tags: ['Records'],
         summary: 'Fetch a single record',

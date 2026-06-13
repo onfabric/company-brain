@@ -3,8 +3,9 @@ import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
 import { jwt } from 'better-auth/plugins';
 import { StatusMap } from 'elysia';
+import type { OpenAPIV3 } from 'openapi-types';
 import { sql } from '#db/client.ts';
-import { bunSqlAdapter } from '#lib/auth-adapter.ts';
+import { bunSqlAdapter } from '#lib/auth/adapter.ts';
 import { env } from '#lib/env.ts';
 import { createLogger } from '#lib/logger.ts';
 
@@ -112,4 +113,23 @@ function resourceParam(contentType: string | null, body: string): string {
   }
   const resource = new URLSearchParams(body).get('resource');
   return resource ? ` (resource=${resource})` : '';
+}
+
+export const SESSION_SECURITY_SCHEME = 'betterAuthSession';
+
+export const sessionSecuritySchemes = {
+  [SESSION_SECURITY_SCHEME]: {
+    type: 'apiKey',
+    in: 'cookie',
+    name: 'better-auth.session_token',
+    description: 'better-auth session cookie set after signing in with Google',
+  },
+} satisfies Record<string, OpenAPIV3.SecuritySchemeObject>;
+
+export async function hasValidSession(headers: Headers): Promise<boolean> {
+  try {
+    return (await auth.api.getSession({ headers })) !== null;
+  } catch {
+    return false;
+  }
 }
