@@ -162,6 +162,26 @@ jobs:
           dockerfile: infra/pg-backup/Dockerfile
           cache-scope: pg-backup
 
+  build-docker-logto-setup:
+    needs: terraform-apply
+    runs-on: ubuntu-latest
+    outputs:
+      docker_image_tag: ${{ steps.build.outputs.image-tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build and push
+        id: build
+        uses: ./.github/actions/build-and-push-docker
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
+          ecr-repository-url: ${{ needs.terraform-apply.outputs.logto_setup_ecr_repository_url }}
+          context: logto-setup
+          dockerfile: logto-setup/Dockerfile
+          cache-scope: logto-setup
+
   build-bundle:
     needs: terraform-apply
     runs-on: ubuntu-latest
@@ -204,6 +224,7 @@ jobs:
         build-docker-nango,
         build-docker-brain,
         build-docker-pg-backup,
+        build-docker-logto-setup,
         build-bundle,
       ]
     runs-on: ubuntu-latest
@@ -226,6 +247,7 @@ jobs:
           NANGO_IMAGE_URI: ${{ needs.build-docker-nango.outputs.docker_image_tag }}
           BRAIN_IMAGE_URI: ${{ needs.build-docker-brain.outputs.docker_image_tag }}
           PG_BACKUP_IMAGE_URI: ${{ needs.build-docker-pg-backup.outputs.docker_image_tag }}
+          LOGTO_SETUP_IMAGE_URI: ${{ needs.build-docker-logto-setup.outputs.docker_image_tag }}
           SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
           NANGO_HOSTNAME: ${{ env.NANGO_HOSTNAME }}
           NANGO_CONNECT_HOSTNAME: ${{ env.NANGO_CONNECT_HOSTNAME }}

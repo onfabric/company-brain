@@ -49,3 +49,8 @@ output "deploy_group_tag" {
   description = "SSM targeting tag used by the deploy workflow."
   value       = "company-brain-${var.environment}"
 }
+
+output "logto_setup_ecr_repository_url" {
+  description = "ECR repository URL for the logto-setup provisioner image."
+  value       = aws_ecr_repository.logto_setup.repository_url
+}

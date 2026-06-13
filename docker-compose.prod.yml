@@ -36,6 +36,10 @@ services:
       # hostname served by Caddy, not the local port binding.
       ENDPOINT: https://${AUTH_HOSTNAME}
 
+  logto-configure:
+    image: ${LOGTO_SETUP_IMAGE_URI}
+    build: !reset null
+
   dozzle:
     environment:
       DOZZLE_AUTH_PROVIDER: simple

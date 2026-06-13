@@ -76,3 +76,29 @@ resource "aws_ecr_lifecycle_policy" "pg_backup" {
     }]
   })
 }
+
+resource "aws_ecr_repository" "logto_setup" {
+  name                 = "company-brain/logto-setup"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "logto_setup" {
+  repository = aws_ecr_repository.logto_setup.name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Expire all but the 10 most recent images"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 10
+      }
+      action = { type = "expire" }
+    }]
+  })
+}
