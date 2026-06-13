@@ -7,11 +7,10 @@ import { consentHTML } from '#lib/oauth-pages.ts';
 // logged-in user (401 otherwise), and accepting posts back to better-auth.
 export const consentController = new Elysia().use(authPlugin).get(
   '/consent',
-  ({ query }) => {
+  ({ query, set }) => {
     const scopes = query.scope ? query.scope.split(' ').filter(Boolean) : [];
-    return new Response(consentHTML(query.client_id, scopes, query.consent_code), {
-      headers: { 'content-type': 'text/html' },
-    });
+    set.headers['content-type'] = 'text/html';
+    return consentHTML(query.client_id, scopes, query.consent_code);
   },
   {
     [REQUIRE_AUTH_MACRO_NAME]: true,

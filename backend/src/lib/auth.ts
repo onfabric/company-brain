@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
-import { jwt, oidcProvider, openAPI } from 'better-auth/plugins';
+import { jwt, oidcProvider } from 'better-auth/plugins';
 import { sql } from '#db/client.ts';
 import { bunSqlAdapter } from '#lib/auth-adapter.ts';
 import { env, WORKSPACE_DOMAIN } from '#lib/env.ts';
@@ -57,7 +57,6 @@ export const auth = betterAuth({
       useJWTPlugin: true,
       scopes: ['openid', 'profile', 'email', 'offline_access', MCP_SCOPE],
     }),
-    openAPI(),
   ],
 });
 

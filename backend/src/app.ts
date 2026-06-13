@@ -1,7 +1,6 @@
 import { openapi } from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
 import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
-import { betterAuthComponents, betterAuthPaths } from '#lib/auth-openapi.ts';
 import { authPlugin } from '#lib/auth-session.ts';
 import { brainSessionSecuritySchemes } from '#lib/browser-session-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
@@ -29,9 +28,6 @@ import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
 import { oauthAuthorizationServerController } from '#routes/well-known/oauth-authorization-server/controller.ts';
 import { oauthProtectedResourceController } from '#routes/well-known/oauth-protected-resource/controller.ts';
 
-const authPaths = await betterAuthPaths();
-const authComponents = await betterAuthComponents();
-
 export function createApp() {
   return new Elysia()
     .onError(elysiaErrorHandler)
@@ -44,7 +40,6 @@ export function createApp() {
             title: 'Company Brain API',
             version: '1.0.0',
           },
-          paths: authPaths,
           tags: [
             {
               name: 'People',
@@ -72,9 +67,7 @@ export function createApp() {
             },
           ],
           components: {
-            ...authComponents,
             securitySchemes: {
-              ...authComponents.securitySchemes,
               ...apiKeySecuritySchemes,
               ...brainSessionSecuritySchemes,
               ...mcpBearerSecuritySchemes,
