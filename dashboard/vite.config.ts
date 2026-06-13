@@ -6,14 +6,15 @@ import viteReact from '@vitejs/plugin-react';
 import { defineConfig, type ProxyOptions } from 'vite';
 
 const BRAIN_API_PROXY_PATHS = [
+  '/api/auth',
   '/data-sources',
   '/health',
   '/knowledge',
   '/knowledge-types',
+  '/openapi',
   '/people',
   '/records',
-  '/sessions',
-  '/openapi',
+  '/sign-in',
 ] as const;
 
 const brainApiOrigin = apiOriginFrom(process.env.BRAIN_API_ORIGIN);
