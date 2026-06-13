@@ -1,7 +1,6 @@
 import type { RecordsQueryInput } from '#/lib/brain-functions.ts';
 import {
   API_MAX_LIMIT,
-  DASHBOARD_TABS,
   DATE_SLICE_END,
   DEFAULT_LIMIT,
   EMPTY_COUNT,
@@ -12,10 +11,8 @@ import {
 
 export type RecordSortField = (typeof RECORD_SORT_FIELDS)[number];
 export type RecordSortOrder = (typeof RECORD_SORT_ORDERS)[number];
-export type DashboardTab = (typeof DASHBOARD_TABS)[number];
 
 export type RecordsRouteSearch = {
-  tab?: DashboardTab;
   q?: string;
   dataSourceId?: string;
   personId?: string;
@@ -23,14 +20,12 @@ export type RecordsRouteSearch = {
   createdBefore?: string;
   sortBy?: RecordSortField;
   sortOrder?: RecordSortOrder;
-  limit: number;
+  limit?: number;
   selectedRecordId?: string;
-  selectedKnowledgeId?: string;
 };
 
 export function normalizeRouteSearch(search: Record<string, unknown>): RecordsRouteSearch {
   return {
-    tab: dashboardTabValue(search.tab),
     q: stringValue(search.q),
     dataSourceId: stringValue(search.dataSourceId),
     personId: stringValue(search.personId),
@@ -40,7 +35,6 @@ export function normalizeRouteSearch(search: Record<string, unknown>): RecordsRo
     sortOrder: sortOrderValue(search.sortOrder),
     limit: limitValue(search.limit),
     selectedRecordId: stringValue(search.selectedRecordId),
-    selectedKnowledgeId: stringValue(search.selectedKnowledgeId),
   };
 }
 
@@ -53,13 +47,12 @@ export function toRecordsQueryInput(search: RecordsRouteSearch): Omit<RecordsQue
     createdBefore: search.createdBefore,
     sortBy: search.sortBy,
     sortOrder: search.sortOrder,
-    limit: search.limit,
+    limit: search.limit ?? DEFAULT_LIMIT,
   };
 }
 
 export function cleanRouteSearch(search: RecordsRouteSearch): RecordsRouteSearch {
   return {
-    tab: search.tab && search.tab !== 'records' ? search.tab : undefined,
     q: search.q || undefined,
     dataSourceId: search.dataSourceId || undefined,
     personId: search.personId || undefined,
@@ -69,7 +62,6 @@ export function cleanRouteSearch(search: RecordsRouteSearch): RecordsRouteSearch
     sortOrder: search.sortOrder || undefined,
     limit: search.limit,
     selectedRecordId: search.selectedRecordId || undefined,
-    selectedKnowledgeId: search.selectedKnowledgeId || undefined,
   };
 }
 
@@ -104,8 +96,4 @@ function sortOrderValue(value: unknown) {
   return RECORD_SORT_ORDERS.includes(value as RecordSortOrder)
     ? (value as RecordSortOrder)
     : undefined;
-}
-
-function dashboardTabValue(value: unknown) {
-  return DASHBOARD_TABS.includes(value as DashboardTab) ? (value as DashboardTab) : undefined;
 }
