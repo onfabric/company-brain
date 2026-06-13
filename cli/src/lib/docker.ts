@@ -29,8 +29,8 @@ export async function waitForComposeHealth(verbose = false): Promise<void> {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < HEALTH_TIMEOUT_SECONDS * MILLISECONDS_PER_SECOND) {
-    const rows = await composeRows();
-    const unhealthy = rows.filter((row) => !isHealthy(row));
+    const rows = await composeServices();
+    const unhealthy = rows.filter((row) => !isComposeServiceReady(row));
 
     if (rows.length > 0 && unhealthy.length === 0) {
       return;
@@ -43,39 +43,31 @@ export async function waitForComposeHealth(verbose = false): Promise<void> {
     await Bun.sleep(HEALTH_POLL_MS);
   }
 
-  const rows = await composeRows();
-  const unhealthy = rows.filter((row) => !isHealthy(row));
+  const rows = await composeServices();
+  const unhealthy = rows.filter((row) => !isComposeServiceReady(row));
   throw new Error(
     `Timed out waiting for local services: ${unhealthy.map((row) => `${row.name} ${row.state}/${row.health}`).join(', ')}`,
   );
 }
 
-export async function composeStatus(): Promise<Array<{ name: string; status: string }>> {
-  const output = await run(['docker', 'compose', 'ps', '-a', '--format', '{{.Name}}|{{.Status}}'], {
-    cwd: repoRoot,
-    capture: true,
-  });
-
-  return output
-    .trim()
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => {
-      const [name = '', status = ''] = line.split('|');
-      return { name, status };
-    });
-}
-
-type ComposeRow = {
+export type ComposeService = {
   name: string;
   state: string;
   health: string;
   exitCode: string;
+  status: string;
 };
 
-async function composeRows(): Promise<ComposeRow[]> {
+export async function composeServices(): Promise<ComposeService[]> {
   const output = await run(
-    ['docker', 'compose', 'ps', '-a', '--format', '{{.Name}}|{{.State}}|{{.Health}}|{{.ExitCode}}'],
+    [
+      'docker',
+      'compose',
+      'ps',
+      '-a',
+      '--format',
+      '{{.Name}}|{{.State}}|{{.Health}}|{{.ExitCode}}|{{.Status}}',
+    ],
     {
       cwd: repoRoot,
       capture: true,
@@ -87,12 +79,12 @@ async function composeRows(): Promise<ComposeRow[]> {
     .split('\n')
     .filter(Boolean)
     .map((line) => {
-      const [name = '', state = '', health = '', exitCode = ''] = line.split('|');
-      return { name, state, health, exitCode };
+      const [name = '', state = '', health = '', exitCode = '', status = ''] = line.split('|');
+      return { name, state, health, exitCode, status };
     });
 }
 
-function isHealthy(row: ComposeRow): boolean {
+export function isComposeServiceReady(row: ComposeService): boolean {
   if (row.health) {
     return row.health === 'healthy';
   }
