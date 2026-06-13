@@ -1,4 +1,4 @@
-import { auth, OAUTH_SCOPES } from '#lib/auth.ts';
+import { handleAuthRequest, OAUTH_SCOPES } from '#lib/auth.ts';
 import { env } from '#lib/env.ts';
 import {
   createKnowledgeMcpServer,
@@ -23,7 +23,7 @@ export class KnowledgeMcpService extends Service {
       baseUrl: env.publicUrl.origin,
       issuer: env.issuer,
       scopes: OAUTH_SCOPES,
-      authHandler: (request) => auth.handler(request),
+      authHandler: handleAuthRequest,
     });
     this.handler = server.getHandler();
   }
