@@ -1,30 +1,30 @@
-import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
+import { auth, OAUTH_SCOPES } from '#lib/auth.ts';
+import { env } from '#lib/env.ts';
 import { createKnowledgeMcpServer, type KnowledgePageReader } from '#lib/knowledge-mcp-server.ts';
 import { Service } from '#services/service.ts';
 
+type FetchHandler = (request: Request) => Promise<Response>;
+
 export class KnowledgeMcpService extends Service {
-  private readonly pages: KnowledgePageReader;
+  private readonly handler: Promise<FetchHandler>;
 
   constructor(pages: KnowledgePageReader) {
     super();
-    this.pages = pages;
+    // `getHandler()` only mounts mcp-use's widget bundler / inspector (Vite, a
+    // filesystem session store) when NODE_ENV !== 'production'. The brain ships
+    // no widgets and always runs production (Dockerfile + the start/test scripts
+    // set it), so this resolves to mcp-use's clean production path.
+    const server = createKnowledgeMcpServer(pages, {
+      baseUrl: env.publicUrl.origin,
+      issuer: env.issuer,
+      scopes: OAUTH_SCOPES,
+      authHandler: (request) => auth.handler(request),
+    });
+    this.handler = server.getHandler();
   }
 
-  // The SDK pairs each server instance with exactly one transport, so a shared
-  // instance would cross-wire concurrent requests; stateless Streamable HTTP
-  // expects a fresh pair per request, and building one only registers the tools.
-  async handleRequest(request: Request, parsedBody: unknown): Promise<Response> {
-    this.logger.info('handling MCP request');
-    const server = createKnowledgeMcpServer(this.pages);
-    const transport = new WebStandardStreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-      enableJsonResponse: true,
-    });
-    await server.connect(transport);
-    try {
-      return await transport.handleRequest(request, { parsedBody });
-    } finally {
-      await server.close();
-    }
+  /** Combined mcp-use + better-auth fetch handler, mounted once at the Elysia root. */
+  fetch(request: Request): Promise<Response> {
+    return this.handler.then((handle) => handle(request));
   }
 }

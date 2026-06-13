@@ -13,6 +13,11 @@ resource "random_password" "brain_db" {
 
 resource "random_uuid4" "brain_api_key" {}
 
+resource "random_password" "better_auth_secret" {
+  length  = 48
+  special = false
+}
+
 resource "aws_ssm_parameter" "db_password" {
   name  = "${var.ssm_secret_prefix}/nango_db_password"
   type  = "SecureString"
@@ -29,6 +34,28 @@ resource "aws_ssm_parameter" "brain_api_key" {
   name  = "${var.ssm_secret_prefix}/brain_api_key"
   type  = "SecureString"
   value = random_uuid4.brain_api_key.result
+}
+
+resource "aws_ssm_parameter" "better_auth_secret" {
+  name  = "${var.ssm_secret_prefix}/better_auth_secret"
+  type  = "SecureString"
+  value = random_password.better_auth_secret.result
+}
+
+# Google OAuth client for the brain's in-process better-auth server. Created
+# once in the Google Cloud console (authorized redirect URI
+# https://<brain-hostname>/api/auth/callback/google) and supplied by CD from the
+# GitHub Actions variable/secret, so the deploy stays fully reproducible.
+resource "aws_ssm_parameter" "google_client_id" {
+  name  = "${var.ssm_secret_prefix}/google_client_id"
+  type  = "SecureString"
+  value = var.google_client_id
+}
+
+resource "aws_ssm_parameter" "google_client_secret" {
+  name  = "${var.ssm_secret_prefix}/google_client_secret"
+  type  = "SecureString"
+  value = var.google_client_secret
 }
 
 # Dozzle simple-auth users.yml. Can't be generated here (it holds a bcrypt

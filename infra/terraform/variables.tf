@@ -43,10 +43,21 @@ variable "github_branch" {
   default     = "main"
 }
 
-# Names of the SecureString parameters you create out-of-band (see deploy guide).
-# Terraform only grants the instance permission to read this path; it never
-# stores the secret values, so they stay out of state.
 variable "ssm_secret_prefix" {
   type    = string
   default = "/company-brain/dev"
+}
+
+# Google OAuth client for the brain's better-auth Google sign-in. Google exposes
+# no API to create the client, so the values are produced once in the Google
+# Cloud console and fed in from GitHub Actions (CD passes them as TF_VAR_*).
+variable "google_client_id" {
+  type        = string
+  description = "Public Google OAuth client ID; GitHub Actions variable BACKEND_BETTER_AUTH_GOOGLE_CLIENT_ID."
+}
+
+variable "google_client_secret" {
+  type        = string
+  sensitive   = true
+  description = "Google OAuth client secret; GitHub Actions secret BACKEND_BETTER_AUTH_GOOGLE_CLIENT_SECRET."
 }

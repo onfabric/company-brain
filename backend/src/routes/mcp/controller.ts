@@ -1,27 +1,8 @@
-import { Elysia, StatusMap } from 'elysia';
-import { apiKeyAuth, REQUIRE_API_KEY_MACRO_NAME } from '#lib/api-key-auth.ts';
-import { MethodNotAllowedResponseSchema } from '#routes/mcp/model.ts';
-import { KnowledgeMcpServicePlugin } from '#services/plugins.ts';
+import { Elysia } from 'elysia';
+import { knowledgeMcpService } from '#services/plugins.ts';
 
-export const mcpController = new Elysia()
-  .use(KnowledgeMcpServicePlugin)
-  .use(apiKeyAuth)
-  .post(
-    '/mcp',
-    ({ body, knowledgeMcpService, request }) => knowledgeMcpService.handleRequest(request, body),
-    { [REQUIRE_API_KEY_MACRO_NAME]: true },
-  )
-  .get(
-    '/mcp',
-    ({ status }) => status(StatusMap['Method Not Allowed'], { error: 'Method Not Allowed' }),
-    {
-      response: { [StatusMap['Method Not Allowed']]: MethodNotAllowedResponseSchema },
-    },
-  )
-  .delete(
-    '/mcp',
-    ({ status }) => status(StatusMap['Method Not Allowed'], { error: 'Method Not Allowed' }),
-    {
-      response: { [StatusMap['Method Not Allowed']]: MethodNotAllowedResponseSchema },
-    },
-  );
+// A single root mount exposes the combined mcp-use + better-auth Hono app: the
+// `/mcp` transport and its OAuth 2.1 surface (bearer verification, the 401
+// challenge, RFC 8414 / RFC 9728 discovery) plus better-auth's `/api/auth/*`.
+// Static Elysia routes still win; the mount only catches paths Elysia lacks.
+export const mcpController = new Elysia().mount((request) => knowledgeMcpService.fetch(request));

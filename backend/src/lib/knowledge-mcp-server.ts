@@ -1,5 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { error, MCPServer, oauthBetterAuthProvider, text } from 'mcp-use/server';
 import { z } from 'zod';
 import { AppError } from '#lib/errors.ts';
 import { createLogger } from '#lib/logger.ts';
@@ -9,11 +8,18 @@ export type KnowledgePageReader = {
   getKnowledgeHtmlPage(id: string): Promise<string>;
 };
 
-const SERVER_INFO = {
-  name: 'company-brain',
-  title: 'Company Brain Knowledge Base',
-  version: '1.0.0',
+export type KnowledgeMcpServerConfig = {
+  /** Public origin the MCP endpoint and discovery documents are reachable at. */
+  baseUrl: string;
+  /** better-auth base URL whose JWKS verifies bearer tokens and whose metadata is proxied. */
+  issuer: string;
+  /** Scopes advertised in the discovery documents. */
+  scopes: string[];
+  /** better-auth request handler, mounted on the same Hono app under its `/api/auth` basePath. */
+  authHandler: (request: Request) => Promise<Response>;
 };
+
+const AUTH_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'] as const;
 
 const INSTRUCTIONS =
   'Read-only access to the company knowledge base, served as HTML pages. ' +
@@ -22,13 +28,27 @@ const INSTRUCTIONS =
 
 const logger = createLogger('knowledgeMcpServer');
 
-export function createKnowledgeMcpServer(pages: KnowledgePageReader): McpServer {
-  const server = new McpServer(SERVER_INFO, { instructions: INSTRUCTIONS });
+// mcp-use owns the OAuth 2.1 surface for `/mcp`: bearer verification against the
+// better-auth JWKS, the 401 `WWW-Authenticate` challenge, and the RFC 8414 /
+// RFC 9728 discovery documents. better-auth shares the same Hono app so the
+// brain exposes the whole authn/OAuth stack behind a single Elysia mount.
+export function createKnowledgeMcpServer(
+  pages: KnowledgePageReader,
+  config: KnowledgeMcpServerConfig,
+): MCPServer<true> {
+  const server = new MCPServer({
+    name: 'company-brain',
+    version: '1.0.0',
+    instructions: INSTRUCTIONS,
+    baseUrl: config.baseUrl,
+    oauth: oauthBetterAuthProvider({ authURL: config.issuer, scopesSupported: config.scopes }),
+  });
 
-  server.registerTool(
-    'get_index_page',
+  server.app.on([...AUTH_METHODS], '/api/auth/*', (c) => config.authHandler(c.req.raw));
+
+  server.tool(
     {
-      title: 'Get the knowledge index page',
+      name: 'get_index_page',
       description:
         'Fetch the knowledge base index page as HTML. Start here: it links every available page ' +
         'as /knowledge/pages/{id}. Read a linked page with get_page.',
@@ -37,16 +57,15 @@ export function createKnowledgeMcpServer(pages: KnowledgePageReader): McpServer 
     () => readPage(() => pages.getKnowledgeIndexHtmlPage()),
   );
 
-  server.registerTool(
-    'get_page',
+  server.tool(
     {
-      title: 'Get a knowledge page',
+      name: 'get_page',
       description:
         'Fetch a single knowledge base page as HTML. Take the id from a /knowledge/pages/{id} ' +
         'link on the index page or on another page.',
-      inputSchema: {
+      schema: z.object({
         id: z.uuid().describe('Page id from a /knowledge/pages/{id} link.'),
-      },
+      }),
       annotations: { readOnlyHint: true },
     },
     ({ id }) => readPage(() => pages.getKnowledgeHtmlPage(id)),
@@ -55,17 +74,14 @@ export function createKnowledgeMcpServer(pages: KnowledgePageReader): McpServer 
   return server;
 }
 
-async function readPage(read: () => Promise<string>): Promise<CallToolResult> {
+async function readPage(read: () => Promise<string>) {
   try {
-    return { content: [{ type: 'text', text: await read() }] };
-  } catch (error) {
-    if (error instanceof AppError) {
-      return { content: [{ type: 'text', text: error.message }], isError: true };
+    return text(await read());
+  } catch (err) {
+    if (err instanceof AppError) {
+      return error(err.message);
     }
-    logger.error('failed to read knowledge page', error);
-    return {
-      content: [{ type: 'text', text: 'Failed to read the knowledge page' }],
-      isError: true,
-    };
+    logger.error('failed to read knowledge page', err);
+    return error('Failed to read the knowledge page');
   }
 }

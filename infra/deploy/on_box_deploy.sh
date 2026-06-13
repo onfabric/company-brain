@@ -23,6 +23,9 @@ secret() {
 NANGO_DB_PASSWORD="$(secret nango_db_password)"
 BRAIN_DB_PASSWORD="$(secret brain_db_password)"
 BRAIN_API_KEY="$(secret brain_api_key)"
+BETTER_AUTH_SECRET="$(secret better_auth_secret)"
+GOOGLE_CLIENT_ID="$(secret google_client_id)"
+GOOGLE_CLIENT_SECRET="$(secret google_client_secret)"
 
 # Dozzle simple-auth users file (full users.yml, generated via `dozzle generate`),
 # mounted into the container at /data/users.yml by the prod compose override.
@@ -44,6 +47,10 @@ NANGO_RECORDS_DATABASE_SCHEMA=nango_records
 BRAIN_DB_USER=brain
 BRAIN_DB_PASSWORD=${BRAIN_DB_PASSWORD}
 BRAIN_API_KEY=${BRAIN_API_KEY}
+BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+BRAIN_PUBLIC_URL=https://${BRAIN_HOSTNAME}
 NANGO_SERVER_PORT=3003
 NANGO_CONNECT_UI_PORT=3009
 NANGO_SERVER_URL=https://${NANGO_HOSTNAME}

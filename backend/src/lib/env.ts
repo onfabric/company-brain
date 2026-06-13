@@ -4,33 +4,69 @@ declare global {
       readonly DATABASE_URL?: string;
       readonly PORT?: string;
       readonly BRAIN_API_KEY?: string;
+      readonly BRAIN_PUBLIC_URL?: string;
+      readonly BETTER_AUTH_SECRET?: string;
+      readonly GOOGLE_CLIENT_ID?: string;
+      readonly GOOGLE_CLIENT_SECRET?: string;
+      readonly WORKSPACE_DOMAIN?: string;
     }
   }
 }
 
-const DEFAULT_PORT = 3010;
+const DEFAULT_PORT = '3010';
+const DEFAULT_PUBLIC_URL = `http://localhost:${DEFAULT_PORT}`;
+const DEFAULT_WORKSPACE_DOMAIN = 'onfabric.io';
 
 type Env = {
   databaseUrl: string;
   port: number;
   brainApiKey: string;
+  // Public origin the brain is reachable at — the OAuth issuer, the JWKS host,
+  // and the base for every discovery document. Parsed once so every derivation
+  // (issuer, resource, callback) is consistently normalized.
+  publicUrl: URL;
+  // The MCP resource identifier: the audience better-auth stamps on access
+  // tokens and the `resource` mcp-use advertises in RFC 9728 metadata.
+  mcpResource: URL;
+  // The brain's own OAuth issuer (the better-auth base). mcp-use derives the
+  // provider's `authURL`/JWKS from it and verifies the token `iss` against it.
+  issuer: string;
+  // Where the issuer publishes its JWKS (`<issuer>/jwks`); mcp-use fetches it.
+  jwksUrl: URL;
+  betterAuthSecret: string;
+  googleClientId: string;
+  googleClientSecret: string;
+  // The workspace the brain restricts sign-in to: a Google hosted-domain hint
+  // and the hard check enforced in the auth database hook.
+  workspaceDomain: string;
 };
 
+function required(name: keyof NodeJS.ProcessEnv): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+function optional(name: keyof NodeJS.ProcessEnv, defaultValue: string): string {
+  return process.env[name] || defaultValue;
+}
+
 function loadEnv(): Env {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error('Missing required environment variable: DATABASE_URL');
-  }
-
-  const brainApiKey = process.env.BRAIN_API_KEY;
-  if (!brainApiKey) {
-    throw new Error('Missing required environment variable: BRAIN_API_KEY');
-  }
-
+  const publicUrl = new URL(optional('BRAIN_PUBLIC_URL', DEFAULT_PUBLIC_URL));
   return {
-    databaseUrl,
-    port: process.env.PORT ? Number(process.env.PORT) : DEFAULT_PORT,
-    brainApiKey,
+    databaseUrl: required('DATABASE_URL'),
+    port: Number(optional('PORT', DEFAULT_PORT)),
+    brainApiKey: required('BRAIN_API_KEY'),
+    publicUrl,
+    mcpResource: new URL('/mcp', publicUrl),
+    issuer: new URL('/api/auth', publicUrl).href,
+    jwksUrl: new URL('/api/auth/jwks', publicUrl),
+    betterAuthSecret: required('BETTER_AUTH_SECRET'),
+    googleClientId: required('GOOGLE_CLIENT_ID'),
+    googleClientSecret: required('GOOGLE_CLIENT_SECRET'),
+    workspaceDomain: optional('WORKSPACE_DOMAIN', DEFAULT_WORKSPACE_DOMAIN),
   };
 }
 
