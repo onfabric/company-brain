@@ -50,6 +50,10 @@ export class PeopleService extends Service {
     return person;
   }
 
+  findByNameOrEmail(values: string[]) {
+    return this.peopleRepo.findByNameOrEmail(values);
+  }
+
   async updatePerson(id: string, updates: PersonUpdate): Promise<Person> {
     const person = await this.peopleRepo.updatePerson(id, updates);
     if (!person) {
