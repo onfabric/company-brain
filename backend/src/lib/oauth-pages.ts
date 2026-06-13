@@ -54,7 +54,8 @@ export function signInHTML(callbackURL: string): string {
 
 // The consent endpoint verifies the signed authorize request the page was
 // redirected with, so accept/deny replay this page's full query string as
-// `oauth_query` and follow the returned `redirect_uri` back to the client.
+// `oauth_query` and follow the returned `url` back to the client. better-auth
+// answers a browser fetch with `{ redirect, url }` (200) rather than a 302.
 export function consentHTML(clientName: string, scopes: string[]): string {
   const scopeItems = scopes.map((scope) => `<li>${escapeHtml(scope)}</li>`).join('');
   return shell(
@@ -73,7 +74,7 @@ export function consentHTML(clientName: string, scopes: string[]): string {
           body: JSON.stringify({ accept, oauth_query: window.location.search.replace(/^\\?/, '') }),
         });
         const data = await res.json().catch(() => ({}));
-        if (data.redirect_uri) { window.location.href = data.redirect_uri; }
+        if (data.url) { window.location.href = data.url; }
       }
       document.getElementById('allow').addEventListener('click', () => consent(true));
       document.getElementById('deny').addEventListener('click', () => consent(false));
