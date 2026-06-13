@@ -126,24 +126,3 @@ describe('api key auth', () => {
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
 });
-
-describe('sign-in page', () => {
-  it('sends the user back to the requested dashboard path after login', async () => {
-    const { createApp } = await import('#app.ts');
-    const res = await createApp().handle(
-      new Request('http://localhost/sign-in?callbackURL=%2Fdashboard%3Ftab%3Dpeople'),
-    );
-    expect(res.status).toBe(StatusMap.OK);
-    expect(await res.text()).toContain('/dashboard?tab=people');
-  });
-
-  it('ignores an off-site callback and falls back to the dashboard', async () => {
-    const { createApp } = await import('#app.ts');
-    const res = await createApp().handle(
-      new Request('http://localhost/sign-in?callbackURL=https%3A%2F%2Fevil.example'),
-    );
-    const body = await res.text();
-    expect(body).toContain('/dashboard');
-    expect(body).not.toContain('evil.example');
-  });
-});

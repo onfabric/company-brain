@@ -14,7 +14,6 @@ const BRAIN_API_PROXY_PATHS = [
   '/openapi',
   '/people',
   '/records',
-  '/sign-in',
 ] as const;
 
 const brainApiOrigin = apiOriginFrom(process.env.BRAIN_API_ORIGIN);
