@@ -60,7 +60,7 @@ export function registerKnowledgeTools(server: MCPServer<true>, knowledge: Knowl
       name: 'search_knowledge',
       description:
         'Search or list distilled knowledge as paginated JSON. Mirrors the knowledge API with ' +
-        'optional filters for type id, participant ids, source record id, result view, and sorting. ' +
+        'optional filters for type id, participant ids, result view, and sorting. ' +
         'Use limit and offset for pagination; limit cannot exceed 50.',
       schema: z.object({
         q: z.string().min(1).optional().describe('Optional full-text query over title and body.'),
@@ -73,10 +73,6 @@ export function registerKnowledgeTools(server: MCPServer<true>, knowledge: Knowl
           .min(1)
           .optional()
           .describe('Restrict results to knowledge linked to any of these people.'),
-        record_id: z
-          .uuid()
-          .optional()
-          .describe('Restrict results to knowledge distilled from this source record.'),
         sort_by: z
           .enum(KNOWLEDGE_SORT_FIELDS)
           .optional()
@@ -105,13 +101,12 @@ export function registerKnowledgeTools(server: MCPServer<true>, knowledge: Knowl
       }),
       annotations: { readOnlyHint: true },
     },
-    ({ q, knowledge_type_id, person_ids, record_id, sort_by, sort_order, view, limit, offset }) =>
+    ({ q, knowledge_type_id, person_ids, sort_by, sort_order, view, limit, offset }) =>
       readJson(() =>
         knowledge.search({
           query: q,
           knowledgeTypeId: knowledge_type_id,
           personIds: person_ids,
-          recordId: record_id,
           sortBy: sort_by,
           sortOrder: sort_order,
           view,
