@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router';
+import { createFileRoute, Link, type LinkProps, Outlet, redirect } from '@tanstack/react-router';
 import { BookOpen, FileText, LogOut, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '#/components/ui/button.tsx';
@@ -39,9 +39,7 @@ function AppShell() {
   );
 }
 
-type NavPath = '/records' | '/people' | '/knowledge';
-
-function NavTab({ to, icon, label }: { to: NavPath; icon: ReactNode; label: string }) {
+function NavTab({ to, icon, label }: { to: LinkProps['to']; icon: ReactNode; label: string }) {
   return (
     <Button
       asChild
