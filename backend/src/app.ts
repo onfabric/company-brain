@@ -3,6 +3,7 @@ import { Elysia } from 'elysia';
 import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
 import { brainSessionSecuritySchemes } from '#lib/browser-session-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
+import { mcpBearerSecuritySchemes } from '#lib/mcp-oauth.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
 import { dashboardController } from '#routes/dashboard/controller.ts';
 import { dataSourcesController } from '#routes/data-sources/controller.ts';
@@ -14,13 +15,17 @@ import { knowledgePagesIndexController } from '#routes/knowledge/pages/index/con
 import { knowledgeTypesIdController } from '#routes/knowledge-types/[id]/controller.ts';
 import { knowledgeTypesController } from '#routes/knowledge-types/controller.ts';
 import { mcpController } from '#routes/mcp/controller.ts';
+import { oidcRegisterController } from '#routes/oidc/register/controller.ts';
 import { peopleIdController } from '#routes/people/[id]/controller.ts';
 import { peopleController } from '#routes/people/controller.ts';
 import { peopleMergeController } from '#routes/people/merge/controller.ts';
 import { recordsIdController } from '#routes/records/[id]/controller.ts';
 import { recordsController } from '#routes/records/controller.ts';
 import { sessionsController } from '#routes/sessions/controller.ts';
+import { tokenController } from '#routes/token/controller.ts';
 import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
+import { oauthAuthorizationServerController } from '#routes/well-known/oauth-authorization-server/controller.ts';
+import { oauthProtectedResourceController } from '#routes/well-known/oauth-protected-resource/controller.ts';
 
 export function createApp() {
   return new Elysia()
@@ -61,7 +66,11 @@ export function createApp() {
             },
           ],
           components: {
-            securitySchemes: { ...apiKeySecuritySchemes, ...brainSessionSecuritySchemes },
+            securitySchemes: {
+              ...apiKeySecuritySchemes,
+              ...brainSessionSecuritySchemes,
+              ...mcpBearerSecuritySchemes,
+            },
           },
         },
       }),
@@ -81,6 +90,10 @@ export function createApp() {
     .use(recordsController)
     .use(recordsIdController)
     .use(sessionsController)
+    .use(oauthAuthorizationServerController)
+    .use(oauthProtectedResourceController)
+    .use(oidcRegisterController)
+    .use(tokenController)
     .use(mcpController)
     .use(batchSaveController);
 }

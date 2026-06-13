@@ -33,7 +33,7 @@ export const apiKeyAuth = new Elysia({ name: 'apiKeyAuth' }).macro(REQUIRE_API_K
   },
 });
 
-function getHeader(headers: RequestHeaders, name: string): string | null {
+export function getHeader(headers: RequestHeaders, name: string): string | null {
   if (headers instanceof Headers) {
     return headers.get(name);
   }

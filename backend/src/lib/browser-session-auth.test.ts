@@ -4,6 +4,15 @@ import { describe, expect, it } from 'bun:test';
   'postgresql://test:test@localhost:5432/test';
 (process.env as Record<string, string | undefined>).BRAIN_API_KEY ??=
   '00000000-0000-4000-8000-000000000000';
+(process.env as Record<string, string | undefined>).GOOGLE_CLIENT_ID ??= 'test-google-client-id';
+(process.env as Record<string, string | undefined>).GOOGLE_CLIENT_SECRET ??=
+  'test-google-client-secret';
+(process.env as Record<string, string | undefined>).MCP_RESOURCE ??= 'http://localhost:3010/mcp';
+(process.env as Record<string, string | undefined>).BRAIN_PUBLIC_URL ??= 'http://localhost:3010';
+(process.env as Record<string, string | undefined>).GOOGLE_TOKEN_ENDPOINT ??=
+  'http://localhost:18841/token';
+(process.env as Record<string, string | undefined>).GOOGLE_TOKENINFO_ENDPOINT ??=
+  'http://localhost:18841/tokeninfo';
 
 const {
   BRAIN_SESSION_TTL_SECONDS,
