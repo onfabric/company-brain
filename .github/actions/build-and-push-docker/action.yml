@@ -20,6 +20,10 @@ inputs:
   cache-scope:
     description: GitHub Actions cache scope; keep distinct per image to avoid collisions.
     required: true
+  target:
+    description: Optional Dockerfile target stage; empty builds the final stage.
+    required: false
+    default: ""
 
 outputs:
   image-tag:
@@ -55,6 +59,7 @@ runs:
       with:
         context: ${{ inputs.context }}
         file: ${{ inputs.dockerfile }}
+        target: ${{ inputs.target }}
         push: true
         tags: |
           ${{ steps.tags.outputs.commit }}

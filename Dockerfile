@@ -1,10 +1,22 @@
 # syntax=docker/dockerfile:1-labs
 
-# Build context must be the monorepo root. Build from the monorepo root with:
-#   docker build -f backend/Dockerfile -t company-brain/brain .
+# Monorepo image builder; context must be the repo root. Builds two images via
+# `--target`: the brain (default final stage) and the logto-setup provisioner,
+# which share the bun base stage so the version is pinned once.
+#   docker build -t company-brain/brain .
+#   docker build --target logto-setup -t company-brain/logto-setup .
 
+# Single source of truth for the bun base version across both images.
+# When updating, update it also in .bun-version and mise.toml.
 FROM oven/bun:1.3.14-slim AS base
 WORKDIR /monorepo
+
+# logto-setup provisioner: shares the bun base so the version is pinned once.
+# No runtime deps, so it skips the install/build stages entirely.
+FROM base AS logto-setup
+WORKDIR /app
+COPY logto-setup/src ./src
+ENTRYPOINT ["bun", "run", "src/configure.ts"]
 
 # Cache deps in a temp directory. Copy only the workspace manifests + lockfile
 # so this layer is reused whenever source changes but dependencies don't.

@@ -274,7 +274,7 @@ services:
     image: company-brain/brain:local
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     container_name: brain
     environment:
       - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}
@@ -334,8 +334,9 @@ services:
   logto-configure:
     image: company-brain/logto-setup:local
     build:
-      context: ./logto-setup
+      context: .
       dockerfile: Dockerfile
+      target: logto-setup
     container_name: logto-configure
     environment:
       LOGTO_UPSTREAM_URL: http://logto:3001
