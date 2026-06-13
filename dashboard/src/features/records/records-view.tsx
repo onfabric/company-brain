@@ -20,28 +20,7 @@ type RecordsViewProps = {
   search: RecordsRouteSearch;
 };
 
-const LOADING_ROW_KEYS = [
-  'loading-row-a',
-  'loading-row-b',
-  'loading-row-c',
-  'loading-row-d',
-  'loading-row-e',
-  'loading-row-f',
-  'loading-row-g',
-  'loading-row-h',
-  'loading-row-i',
-  'loading-row-j',
-  'loading-row-k',
-  'loading-row-l',
-  'loading-row-m',
-  'loading-row-n',
-  'loading-row-o',
-  'loading-row-p',
-  'loading-row-q',
-  'loading-row-r',
-  'loading-row-s',
-  'loading-row-t',
-];
+const SKELETON_ROW_KEYS = Array.from({ length: 20 }, (_, i) => `skeleton-row-${i}`);
 
 export function RecordsView({ search }: RecordsViewProps) {
   const navigate = useNavigate({ from: '/records' });
@@ -146,7 +125,7 @@ function selectedRecordFor(records: RecordHit[], selectedRecordId: string | unde
 function LoadingRows() {
   return (
     <div className="grid gap-3 p-4">
-      {LOADING_ROW_KEYS.map((key) => (
+      {SKELETON_ROW_KEYS.map((key) => (
         <Skeleton key={key} className="h-14 w-full" />
       ))}
     </div>
