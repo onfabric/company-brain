@@ -130,4 +130,22 @@ describe('mcp oauth', () => {
       });
     }
   });
+
+  it('serves RFC 8414 authorization server metadata at the issuer', async () => {
+    const res = await fetch(new URL('/api/auth/.well-known/oauth-authorization-server', baseUrl));
+    expect(res.status).toBe(StatusMap.OK);
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+    const metadata = (await res.json()) as {
+      issuer: string;
+      authorization_endpoint: string;
+      token_endpoint: string;
+      registration_endpoint: string;
+      jwks_uri: string;
+    };
+    expect(metadata.issuer).toBe(ISSUER);
+    expect(metadata.authorization_endpoint).toBeString();
+    expect(metadata.token_endpoint).toBeString();
+    expect(metadata.registration_endpoint).toBeString();
+    expect(metadata.jwks_uri).toBeString();
+  });
 });

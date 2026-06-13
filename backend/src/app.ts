@@ -1,11 +1,12 @@
 import { openapi } from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
 import { apiKeySecuritySchemes } from '#lib/api-key-auth.ts';
+import { betterAuthComponents, betterAuthPaths } from '#lib/auth-openapi.ts';
+import { authPlugin } from '#lib/auth-session.ts';
 import { brainSessionSecuritySchemes } from '#lib/browser-session-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { mcpBearerSecuritySchemes } from '#lib/mcp-oauth.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
-import { authController } from '#routes/api/auth/controller.ts';
 import { consentController } from '#routes/consent/controller.ts';
 import { dashboardController } from '#routes/dashboard/controller.ts';
 import { dataSourcesController } from '#routes/data-sources/controller.ts';
@@ -25,7 +26,11 @@ import { recordsController } from '#routes/records/controller.ts';
 import { sessionsController } from '#routes/sessions/controller.ts';
 import { signInController } from '#routes/sign-in/controller.ts';
 import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
+import { oauthAuthorizationServerController } from '#routes/well-known/oauth-authorization-server/controller.ts';
 import { oauthProtectedResourceController } from '#routes/well-known/oauth-protected-resource/controller.ts';
+
+const authPaths = await betterAuthPaths();
+const authComponents = await betterAuthComponents();
 
 export function createApp() {
   return new Elysia()
@@ -39,6 +44,7 @@ export function createApp() {
             title: 'Company Brain API',
             version: '1.0.0',
           },
+          paths: authPaths,
           tags: [
             {
               name: 'People',
@@ -66,7 +72,9 @@ export function createApp() {
             },
           ],
           components: {
+            ...authComponents,
             securitySchemes: {
+              ...authComponents.securitySchemes,
               ...apiKeySecuritySchemes,
               ...brainSessionSecuritySchemes,
               ...mcpBearerSecuritySchemes,
@@ -75,9 +83,10 @@ export function createApp() {
         },
       }),
     )
-    .use(authController)
+    .use(authPlugin)
     .use(signInController)
     .use(consentController)
+    .use(oauthAuthorizationServerController)
     .use(oauthProtectedResourceController)
     .use(dashboardController)
     .use(healthController)

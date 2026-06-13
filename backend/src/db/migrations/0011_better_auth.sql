@@ -1,105 +1,105 @@
-CREATE TABLE brain."user" (
-  id text PRIMARY KEY,
-  name text NOT NULL,
-  email text NOT NULL UNIQUE,
-  "emailVerified" boolean NOT NULL DEFAULT false,
-  image text,
-  "createdAt" timestamptz NOT NULL DEFAULT now(),
-  "updatedAt" timestamptz NOT NULL DEFAULT now()
+-- Generated with `bunx @better-auth/cli generate` and adapted to the `auth`
+-- schema: better-auth owns and manages these tables, so they live in their own
+-- schema rather than alongside the app-owned `brain.*` tables.
+CREATE SCHEMA IF NOT EXISTS auth;
+
+CREATE TABLE auth."user" (
+  "id" text NOT NULL PRIMARY KEY,
+  "name" text NOT NULL,
+  "email" text NOT NULL UNIQUE,
+  "emailVerified" boolean NOT NULL,
+  "image" text,
+  "createdAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE brain.session (
-  id text PRIMARY KEY,
+CREATE TABLE auth."session" (
+  "id" text NOT NULL PRIMARY KEY,
   "expiresAt" timestamptz NOT NULL,
-  token text NOT NULL UNIQUE,
-  "createdAt" timestamptz NOT NULL DEFAULT now(),
-  "updatedAt" timestamptz NOT NULL DEFAULT now(),
+  "token" text NOT NULL UNIQUE,
+  "createdAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" timestamptz NOT NULL,
   "ipAddress" text,
   "userAgent" text,
-  "userId" text NOT NULL REFERENCES brain."user" (id) ON DELETE CASCADE
+  "userId" text NOT NULL REFERENCES auth."user" ("id") ON DELETE CASCADE
 );
 
-CREATE INDEX session_user_id_idx ON brain.session ("userId");
-
-CREATE TABLE brain.account (
-  id text PRIMARY KEY,
+CREATE TABLE auth."account" (
+  "id" text NOT NULL PRIMARY KEY,
   "accountId" text NOT NULL,
   "providerId" text NOT NULL,
-  "userId" text NOT NULL REFERENCES brain."user" (id) ON DELETE CASCADE,
+  "userId" text NOT NULL REFERENCES auth."user" ("id") ON DELETE CASCADE,
   "accessToken" text,
   "refreshToken" text,
   "idToken" text,
   "accessTokenExpiresAt" timestamptz,
   "refreshTokenExpiresAt" timestamptz,
-  scope text,
-  password text,
-  "createdAt" timestamptz NOT NULL DEFAULT now(),
-  "updatedAt" timestamptz NOT NULL DEFAULT now()
+  "scope" text,
+  "password" text,
+  "createdAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" timestamptz NOT NULL
 );
 
-CREATE INDEX account_user_id_idx ON brain.account ("userId");
-
-CREATE TABLE brain.verification (
-  id text PRIMARY KEY,
-  identifier text NOT NULL,
-  value text NOT NULL,
+CREATE TABLE auth."verification" (
+  "id" text NOT NULL PRIMARY KEY,
+  "identifier" text NOT NULL,
+  "value" text NOT NULL,
   "expiresAt" timestamptz NOT NULL,
-  "createdAt" timestamptz NOT NULL DEFAULT now(),
-  "updatedAt" timestamptz NOT NULL DEFAULT now()
+  "createdAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX verification_identifier_idx ON brain.verification (identifier);
-
-CREATE TABLE brain.jwks (
-  id text PRIMARY KEY,
+CREATE TABLE auth."jwks" (
+  "id" text NOT NULL PRIMARY KEY,
   "publicKey" text NOT NULL,
   "privateKey" text NOT NULL,
   "createdAt" timestamptz NOT NULL,
   "expiresAt" timestamptz
 );
 
-CREATE TABLE brain."oauthApplication" (
-  id text PRIMARY KEY,
-  name text NOT NULL,
-  icon text,
-  metadata text,
+CREATE TABLE auth."oauthApplication" (
+  "id" text NOT NULL PRIMARY KEY,
+  "name" text NOT NULL,
+  "icon" text,
+  "metadata" text,
   "clientId" text NOT NULL UNIQUE,
   "clientSecret" text,
   "redirectUrls" text NOT NULL,
-  type text NOT NULL,
-  disabled boolean DEFAULT false,
-  "userId" text REFERENCES brain."user" (id) ON DELETE CASCADE,
+  "type" text NOT NULL,
+  "disabled" boolean,
+  "userId" text REFERENCES auth."user" ("id") ON DELETE CASCADE,
   "createdAt" timestamptz NOT NULL,
   "updatedAt" timestamptz NOT NULL
 );
 
-CREATE INDEX oauth_application_user_id_idx ON brain."oauthApplication" ("userId");
-
-CREATE TABLE brain."oauthAccessToken" (
-  id text PRIMARY KEY,
+CREATE TABLE auth."oauthAccessToken" (
+  "id" text NOT NULL PRIMARY KEY,
   "accessToken" text NOT NULL UNIQUE,
   "refreshToken" text NOT NULL UNIQUE,
   "accessTokenExpiresAt" timestamptz NOT NULL,
   "refreshTokenExpiresAt" timestamptz NOT NULL,
-  "clientId" text NOT NULL REFERENCES brain."oauthApplication" ("clientId") ON DELETE CASCADE,
-  "userId" text REFERENCES brain."user" (id) ON DELETE CASCADE,
-  scopes text NOT NULL,
+  "clientId" text NOT NULL REFERENCES auth."oauthApplication" ("clientId") ON DELETE CASCADE,
+  "userId" text REFERENCES auth."user" ("id") ON DELETE CASCADE,
+  "scopes" text NOT NULL,
   "createdAt" timestamptz NOT NULL,
   "updatedAt" timestamptz NOT NULL
 );
 
-CREATE INDEX oauth_access_token_client_id_idx ON brain."oauthAccessToken" ("clientId");
-CREATE INDEX oauth_access_token_user_id_idx ON brain."oauthAccessToken" ("userId");
-
-CREATE TABLE brain."oauthConsent" (
-  id text PRIMARY KEY,
-  "clientId" text NOT NULL REFERENCES brain."oauthApplication" ("clientId") ON DELETE CASCADE,
-  "userId" text NOT NULL REFERENCES brain."user" (id) ON DELETE CASCADE,
-  scopes text NOT NULL,
+CREATE TABLE auth."oauthConsent" (
+  "id" text NOT NULL PRIMARY KEY,
+  "clientId" text NOT NULL REFERENCES auth."oauthApplication" ("clientId") ON DELETE CASCADE,
+  "userId" text NOT NULL REFERENCES auth."user" ("id") ON DELETE CASCADE,
+  "scopes" text NOT NULL,
   "consentGiven" boolean NOT NULL,
   "createdAt" timestamptz NOT NULL,
   "updatedAt" timestamptz NOT NULL
 );
 
-CREATE INDEX oauth_consent_client_id_idx ON brain."oauthConsent" ("clientId");
-CREATE INDEX oauth_consent_user_id_idx ON brain."oauthConsent" ("userId");
+CREATE INDEX "session_userId_idx" ON auth."session" ("userId");
+CREATE INDEX "account_userId_idx" ON auth."account" ("userId");
+CREATE INDEX "verification_identifier_idx" ON auth."verification" ("identifier");
+CREATE INDEX "oauthApplication_userId_idx" ON auth."oauthApplication" ("userId");
+CREATE INDEX "oauthAccessToken_clientId_idx" ON auth."oauthAccessToken" ("clientId");
+CREATE INDEX "oauthAccessToken_userId_idx" ON auth."oauthAccessToken" ("userId");
+CREATE INDEX "oauthConsent_clientId_idx" ON auth."oauthConsent" ("clientId");
+CREATE INDEX "oauthConsent_userId_idx" ON auth."oauthConsent" ("userId");

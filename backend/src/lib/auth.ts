@@ -1,22 +1,14 @@
 import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
-import { jwt, oidcProvider } from 'better-auth/plugins';
-import { Pool } from 'pg';
+import { jwt, oidcProvider, openAPI } from 'better-auth/plugins';
+import { sql } from '#db/client.ts';
+import { bunSqlAdapter } from '#lib/auth-adapter.ts';
 import { env, WORKSPACE_DOMAIN } from '#lib/env.ts';
 
 export const SIGN_IN_PATH = '/sign-in';
 export const CONSENT_PATH = '/consent';
 export const MCP_SCOPE = 'mcp';
-
-// better-auth speaks Kysely/pg, while the rest of the brain uses Bun.sql. They
-// share the same connection string and database; better-auth gets its own pool
-// so its adapter stays self-contained. Its tables live in the `brain` schema
-// (created by migration 0011), reached via the connection's search_path since
-// better-auth issues unqualified queries.
-const pool = new Pool({
-  connectionString: env.databaseUrl,
-  options: '-c search_path=brain',
-});
+export const AUTH_BASE_PATH = '/api/auth';
 
 function isWorkspaceEmail(email: string): boolean {
   return email.toLowerCase().endsWith(`@${WORKSPACE_DOMAIN}`);
@@ -24,9 +16,11 @@ function isWorkspaceEmail(email: string): boolean {
 
 export const auth = betterAuth({
   baseURL: env.publicUrl.href,
-  basePath: '/api/auth',
+  basePath: AUTH_BASE_PATH,
   secret: env.betterAuthSecret,
-  database: pool,
+  // better-auth runs on the same Bun.sql client as the rest of the brain, via a
+  // custom adapter that targets its own `auth` schema (migration 0011).
+  database: bunSqlAdapter(sql),
   trustedOrigins: [env.publicUrl.origin],
   socialProviders: {
     google: {
@@ -63,6 +57,7 @@ export const auth = betterAuth({
       useJWTPlugin: true,
       scopes: ['openid', 'profile', 'email', 'offline_access', MCP_SCOPE],
     }),
+    openAPI(),
   ],
 });
 
