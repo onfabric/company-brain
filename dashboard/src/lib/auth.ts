@@ -12,9 +12,12 @@ export type AuthContext = {
   signOut: () => Promise<void>;
 };
 
+// Absolute URL on purpose: the sign-in page is served by the backend, outside
+// the SPA basepath. An absolute href makes TanStack's redirect do a full
+// document navigation instead of an in-router one that would prepend basepath.
 export function signInUrl() {
   const callbackURL = window.location.pathname + window.location.search;
-  return `${SIGN_IN_PATH}?callbackURL=${encodeURIComponent(callbackURL)}`;
+  return `${window.location.origin}${SIGN_IN_PATH}?callbackURL=${encodeURIComponent(callbackURL)}`;
 }
 
 export function redirectToSignIn() {
