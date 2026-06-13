@@ -11,7 +11,7 @@ export function registerKnowledgeTypeTools(
     {
       name: 'get_knowledge_types',
       description:
-        'List knowledge types as JSON. Use these ids when creating or updating knowledge items.',
+        'List knowledge types as JSON. Use exact names when searching, creating, or updating knowledge items.',
       annotations: { readOnlyHint: true },
     },
     () => readJson(async () => ({ knowledge_types: await knowledgeTypes.list() })),

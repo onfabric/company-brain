@@ -23,9 +23,9 @@ management, and source-record discovery to agents. It is OAuth-gated; the REST
 Discovery tools:
 
 - `get_index_page`, `get_page` — read navigable HTML knowledge pages.
-- `get_knowledge_types` — find type ids for knowledge writes.
-- `get_people` — find person ids for knowledge writes and readable people
-  filters for records.
+- `get_knowledge_types` — find exact type names for knowledge tools.
+- `get_people` — find exact person names or emails for knowledge tools and
+  readable people filters for records.
 - `get_data_sources`, `get_records` — discover source records.
 
 Knowledge tools:
@@ -34,9 +34,9 @@ Knowledge tools:
 - `create_knowledge`, `update_knowledge`, `delete_knowledge`
 - `create_knowledge_type`, `update_knowledge_type`
 
-Knowledge write tools use ids for `knowledge_type_id`, `person_ids`, and
-`record_ids`; discover those ids before writing. Paginated MCP tools cap `limit`
-at 50.
+Knowledge tools use exact `knowledge_type` names, exact `people` names or
+emails, and `record_ids`; discover those values before writing. Paginated MCP
+tools cap `limit` at 50.
 
 Example client configuration:
 

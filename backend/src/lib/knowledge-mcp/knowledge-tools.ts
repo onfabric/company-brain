@@ -1,8 +1,13 @@
 import type { MCPServer } from 'mcp-use/server';
 import { z } from 'zod';
 import { BadRequestError } from '#lib/errors.ts';
+import { requirePersonIds, resolvePersonIds } from '#lib/knowledge-mcp/people-resolution.ts';
 import { readJson } from '#lib/knowledge-mcp/respond.ts';
-import type { KnowledgeReader } from '#lib/knowledge-mcp/types.ts';
+import type {
+  KnowledgeReader,
+  KnowledgeTypesReader,
+  PeopleReader,
+} from '#lib/knowledge-mcp/types.ts';
 import {
   KNOWLEDGE_RESULT_VIEWS,
   KNOWLEDGE_SORT_FIELDS,
@@ -19,11 +24,15 @@ const CreateKnowledgeSchema = z.object({
     .string()
     .min(1)
     .describe('Sanitized HTML fragment containing the full distilled content of the knowledge.'),
-  knowledge_type_id: z.uuid().describe('Knowledge type id from get_knowledge_types.'),
-  person_ids: z
-    .array(z.uuid())
+  knowledge_type: z
+    .string()
+    .trim()
+    .min(1)
+    .describe('Exact knowledge type name from get_knowledge_types.'),
+  people: z
+    .array(z.string().trim().min(1))
     .optional()
-    .describe('Participant person ids from get_people. Defaults to none.'),
+    .describe('Exact participant names or emails from get_people. Defaults to none.'),
   record_ids: z
     .array(z.uuid())
     .optional()
@@ -39,11 +48,16 @@ const UpdateKnowledgeSchema = z
       .min(1)
       .optional()
       .describe('Sanitized HTML fragment containing the full distilled content of the knowledge.'),
-    knowledge_type_id: z.uuid().optional().describe('Knowledge type id from get_knowledge_types.'),
-    person_ids: z
-      .array(z.uuid())
+    knowledge_type: z
+      .string()
+      .trim()
+      .min(1)
       .optional()
-      .describe('Replaces the full participant set when present.'),
+      .describe('Exact knowledge type name from get_knowledge_types.'),
+    people: z
+      .array(z.string().trim().min(1))
+      .optional()
+      .describe('Replaces the full participant set with people matched by exact name or email.'),
     record_ids: z
       .array(z.uuid())
       .optional()
@@ -54,25 +68,34 @@ const UpdateKnowledgeSchema = z
     { message: 'At least one update field must be provided.' },
   );
 
-export function registerKnowledgeTools(server: MCPServer<true>, knowledge: KnowledgeReader) {
+export function registerKnowledgeTools(
+  server: MCPServer<true>,
+  knowledge: KnowledgeReader,
+  people: PeopleReader,
+  knowledgeTypes: KnowledgeTypesReader,
+) {
   server.tool(
     {
       name: 'search_knowledge',
       description:
         'Search or list distilled knowledge as paginated JSON. Mirrors the knowledge API with ' +
-        'optional filters for type id, participant ids, result view, and sorting. ' +
+        'optional filters for exact type name, exact participant names or emails, result view, and sorting. ' +
         'Use limit and offset for pagination; limit cannot exceed 50.',
       schema: z.object({
         q: z.string().min(1).optional().describe('Optional full-text query over title and body.'),
-        knowledge_type_id: z
-          .uuid()
-          .optional()
-          .describe('Restrict results to a single knowledge type id.'),
-        person_ids: z
-          .array(z.uuid())
+        knowledge_type: z
+          .string()
+          .trim()
           .min(1)
           .optional()
-          .describe('Restrict results to knowledge linked to any of these people.'),
+          .describe(
+            'Restrict results to a single exact knowledge type name from get_knowledge_types.',
+          ),
+        people: z
+          .array(z.string().trim().min(1))
+          .min(1)
+          .optional()
+          .describe('Restrict results to people whose name or email exactly matches any value.'),
         sort_by: z
           .enum(KNOWLEDGE_SORT_FIELDS)
           .optional()
@@ -101,19 +124,36 @@ export function registerKnowledgeTools(server: MCPServer<true>, knowledge: Knowl
       }),
       annotations: { readOnlyHint: true },
     },
-    ({ q, knowledge_type_id, person_ids, sort_by, sort_order, view, limit, offset }) =>
-      readJson(() =>
-        knowledge.search({
+    ({
+      q,
+      knowledge_type,
+      people: personNamesOrEmails,
+      sort_by,
+      sort_order,
+      view,
+      limit,
+      offset,
+    }) =>
+      readJson(async () => {
+        const page = {
+          limit: limit ?? DEFAULT_KNOWLEDGE_LIMIT,
+          offset: offset ?? DEFAULT_KNOWLEDGE_OFFSET,
+        };
+        const knowledgeTypeId = await resolveKnowledgeTypeId(knowledgeTypes, knowledge_type);
+        const personIds = await resolvePersonIds(people, personNamesOrEmails);
+        if (knowledgeTypeId === null || personIds?.length === 0) {
+          return emptyKnowledgePage(page.limit, page.offset);
+        }
+        return knowledge.search({
           query: q,
-          knowledgeTypeId: knowledge_type_id,
-          personIds: person_ids,
+          knowledgeTypeId,
+          personIds,
           sortBy: sort_by,
           sortOrder: sort_order,
           view,
-          limit: limit ?? DEFAULT_KNOWLEDGE_LIMIT,
-          offset: offset ?? DEFAULT_KNOWLEDGE_OFFSET,
-        }),
-      ),
+          ...page,
+        });
+      }),
   );
 
   server.tool(
@@ -132,18 +172,18 @@ export function registerKnowledgeTools(server: MCPServer<true>, knowledge: Knowl
     {
       name: 'create_knowledge',
       description:
-        'Create a distilled knowledge item. Body is sanitized HTML. Use ids from get_knowledge_types, ' +
-        'get_people, and get_records for references.',
+        'Create a distilled knowledge item. Body is sanitized HTML. Use exact names from ' +
+        'get_knowledge_types and get_people, plus record ids from get_records, for references.',
       schema: CreateKnowledgeSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
-    ({ title, body, knowledge_type_id, person_ids, record_ids }) =>
-      readJson(() =>
+    ({ title, body, knowledge_type, people: personNamesOrEmails, record_ids }) =>
+      readJson(async () =>
         knowledge.create({
           title,
           body,
-          knowledge_type_id,
-          person_ids: person_ids ?? [],
+          knowledge_type_id: await requireKnowledgeTypeId(knowledgeTypes, knowledge_type),
+          person_ids: await requirePersonIds(people, personNamesOrEmails),
           record_ids: record_ids ?? [],
         }),
       ),
@@ -153,18 +193,18 @@ export function registerKnowledgeTools(server: MCPServer<true>, knowledge: Knowl
     {
       name: 'update_knowledge',
       description:
-        'Update a distilled knowledge item. Only included fields are changed. person_ids and ' +
+        'Update a distilled knowledge item. Only included fields are changed. people and ' +
         'record_ids replace their full sets when present.',
       schema: UpdateKnowledgeSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
-    ({ id, title, body, knowledge_type_id, person_ids, record_ids }) =>
-      readJson(() => {
+    ({ id, title, body, knowledge_type, people: personNamesOrEmails, record_ids }) =>
+      readJson(async () => {
         if (
           title === undefined &&
           body === undefined &&
-          knowledge_type_id === undefined &&
-          person_ids === undefined &&
+          knowledge_type === undefined &&
+          personNamesOrEmails === undefined &&
           record_ids === undefined
         ) {
           throw new BadRequestError('At least one update field must be provided.');
@@ -172,8 +212,14 @@ export function registerKnowledgeTools(server: MCPServer<true>, knowledge: Knowl
         return knowledge.update(id, {
           title,
           body,
-          knowledge_type_id,
-          person_ids,
+          knowledge_type_id:
+            knowledge_type === undefined
+              ? undefined
+              : await requireKnowledgeTypeId(knowledgeTypes, knowledge_type),
+          person_ids:
+            personNamesOrEmails === undefined
+              ? undefined
+              : await requirePersonIds(people, personNamesOrEmails),
           record_ids,
         });
       }),
@@ -191,4 +237,30 @@ export function registerKnowledgeTools(server: MCPServer<true>, knowledge: Knowl
     },
     ({ id }) => readJson(async () => ({ id: await knowledge.remove(id) })),
   );
+}
+
+async function resolveKnowledgeTypeId(
+  knowledgeTypes: KnowledgeTypesReader,
+  knowledgeTypeName: string | undefined,
+): Promise<string | null | undefined> {
+  if (knowledgeTypeName === undefined) {
+    return undefined;
+  }
+  const types = await knowledgeTypes.list();
+  return types.find((type) => type.name === knowledgeTypeName)?.id ?? null;
+}
+
+async function requireKnowledgeTypeId(
+  knowledgeTypes: KnowledgeTypesReader,
+  knowledgeTypeName: string,
+): Promise<string> {
+  const id = await resolveKnowledgeTypeId(knowledgeTypes, knowledgeTypeName);
+  if (!id) {
+    throw new BadRequestError(`unknown knowledge_type: ${knowledgeTypeName}`);
+  }
+  return id;
+}
+
+function emptyKnowledgePage(limit: number, offset: number) {
+  return { total: offset === 0 ? 0 : null, limit, offset, results: [] };
 }

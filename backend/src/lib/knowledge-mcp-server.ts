@@ -30,8 +30,8 @@ const AUTH_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'] as con
 const INSTRUCTIONS =
   'Access to the company knowledge base, distilled knowledge entries, knowledge types, and source records. ' +
   'Call get_index_page first for navigable HTML pages, or search_knowledge for structured JSON entries. ' +
-  'Use get_knowledge_types, get_people, get_data_sources, and get_records to discover ids and filters before writing. ' +
-  'Knowledge write tools use ids for knowledge_type_id, person_ids, and record_ids. Pages and paginated results contain at most 50 items.';
+  'Use get_knowledge_types, get_people, get_data_sources, and get_records to discover readable filters and record ids before writing. ' +
+  'Knowledge tools use exact knowledge_type names, exact people names or emails, and record_ids. Pages and paginated results contain at most 50 items.';
 
 export function createKnowledgeMcpServer(
   services: KnowledgeMcpServices,
@@ -49,7 +49,7 @@ export function createKnowledgeMcpServer(
 
   registerKnowledgePageTools(server, services.knowledge);
   registerRecordTools(server, services.records, services.people);
-  registerKnowledgeTools(server, services.knowledge);
+  registerKnowledgeTools(server, services.knowledge, services.people, services.knowledgeTypes);
   registerKnowledgeTypeTools(server, services.knowledgeTypes);
 
   return server;

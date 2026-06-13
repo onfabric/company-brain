@@ -22,6 +22,7 @@ import type {
 const KNOWLEDGE_ID = '019e8882-07f1-771c-993e-f6825a9224bb';
 const LINKED_KNOWLEDGE_ID = '019e8882-07f1-771c-993e-f6825a9224bc';
 const KNOWLEDGE_TYPE_ID = '019e8882-07f1-77ad-bcc8-bccf9c4b81c8';
+const KNOWLEDGE_TYPE_NAME = 'decision';
 const DATA_SOURCE_ID = '019e8882-07f1-77a0-b4cf-5798eafb4664';
 const DATA_SOURCE_KEY = 'slack';
 const PERSON_ID = '019e8882-07f1-779b-9a26-56602bcd1b3f';
@@ -38,7 +39,7 @@ const KNOWLEDGE_ITEM: KnowledgeItem = {
   title: 'Q1 pricing decision',
   body: '<p>Keep the starter tier free.</p>',
   html_url: `/knowledge/pages/${KNOWLEDGE_ID}`,
-  knowledge_type: { id: KNOWLEDGE_TYPE_ID, name: 'decision' },
+  knowledge_type: { id: KNOWLEDGE_TYPE_ID, name: KNOWLEDGE_TYPE_NAME },
   participants: [
     {
       id: PERSON_ID,
@@ -208,13 +209,18 @@ class MockPeopleReader implements PeopleReader {
 }
 
 class MockKnowledgeTypesReader implements KnowledgeTypesReader {
+  listCalls = 0;
   readonly createCalls: string[] = [];
   readonly updateCalls: Array<{ id: string; name: string }> = [];
 
-  constructor(private readonly errors: Partial<Record<'create' | 'update', Error>> = {}) {}
+  constructor(
+    private readonly errors: Partial<Record<'create' | 'update', Error>> = {},
+    private readonly knowledgeTypes = [{ id: KNOWLEDGE_TYPE_ID, name: KNOWLEDGE_TYPE_NAME }],
+  ) {}
 
   list() {
-    return Promise.resolve([{ id: KNOWLEDGE_TYPE_ID, name: 'decision' }]);
+    this.listCalls += 1;
+    return Promise.resolve(this.knowledgeTypes);
   }
 
   create(name: string) {
@@ -271,6 +277,9 @@ describe('knowledge mcp server', () => {
     const { client } = await connectClient();
     const { tools } = await client.listTools();
     const toolNames = tools.map((tool) => tool.name).sort();
+    const inputProperties = Object.fromEntries(
+      tools.map((tool) => [tool.name, Object.keys(tool.inputSchema.properties ?? {})]),
+    );
 
     expect(toolNames).toEqual([
       'create_knowledge',
@@ -288,6 +297,10 @@ describe('knowledge mcp server', () => {
       'update_knowledge_type',
     ]);
     expect(toolNames).not.toContain('delete_knowledge_type');
+    for (const toolName of ['search_knowledge', 'create_knowledge', 'update_knowledge']) {
+      expect(inputProperties[toolName]).not.toContain('knowledge_type_id');
+      expect(inputProperties[toolName]).not.toContain('person_ids');
+    }
   });
 
   it('marks delete_knowledge as destructive', async () => {
@@ -410,7 +423,7 @@ describe('knowledge mcp server', () => {
     });
   });
 
-  it('returns people with ids for record filters and knowledge writes', async () => {
+  it('returns people with readable identities for filters and knowledge writes', async () => {
     const people = new MockPeopleReader();
     const { client } = await connectClient({ people });
 
@@ -497,14 +510,16 @@ describe('knowledge mcp server', () => {
 
   it('passes knowledge search filters through to the service', async () => {
     const knowledge = new MockKnowledgeReader();
-    const { client } = await connectClient({ knowledge });
+    const people = new MockPeopleReader();
+    const knowledgeTypes = new MockKnowledgeTypesReader();
+    const { client } = await connectClient({ knowledge, people, knowledgeTypes });
 
     const result = (await client.callTool({
       name: 'search_knowledge',
       arguments: {
         q: 'pricing',
-        knowledge_type_id: KNOWLEDGE_TYPE_ID,
-        person_ids: [PERSON_ID],
+        knowledge_type: KNOWLEDGE_TYPE_NAME,
+        people: [PERSON_EMAIL],
         sort_by: 'relevance',
         sort_order: 'asc',
         view: 'full',
@@ -514,6 +529,8 @@ describe('knowledge mcp server', () => {
     })) as CallToolResult;
 
     expect(result.isError).toBeFalsy();
+    expect(knowledgeTypes.listCalls).toBe(1);
+    expect(people.findCalls).toEqual([[PERSON_EMAIL]]);
     expect(knowledge.searchCalls).toEqual([
       {
         query: 'pricing',
@@ -531,6 +548,47 @@ describe('knowledge mcp server', () => {
       limit: 50,
       offset: 50,
       results: [{ id: KNOWLEDGE_ID, score: 0.9 }],
+    });
+  });
+
+  it('returns an empty knowledge page when readable filters do not resolve', async () => {
+    const missingPersonKnowledge = new MockKnowledgeReader();
+    const missingPersonPeople = new MockPeopleReader();
+    const missingPerson = await connectClient({
+      knowledge: missingPersonKnowledge,
+      people: missingPersonPeople,
+    });
+    const missingTypeKnowledge = new MockKnowledgeReader();
+    const missingType = await connectClient({
+      knowledge: missingTypeKnowledge,
+      knowledgeTypes: new MockKnowledgeTypesReader({}, []),
+    });
+
+    const missingPersonResult = (await missingPerson.client.callTool({
+      name: 'search_knowledge',
+      arguments: { people: ['Unknown Person'], limit: 10, offset: 0 },
+    })) as CallToolResult;
+    const missingTypeResult = (await missingType.client.callTool({
+      name: 'search_knowledge',
+      arguments: { knowledge_type: KNOWLEDGE_TYPE_NAME, limit: 10, offset: 50 },
+    })) as CallToolResult;
+
+    expect(missingPersonResult.isError).toBeFalsy();
+    expect(missingTypeResult.isError).toBeFalsy();
+    expect(missingPersonPeople.findCalls).toEqual([['Unknown Person']]);
+    expect(missingPersonKnowledge.searchCalls).toEqual([]);
+    expect(missingTypeKnowledge.searchCalls).toEqual([]);
+    expect(parseJsonContent(missingPersonResult)).toEqual({
+      total: 0,
+      limit: 10,
+      offset: 0,
+      results: [],
+    });
+    expect(parseJsonContent(missingTypeResult)).toEqual({
+      total: null,
+      limit: 10,
+      offset: 50,
+      results: [],
     });
   });
 
@@ -566,22 +624,26 @@ describe('knowledge mcp server', () => {
     ]);
   });
 
-  it('creates knowledge with id-based references', async () => {
+  it('creates knowledge with readable type and people references', async () => {
     const knowledge = new MockKnowledgeReader();
-    const { client } = await connectClient({ knowledge });
+    const people = new MockPeopleReader();
+    const knowledgeTypes = new MockKnowledgeTypesReader();
+    const { client } = await connectClient({ knowledge, people, knowledgeTypes });
 
     const result = (await client.callTool({
       name: 'create_knowledge',
       arguments: {
         title: KNOWLEDGE_ITEM.title,
         body: KNOWLEDGE_ITEM.body,
-        knowledge_type_id: KNOWLEDGE_TYPE_ID,
-        person_ids: [PERSON_ID],
+        knowledge_type: KNOWLEDGE_TYPE_NAME,
+        people: [PERSON_NAME],
         record_ids: [RECORD_ID],
       },
     })) as CallToolResult;
 
     expect(result.isError).toBeFalsy();
+    expect(knowledgeTypes.listCalls).toBe(1);
+    expect(people.findCalls).toEqual([[PERSON_NAME]]);
     expect(knowledge.createCalls).toEqual([
       {
         title: KNOWLEDGE_ITEM.title,
@@ -597,7 +659,7 @@ describe('knowledge mcp server', () => {
   it('maps create knowledge service errors to tool errors', async () => {
     const { client } = await connectClient({
       knowledge: new MockKnowledgeReader({
-        create: new BadRequestError(`unknown knowledge_type_id: ${KNOWLEDGE_TYPE_ID}`),
+        create: new BadRequestError(`unknown record_ids: ${RECORD_ID}`),
       }),
     });
 
@@ -606,37 +668,73 @@ describe('knowledge mcp server', () => {
       arguments: {
         title: KNOWLEDGE_ITEM.title,
         body: KNOWLEDGE_ITEM.body,
-        knowledge_type_id: KNOWLEDGE_TYPE_ID,
+        knowledge_type: KNOWLEDGE_TYPE_NAME,
+        record_ids: [RECORD_ID],
       },
     })) as CallToolResult;
 
     expect(result.isError).toBe(true);
-    expect(result.content).toEqual([
-      { type: 'text', text: `unknown knowledge_type_id: ${KNOWLEDGE_TYPE_ID}` },
+    expect(result.content).toEqual([{ type: 'text', text: `unknown record_ids: ${RECORD_ID}` }]);
+  });
+
+  it('rejects unknown readable knowledge write references', async () => {
+    const unknownType = await connectClient({
+      knowledgeTypes: new MockKnowledgeTypesReader({}, []),
+    });
+    const unknownPerson = await connectClient();
+
+    const typeResult = (await unknownType.client.callTool({
+      name: 'create_knowledge',
+      arguments: {
+        title: KNOWLEDGE_ITEM.title,
+        body: KNOWLEDGE_ITEM.body,
+        knowledge_type: KNOWLEDGE_TYPE_NAME,
+      },
+    })) as CallToolResult;
+    const personResult = (await unknownPerson.client.callTool({
+      name: 'create_knowledge',
+      arguments: {
+        title: KNOWLEDGE_ITEM.title,
+        body: KNOWLEDGE_ITEM.body,
+        knowledge_type: KNOWLEDGE_TYPE_NAME,
+        people: ['Unknown Person'],
+      },
+    })) as CallToolResult;
+
+    expect(typeResult.isError).toBe(true);
+    expect(personResult.isError).toBe(true);
+    expect(typeResult.content).toEqual([
+      { type: 'text', text: `unknown knowledge_type: ${KNOWLEDGE_TYPE_NAME}` },
+    ]);
+    expect(personResult.content).toEqual([
+      { type: 'text', text: 'unknown people: Unknown Person' },
     ]);
   });
 
   it('updates knowledge with partial fields', async () => {
     const knowledge = new MockKnowledgeReader();
-    const { client } = await connectClient({ knowledge });
+    const knowledgeTypes = new MockKnowledgeTypesReader();
+    const { client } = await connectClient({ knowledge, knowledgeTypes });
 
     const result = (await client.callTool({
       name: 'update_knowledge',
       arguments: {
         id: KNOWLEDGE_ID,
         title: 'New title',
-        person_ids: [],
+        knowledge_type: KNOWLEDGE_TYPE_NAME,
+        people: [],
       },
     })) as CallToolResult;
 
     expect(result.isError).toBeFalsy();
+    expect(knowledgeTypes.listCalls).toBe(1);
     expect(knowledge.updateCalls).toEqual([
       {
         id: KNOWLEDGE_ID,
         input: {
           title: 'New title',
           body: undefined,
-          knowledge_type_id: undefined,
+          knowledge_type_id: KNOWLEDGE_TYPE_ID,
           person_ids: [],
           record_ids: undefined,
         },

@@ -1,5 +1,6 @@
 import type { MCPServer } from 'mcp-use/server';
 import { z } from 'zod';
+import { resolvePersonIds } from '#lib/knowledge-mcp/people-resolution.ts';
 import { readJson } from '#lib/knowledge-mcp/respond.ts';
 import type { DataSource, PeopleReader, Person, RecordsReader } from '#lib/knowledge-mcp/types.ts';
 import { PERSON_SORT_FIELDS, PERSON_SORT_ORDERS } from '#repositories/people.repository.ts';
@@ -139,8 +140,8 @@ export function registerRecordTools(
     {
       name: 'get_people',
       description:
-        'List people available for get_records and knowledge write tools. People without a name ' +
-        'or email are omitted from record filters, but returned ids can be used in knowledge tools.',
+        'List people available for get_records and knowledge tools. Use exact names or emails ' +
+        'from this response when filtering records or linking knowledge.',
       schema: z.object({
         q: z
           .string()
@@ -201,17 +202,6 @@ async function resolveDataSourceId(
   }
   const { sources } = await records.listSources();
   return sources.find((source) => source.data_source_key === dataSourceKey)?.data_source_id ?? null;
-}
-
-async function resolvePersonIds(
-  people: PeopleReader,
-  namesOrEmails: string[] | undefined,
-): Promise<string[] | undefined> {
-  if (namesOrEmails === undefined) {
-    return undefined;
-  }
-  const matches = await people.findByNameOrEmail(namesOrEmails);
-  return [...new Set(matches.map((person) => person.id))];
 }
 
 function emptyRecordsPage(limit: number, offset: number) {
