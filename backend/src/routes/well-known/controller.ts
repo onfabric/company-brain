@@ -48,7 +48,7 @@ export const wellKnownController = new Elysia()
   .get(
     '/.well-known/oauth-protected-resource/mcp',
     ({ set }) => {
-      Object.assign(set.headers, CORS_HEADERS);
+      set.headers = { ...CORS_HEADERS };
       return protectedResource;
     },
     { response: { [StatusMap.OK]: ProtectedResourceMetadataSchema }, detail: { hide: true } },
@@ -56,7 +56,7 @@ export const wellKnownController = new Elysia()
   .get(
     '/.well-known/oauth-protected-resource',
     ({ set }) => {
-      Object.assign(set.headers, CORS_HEADERS);
+      set.headers = { ...CORS_HEADERS };
       return protectedResource;
     },
     { response: { [StatusMap.OK]: ProtectedResourceMetadataSchema }, detail: { hide: true } },
