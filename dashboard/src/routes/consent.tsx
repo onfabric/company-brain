@@ -12,9 +12,17 @@ import { approveConsent } from '#/features/auth/oauth.ts';
 // search parser collapses into a single JSON-array value and breaks the signature.
 // better-auth only ever reaches this page via a full-document redirect, so
 // `window.location.search` is the verbatim signed query.
+//
+// The grant is single-use, but `beforeLoad` can run more than once per page load
+// (router load/validation lifecycle). Memoise the request so it fires exactly
+// once: a duplicate call would fail — the grant is already spent — and flash a
+// spurious error over the (successful) redirect.
+let grant: Promise<string | null> | undefined;
+
 export const Route = createFileRoute('/consent')({
   beforeLoad: async () => {
-    const url = await approveConsent(window.location.search);
+    grant ??= approveConsent(window.location.search);
+    const url = await grant;
     if (!url) {
       throw new Error('Could not complete authorization. Please try again.');
     }
