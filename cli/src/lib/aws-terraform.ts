@@ -43,12 +43,7 @@ export async function applyAwsTerraform(
   );
 
   terraformConfig = await withFreshAwsCredentials(config, context);
-  await runVisible([terraform, 'untaint', '-allow-missing', 'aws_default_subnet.app'], context, {
-    cwd: terraformPath,
-    env: terraformEnv(terraformConfig),
-    approve: true,
-    purpose: 'Clear stale Terraform taint on the adopted default subnet.',
-  });
+  await clearDefaultSubnetTaintIfPresent(terraform, terraformConfig, context);
 
   terraformConfig = await withFreshAwsCredentials(config, context);
   await runVisible([terraform, 'plan', '-input=false', `-out=${TF_PLAN}`, ...vars], context, {
@@ -157,6 +152,51 @@ async function terraformPlanDeletes(
 
   return (
     plan.resource_changes?.some((change) => change.change?.actions?.includes('delete')) ?? false
+  );
+}
+
+async function clearDefaultSubnetTaintIfPresent(
+  terraform: string,
+  config: AwsConfig & AwsCredentialConfig,
+  context: VisibleCommandContext,
+): Promise<void> {
+  const state = await runVisible([terraform, 'state', 'pull'], context, {
+    cwd: terraformPath,
+    env: terraformEnv(config),
+    capture: true,
+    purpose: 'Check whether the adopted default subnet is tainted in Terraform state.',
+  });
+
+  if (!hasTaintedResource(state, 'aws_default_subnet', 'app')) {
+    console.log('The adopted default subnet is not tainted; continuing.');
+    return;
+  }
+
+  await runVisible([terraform, 'untaint', '-allow-missing', 'aws_default_subnet.app'], context, {
+    cwd: terraformPath,
+    env: terraformEnv(config),
+    approve: true,
+    purpose: 'Clear stale Terraform taint on the adopted default subnet.',
+  });
+}
+
+export function hasTaintedResource(stateJson: string, type: string, name: string): boolean {
+  const state = JSON.parse(stateJson) as {
+    resources?: {
+      mode?: string;
+      type?: string;
+      name?: string;
+      instances?: { status?: string }[];
+    }[];
+  };
+
+  return (
+    state.resources
+      ?.find(
+        (resource) =>
+          resource.mode === 'managed' && resource.type === type && resource.name === name,
+      )
+      ?.instances?.some((instance) => instance.status === 'tainted') ?? false
   );
 }
 
