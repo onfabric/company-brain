@@ -3,6 +3,7 @@ import { Home, Loader2, RefreshCw } from 'lucide-react';
 import type { ReactNode, SyntheticEvent } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card } from '#/components/ui/card.tsx';
+import { brainPath } from '#/lib/brain-client.ts';
 import { type KnowledgePreview, listKnowledge, listKnowledgeTypes } from '#/lib/brain-functions.ts';
 
 type KnowledgeExplorerProps = {
@@ -10,9 +11,13 @@ type KnowledgeExplorerProps = {
   onSelect: (knowledgeId: string | undefined) => void;
 };
 
-const KNOWLEDGE_PAGE_PATH_PATTERN =
-  /^\/api\/knowledge\/pages\/(?<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
-const KNOWLEDGE_INDEX_PAGE_PATH = '/api/knowledge/pages/index';
+const KNOWLEDGE_PAGE_ROUTE = '/api/knowledge/pages/:id';
+const UUID_PATTERN = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const KNOWLEDGE_PAGE_PATH_PATTERN = new RegExp(
+  `^${KNOWLEDGE_PAGE_ROUTE.replace(':id', `(?<id>${UUID_PATTERN})`)}$`,
+  'i',
+);
+const KNOWLEDGE_INDEX_PAGE_PATH = brainPath('/api/knowledge/pages/index');
 const KNOWLEDGE_INDEX_TYPE = 'index';
 const KNOWLEDGE_INDEX_LIMIT = 2;
 
@@ -118,7 +123,7 @@ async function getKnowledgeIndex(): Promise<KnowledgePreview> {
 }
 
 function knowledgePageSrc(id: string | undefined) {
-  return id ? `/api/knowledge/pages/${id}` : KNOWLEDGE_INDEX_PAGE_PATH;
+  return id ? brainPath(KNOWLEDGE_PAGE_ROUTE, { id }) : KNOWLEDGE_INDEX_PAGE_PATH;
 }
 
 function knowledgePathFromFrame(frame: HTMLIFrameElement) {

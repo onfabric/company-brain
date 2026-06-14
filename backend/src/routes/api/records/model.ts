@@ -1,20 +1,15 @@
 import { t } from 'elysia';
+import { literalUnion } from '#lib/typebox.ts';
 import { RECORD_SORT_FIELDS, RECORD_SORT_ORDERS } from '#repositories/records.repository.ts';
 
-const RecordSortFieldSchema = t.Union(
-  RECORD_SORT_FIELDS.map((field) => t.Literal(field)),
-  {
-    description:
-      'Field used to order records. Defaults to relevance when q is present, otherwise created_at.',
-  },
-);
+const RecordSortFieldSchema = literalUnion(RECORD_SORT_FIELDS, {
+  description:
+    'Field used to order records. Defaults to relevance when q is present, otherwise created_at.',
+});
 
-const RecordSortOrderSchema = t.Union(
-  RECORD_SORT_ORDERS.map((order) => t.Literal(order)),
-  {
-    description: 'Direction used for the selected sort field.',
-  },
-);
+const RecordSortOrderSchema = literalUnion(RECORD_SORT_ORDERS, {
+  description: 'Direction used for the selected sort field.',
+});
 
 export const RecordsQuerySchema = t.Object({
   q: t.Optional(

@@ -3,7 +3,7 @@ import {
   cleanRouteSearch,
   dayKey,
   normalizeRouteSearch,
-  toRecordsQueryInput,
+  toListRecordsInput,
 } from '../src/lib/records-search.ts';
 
 describe('records route search helpers', () => {
@@ -23,7 +23,7 @@ describe('records route search helpers', () => {
 
   it('maps route state to the records API input without selected row state', () => {
     expect(
-      toRecordsQueryInput({
+      toListRecordsInput({
         q: 'roadmap',
         dataSourceId: '019e8882-07f1-771c-993e-f6825a9224bb',
         personId: '019e8882-07f1-77a0-b4cf-5798eafb4664',

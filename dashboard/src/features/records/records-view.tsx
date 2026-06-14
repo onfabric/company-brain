@@ -12,7 +12,7 @@ import { DEFAULT_LIMIT, EMPTY_COUNT, EMPTY_OFFSET } from '#/lib/constants.ts';
 import {
   cleanRouteSearch,
   type RecordsRouteSearch,
-  toRecordsQueryInput,
+  toListRecordsInput,
 } from '#/lib/records-search.ts';
 import { useInfiniteScroll } from '#/lib/use-infinite-scroll.ts';
 
@@ -24,7 +24,7 @@ const SKELETON_ROW_KEYS = Array.from({ length: 20 }, (_, i) => `skeleton-row-${i
 
 export function RecordsView({ search }: RecordsViewProps) {
   const navigate = useNavigate({ from: '/records' });
-  const recordsInput = toRecordsQueryInput(search);
+  const recordsInput = toListRecordsInput(search);
   const recordsQuery = useInfiniteQuery({
     queryKey: ['records', recordsInput],
     queryFn: ({ pageParam }) => listRecords({ ...recordsInput, offset: pageParam }),
