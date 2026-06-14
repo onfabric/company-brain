@@ -7,9 +7,15 @@ import { knowledgeMcpService } from '#services/plugins.ts';
 // whereas a mount runs only when no other route matched.
 export const rootController = new Elysia().mount(async (request) => {
   const fromMcp = await knowledgeMcpService.fetch(request);
-  // The Hono app answers 404 for paths it does not own; serve the SPA there.
-  if (fromMcp.status === StatusMap['Not Found']) {
-    return serveDashboard(request);
+  if (fromMcp.status !== StatusMap['Not Found']) {
+    return fromMcp;
   }
-  return fromMcp;
+  // The Hono app answers 404 for paths it does not own. Unknown API paths keep
+  // that 404 (a clear contract for clients calling the API); only navigation
+  // paths fall back to the dashboard SPA shell.
+  const { pathname } = new URL(request.url);
+  if (pathname.startsWith('/api') || pathname.startsWith('/internal')) {
+    return fromMcp;
+  }
+  return serveDashboard(request);
 });

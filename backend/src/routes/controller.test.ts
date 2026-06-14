@@ -89,4 +89,13 @@ describe('root controller (mcp mount)', () => {
     expect(res.status).toBe(StatusMap['Not Found']);
     expect(await res.text()).toBe('Dashboard has not been built.');
   });
+
+  it('keeps a real 404 for unknown API paths instead of the SPA shell', async () => {
+    for (const path of ['/api/does-not-exist', '/internal/does-not-exist']) {
+      const res = await fetch(new URL(path, mcpUrl.origin));
+      expect(res.status).toBe(StatusMap['Not Found']);
+      // Not the SPA shell — API clients get a 404, never index.html.
+      expect(await res.text()).not.toBe('Dashboard has not been built.');
+    }
+  });
 });
