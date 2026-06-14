@@ -7,12 +7,23 @@ import {
   pickAwsHostnames,
   sameAwsHostnames,
 } from './aws-hostnames.ts';
+import {
+  AWS_DATA_VOLUME_SIZE_OPTIONS,
+  AWS_INSTANCE_TYPE_OPTIONS,
+  AWS_REGION_OPTIONS,
+  AWS_ROOT_VOLUME_SIZE_OPTIONS,
+  type AwsPromptOption,
+  DEFAULT_AWS_INSTANCE_TYPE,
+  DEFAULT_AWS_REGION,
+  DEFAULT_DATA_VOLUME_SIZE_GB,
+  DEFAULT_ROOT_VOLUME_SIZE_GB,
+  optionsWithCurrent,
+} from './aws-prompt-options.ts';
 import { nangoIntegrationSpecs } from './nango.ts';
 import { randomToken } from './secrets.ts';
 
 type IntegrationSpec = (typeof nangoIntegrationSpecs)[number];
 
-const DEFAULT_VOLUME_SIZE_GB = 50;
 const WEBHOOK_SECRET_BYTES = 32;
 
 export async function collectAwsConfig({
@@ -30,20 +41,24 @@ export async function collectAwsConfig({
     );
   }
 
-  const region = await promptText(
+  const region = await promptSelect(
     'AWS region',
-    existing?.region ?? 'eu-west-2',
+    'Where AWS will create the EC2 instance, ECR repositories, S3 bucket, and SSM parameters.',
+    AWS_REGION_OPTIONS,
+    existing?.region ?? DEFAULT_AWS_REGION,
     force,
     nonInteractive,
   );
   const environment = await promptText(
     'Environment name',
+    'Short name used in AWS resource names, SSM paths, and derived hostnames.',
     existing?.environment ?? 'dev',
     force,
     nonInteractive,
   );
   const baseDomain = await promptHostname(
     'Base domain for service hostnames',
+    'DNS zone or domain suffix used to derive nango-ENV, brain-ENV, and logs hostnames.',
     existing?.baseDomain ?? inferBaseDomain(existing) ?? 'example.com',
     force,
     nonInteractive,
@@ -72,21 +87,27 @@ export async function collectAwsConfig({
     region,
     environment,
     baseDomain,
-    instanceType: await promptText(
+    instanceType: await promptSelect(
       'EC2 instance type',
-      existing?.instanceType ?? 't3.large',
+      'Compute size for the single EC2 host running Nango, Brain, Postgres, Redis, Elasticsearch, Caddy, and Dozzle.',
+      AWS_INSTANCE_TYPE_OPTIONS,
+      existing?.instanceType ?? DEFAULT_AWS_INSTANCE_TYPE,
       force,
       nonInteractive,
     ),
-    rootVolumeSize: await promptNumber(
+    rootVolumeSize: await promptSelect(
       'Root volume size in GB',
-      existing?.rootVolumeSize ?? DEFAULT_VOLUME_SIZE_GB,
+      'OS and Docker image-layer disk. App data lives on the persistent data volume.',
+      AWS_ROOT_VOLUME_SIZE_OPTIONS,
+      existing?.rootVolumeSize ?? DEFAULT_ROOT_VOLUME_SIZE_GB,
       force,
       nonInteractive,
     ),
-    dataVolumeSize: await promptNumber(
+    dataVolumeSize: await promptSelect(
       'Persistent data volume size in GB',
-      existing?.dataVolumeSize ?? DEFAULT_VOLUME_SIZE_GB,
+      'Durable EBS volume mounted at /data for Postgres, Elasticsearch, and Caddy certificates.',
+      AWS_DATA_VOLUME_SIZE_OPTIONS,
+      existing?.dataVolumeSize ?? DEFAULT_DATA_VOLUME_SIZE_GB,
       force,
       nonInteractive,
     ),
@@ -97,36 +118,42 @@ export async function collectAwsConfig({
     dozzleHostname: hostnames.dozzleHostname,
     acmeEmail: await promptText(
       'ACME certificate email',
+      "Email address Caddy gives Let's Encrypt for certificate notices and recovery.",
       existing?.acmeEmail ?? '',
       force,
       nonInteractive,
     ),
     workspaceDomain: await promptText(
       'Google Workspace domain allowed to sign in',
+      'Only Google accounts from this domain can sign in to the Brain web app.',
       existing?.workspaceDomain ?? 'example.com',
       force,
       nonInteractive,
     ),
     googleClientId: await promptText(
       'Brain Google OAuth client ID',
+      'OAuth client ID from Google Cloud for Brain sign-in. Use the Brain redirect URI shown above.',
       existing?.googleClientId ?? '',
       force,
       nonInteractive,
     ),
     dozzleUsername: await promptText(
       'Dozzle admin username',
+      'Username for the hosted logs UI at the Dozzle hostname.',
       existing?.dozzleUsername ?? 'admin',
       force,
       nonInteractive,
     ),
     dozzleEmail: await promptText(
       'Dozzle admin email',
+      'Email associated with the Dozzle logs UI admin user.',
       existing?.dozzleEmail ?? '',
       force,
       nonInteractive,
     ),
     dozzleName: await promptText(
       'Dozzle admin display name',
+      'Display name shown inside the Dozzle logs UI.',
       existing?.dozzleName ?? 'Admin',
       force,
       nonInteractive,
@@ -143,12 +170,14 @@ export async function collectAwsConfig({
     secrets: {
       googleClientSecret: await promptSecret(
         'Brain Google OAuth client secret',
+        'OAuth client secret from the same Google Cloud OAuth client used for Brain sign-in.',
         existing?.secrets.googleClientSecret,
         force,
         nonInteractive,
       ),
       dozzlePassword: await promptSecret(
         'Dozzle admin password',
+        'Password for the hosted Dozzle logs UI admin account.',
         existing?.secrets.dozzlePassword,
         force,
         nonInteractive,
@@ -174,7 +203,10 @@ export async function promptHostedNangoKey(
   }
 
   const answer = await password({
-    message: 'Hosted Nango dev API key',
+    message: promptMessage(
+      'Hosted Nango dev API key',
+      'API key from the hosted Nango dashboard; used to bootstrap integrations and deploy syncs.',
+    ),
     validate: validateRequired,
   });
 
@@ -191,7 +223,10 @@ export async function confirmManualDnsReady(nonInteractive: boolean): Promise<bo
   }
 
   const answer = await confirm({
-    message: 'Have you created the DNS records above?',
+    message: promptMessage(
+      'Have you created the DNS records above?',
+      'They must point the public service hostnames at the EC2 public IP before certificates can issue.',
+    ),
     initialValue: false,
   });
 
@@ -217,7 +252,10 @@ async function promptHostnames(
   }
 
   const customize = await confirm({
-    message: 'Customize service hostnames?',
+    message: promptMessage(
+      'Customize service hostnames?',
+      'Choose no to use hostnames derived from the environment and base domain.',
+    ),
     initialValue: existingHostnames ? !sameAwsHostnames(existingHostnames, derived) : false,
   });
 
@@ -232,24 +270,28 @@ async function promptHostnames(
   return {
     nangoHostname: await promptHostname(
       'Nango hostname',
+      'Public URL for the hosted Nango dashboard and API.',
       existing?.nangoHostname ?? derived.nangoHostname,
       force,
       nonInteractive,
     ),
     nangoConnectHostname: await promptHostname(
       'Nango Connect hostname',
+      'Public URL for Nango Connect OAuth flows.',
       existing?.nangoConnectHostname ?? derived.nangoConnectHostname,
       force,
       nonInteractive,
     ),
     brainHostname: await promptHostname(
       'Brain hostname',
+      'Public URL for the Company Brain backend and web app.',
       existing?.brainHostname ?? derived.brainHostname,
       force,
       nonInteractive,
     ),
     dozzleHostname: await promptHostname(
       'Dozzle logs hostname',
+      'Public URL for the Dozzle container logs UI.',
       existing?.dozzleHostname ?? derived.dozzleHostname,
       force,
       nonInteractive,
@@ -270,10 +312,17 @@ async function promptDns(
   }
 
   const mode = await select({
-    message: 'How should the CLI handle DNS records?',
+    message: promptMessage(
+      'How should the CLI handle DNS records?',
+      'The deployment needs public A/AAAA records before HTTPS certificates can be issued.',
+    ),
     options: [
-      { value: 'manual', label: 'Manual DNS' },
-      { value: 'route53', label: 'Route53 hosted zone' },
+      { value: 'manual', label: 'Manual DNS', hint: 'Print records for you to create elsewhere.' },
+      {
+        value: 'route53',
+        label: 'Route53 hosted zone',
+        hint: 'Let the CLI create records in an AWS hosted zone.',
+      },
     ],
     initialValue: existing?.dns.mode ?? 'manual',
   });
@@ -290,6 +339,7 @@ async function promptDns(
     mode,
     hostedZoneId: await promptText(
       'Route53 hosted zone ID',
+      'Hosted zone ID for the base domain, used to upsert DNS records automatically.',
       existing?.dns.hostedZoneId ?? '',
       true,
       nonInteractive,
@@ -311,7 +361,10 @@ async function promptIntegrations(
   }
 
   const answer = await multiselect({
-    message: 'Which integrations should the hosted Nango deploy configure?',
+    message: promptMessage(
+      'Which integrations should the hosted Nango deploy configure?',
+      'The CLI will configure these providers in hosted Nango and later check their connections.',
+    ),
     options: nangoIntegrationSpecs.map((integration) => ({
       value: integration.id,
       label: integration.displayName,
@@ -343,12 +396,14 @@ async function promptProviderCredentials(
 
     secrets[integration.oauth.clientIdEnv] = await promptText(
       `${integration.displayName} client ID`,
+      `OAuth client ID from ${integration.displayName}; Nango uses it for user connection flows.`,
       secrets[integration.oauth.clientIdEnv] ?? '',
       force,
       nonInteractive,
     );
     secrets[integration.oauth.clientSecretEnv] = await promptSecret(
       `${integration.displayName} client secret`,
+      `OAuth client secret from ${integration.displayName}; stored in the local AWS config and sent to hosted Nango.`,
       secrets[integration.oauth.clientSecretEnv],
       force,
       nonInteractive,
@@ -365,6 +420,7 @@ async function promptProviderCredentials(
 
 async function promptText(
   message: string,
+  description: string,
   defaultValue: string,
   _force: boolean | undefined,
   nonInteractive: boolean | undefined,
@@ -377,8 +433,9 @@ async function promptText(
   }
 
   const answer = await text({
-    message,
+    message: promptMessage(message, description),
     defaultValue,
+    placeholder: defaultValue,
     validate: validateRequired,
   });
 
@@ -391,30 +448,45 @@ async function promptText(
 
 async function promptHostname(
   message: string,
+  description: string,
   defaultValue: string,
   force: boolean | undefined,
   nonInteractive: boolean | undefined,
 ): Promise<string> {
-  return stripProtocol(await promptText(message, defaultValue, force, nonInteractive));
+  return stripProtocol(await promptText(message, description, defaultValue, force, nonInteractive));
 }
 
-async function promptNumber(
+async function promptSelect<Value extends number | string>(
   message: string,
-  defaultValue: number,
-  force: boolean | undefined,
+  description: string,
+  options: readonly AwsPromptOption<Value>[],
+  defaultValue: Value,
+  _force: boolean | undefined,
   nonInteractive: boolean | undefined,
-): Promise<number> {
-  const value = await promptText(message, String(defaultValue), force, nonInteractive);
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error(`${message} must be a positive number.`);
+): Promise<Value> {
+  if (nonInteractive) {
+    return defaultValue;
   }
 
-  return parsed;
+  type SelectOptions = Parameters<typeof select<Value>>[0]['options'];
+  const selectOptions = optionsWithCurrent(options, defaultValue) as SelectOptions;
+
+  const answer = await select({
+    message: promptMessage(message, description),
+    options: selectOptions,
+    initialValue: defaultValue,
+  });
+
+  if (isCancel(answer)) {
+    throw new Error('Setup cancelled.');
+  }
+
+  return answer;
 }
 
 async function promptSecret(
   message: string,
+  description: string,
   existing: string | undefined,
   force: boolean | undefined,
   nonInteractive: boolean | undefined,
@@ -427,7 +499,9 @@ async function promptSecret(
   }
 
   const answer = await password({
-    message: existing ? `${message} (press Enter to keep existing value)` : message,
+    message: existing
+      ? promptMessage(`${message} (press Enter to keep existing value)`, description)
+      : promptMessage(message, description),
     validate: (value) => validateSecret(value, existing),
   });
 
@@ -460,6 +534,10 @@ function validateSecret(
   }
 
   return undefined;
+}
+
+function promptMessage(message: string, description: string): string {
+  return `${message}\n${description}`;
 }
 
 function stripProtocol(value: string): string {
