@@ -1,4 +1,4 @@
-import { note } from '@clack/prompts';
+import { log, note } from '@clack/prompts';
 import { uploadRuntimeBundle } from './aws-bundle.ts';
 import type { AwsConfig } from './aws-config.ts';
 import { writeAwsConfig } from './aws-config.ts';
@@ -24,6 +24,7 @@ import type { VisibleCommandContext } from './visible-command.ts';
 const DEPLOY_ID_LENGTH = 14;
 const FIRST_WAIT_ATTEMPT = 1;
 const WAIT_PROGRESS_LOG_INTERVAL = 3;
+const MAX_WAIT_PROGRESS_ISSUES = 3;
 
 type Printer = {
   success: (message: string) => void;
@@ -158,7 +159,7 @@ async function ensureDns(
     return false;
   }
 
-  console.log('Checking DNS records...');
+  log.step('Checking DNS records...');
   const issues = await waitForDnsRecords(config, {
     onRetry: (progress) => logWaitProgress('DNS', progress),
   });
@@ -174,7 +175,7 @@ async function ensureDns(
 }
 
 async function ensureHttps(config: AwsConfig, print: Printer): Promise<boolean> {
-  console.log('Checking HTTPS endpoints and certificates...');
+  log.step('Checking HTTPS endpoints and certificates...');
   const issues = await waitForHttps(config, {
     onRetry: (progress) => logWaitProgress('HTTPS', progress),
   });
@@ -237,10 +238,23 @@ function logWaitProgress(label: string, progress: WaitProgress): void {
     return;
   }
 
-  const firstIssue = progress.issues[0] ?? 'waiting for checks to pass';
-  console.log(
-    `${label} check still waiting (${progress.elapsedSeconds}s/${progress.timeoutSeconds}s): ${firstIssue}`,
+  log.info(
+    [
+      `${label} check still waiting (${formatWaitTime(progress)})`,
+      ...progress.issues.slice(0, MAX_WAIT_PROGRESS_ISSUES).map((issue) => `  ${issue}`),
+      ...formatHiddenIssueCount(progress.issues),
+    ].join('\n'),
+    { spacing: 0 },
   );
+}
+
+function formatWaitTime(progress: WaitProgress): string {
+  return `${progress.elapsedSeconds}s/${progress.timeoutSeconds}s`;
+}
+
+function formatHiddenIssueCount(issues: string[]): string[] {
+  const hiddenCount = issues.length - MAX_WAIT_PROGRESS_ISSUES;
+  return hiddenCount > 0 ? [`  and ${hiddenCount} more...`] : [];
 }
 
 function formatError(error: unknown): string {
