@@ -1,15 +1,20 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { AuthCard } from '#/features/auth/auth-card.tsx';
 import { approveConsent } from '#/features/auth/oauth.ts';
-import { SIGNED_QUERY } from '#/features/auth/signed-query.ts';
 
 // Access is already gated by workspace-restricted Google sign-in, so the consent
 // step carries no extra decision: approve it as the route loads and redirect back
 // to the client. better-auth answers with an absolute client `url`, which
 // `redirect({ href })` follows as a full-document navigation.
+//
+// Read the OAuth query from `window.location.search`, not the router's parsed
+// search: better-auth signs it with repeated `ba_param` keys, which the router's
+// search parser collapses into a single JSON-array value and breaks the signature.
+// better-auth only ever reaches this page via a full-document redirect, so
+// `window.location.search` is the verbatim signed query.
 export const Route = createFileRoute('/consent')({
   beforeLoad: async () => {
-    const url = await approveConsent(SIGNED_QUERY);
+    const url = await approveConsent(window.location.search);
     if (!url) {
       throw new Error('Could not complete authorization. Please try again.');
     }
