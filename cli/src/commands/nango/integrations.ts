@@ -11,6 +11,8 @@ import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
 import { oauthConnectionHints } from '../../../../nango-integrations/_scripts/lib/catalog.ts';
 import { parseSelection } from '../../../../nango-integrations/_scripts/lib/selection.ts';
+import { readAwsConfig, type AwsConfig, writeAwsConfig } from '../../lib/aws-config.ts';
+import { hostedExistingNangoEnv } from '../../lib/hosted-nango-env.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 import { readLocalConfig, writeLocalConfig } from '../../lib/local-config.ts';
 import {
@@ -22,7 +24,6 @@ import {
   applyNangoEnvOverrides,
   ensureNangoEnvBase,
   normalizeNangoHostport,
-  processNangoEnv,
   readNangoEnv,
   upsertNangoEnv,
 } from '../../lib/nango-env.ts';
@@ -44,7 +45,7 @@ export const command = defineCommand('nango integrations', {
     },
     hosted: {
       schema: z.boolean().optional(),
-      description: 'Use Nango values from the current environment instead of local .env files.',
+      description: 'Configure the hosted AWS Nango deployment instead of local .env files.',
     },
     force: {
       schema: z.boolean().optional(),
@@ -63,6 +64,7 @@ export const command = defineCommand('nango integrations', {
     intro('Company Brain Nango integrations');
     const nonInteractive = isNonInteractive(rootOptions.nonInteractive);
     const hosted = Boolean(options.hosted);
+    const awsConfig = hosted ? await readAwsConfig() : undefined;
 
     if (!hosted) {
       await ensureNangoEnvBase();
@@ -72,6 +74,7 @@ export const command = defineCommand('nango integrations', {
       options.only,
       Boolean(options.all),
       nonInteractive,
+      hosted ? awsConfig?.selectedIntegrationIds : undefined,
     );
     if (selected.length === 0) {
       print.warn('No integrations selected.');
@@ -80,7 +83,7 @@ export const command = defineCommand('nango integrations', {
     }
 
     const existing = hosted
-      ? processNangoEnv({
+      ? hostedExistingNangoEnv(awsConfig, {
           nangoHostport: options.nangoHostport,
           nangoSecretKey: options.nangoSecretKey,
         })
@@ -127,6 +130,7 @@ export const command = defineCommand('nango integrations', {
       selected,
       Boolean(options.force),
       nonInteractive,
+      hosted,
     );
     if (!hosted) {
       await upsertNangoEnv(env);
@@ -141,6 +145,8 @@ export const command = defineCommand('nango integrations', {
     if (!hosted) {
       const config = await readLocalConfig();
       await writeLocalConfig({ ...config, installedIntegrationIds: integrationIds });
+    } else if (awsConfig) {
+      await writeHostedNangoConfig(awsConfig, env, selected, integrationIds);
     }
 
     print.success(`Selected ${hosted ? 'hosted' : 'local'} Nango integrations are configured.`);
@@ -167,12 +173,13 @@ async function collectNangoEnv(
   selected: IntegrationSpec[],
   force: boolean,
   nonInteractive: boolean,
+  hosted: boolean,
 ): Promise<Record<string, string>> {
   const values: Record<string, string> = {
     ...existing,
     NANGO_HOSTPORT: nangoHostport,
     NANGO_SECRET_KEY_DEV: await promptValue(
-      'Nango dev API key',
+      hosted ? 'Hosted Nango dev API key' : 'Nango dev API key',
       existing.NANGO_SECRET_KEY_DEV,
       force,
       true,
@@ -213,6 +220,7 @@ async function resolveSelection(
   only: string | undefined,
   all: boolean,
   nonInteractive: boolean,
+  defaultIntegrationIds?: string[],
 ): Promise<IntegrationSpec[]> {
   if (all) {
     return nangoIntegrationSpecs;
@@ -224,6 +232,11 @@ async function resolveSelection(
       nangoIntegrationSpecs.map((integration) => integration.id),
     );
     return nangoIntegrationSpecs.filter((integration) => ids.includes(integration.id));
+  }
+
+  if (defaultIntegrationIds && defaultIntegrationIds.length > 0) {
+    const selected = new Set(defaultIntegrationIds);
+    return nangoIntegrationSpecs.filter((integration) => selected.has(integration.id));
   }
 
   if (nonInteractive) {
@@ -245,6 +258,66 @@ async function resolveSelection(
   }
 
   return nangoIntegrationSpecs.filter((integration) => answer.includes(integration.id));
+}
+
+async function writeHostedNangoConfig(
+  config: AwsConfig,
+  env: Record<string, string>,
+  selected: IntegrationSpec[],
+  integrationIds: string[],
+): Promise<void> {
+  const oauth = { ...config.secrets.oauth };
+  const scopes = { ...config.scopes };
+
+  for (const integration of selected) {
+    if (!integration.oauth) {
+      continue;
+    }
+
+    oauth[integration.oauth.clientIdEnv] = requiredNangoEnv(env, integration.oauth.clientIdEnv);
+    oauth[integration.oauth.clientSecretEnv] = requiredNangoEnv(
+      env,
+      integration.oauth.clientSecretEnv,
+    );
+
+    if (integration.oauth.scopesEnv && integration.oauth.scopes) {
+      scopes[integration.oauth.scopesEnv] =
+        env[integration.oauth.scopesEnv] ?? scopes[integration.oauth.scopesEnv] ?? integration.oauth.scopes;
+    }
+  }
+
+  await writeAwsConfig({
+    ...config,
+    selectedIntegrationIds: integrationIds,
+    nangoBootstrappedAt: new Date().toISOString(),
+    syncsDeployedAt: sameItems(config.selectedIntegrationIds, integrationIds)
+      ? config.syncsDeployedAt
+      : undefined,
+    scopes,
+    secrets: {
+      ...config.secrets,
+      nangoSecretKey: env.NANGO_SECRET_KEY_DEV,
+      oauth,
+    },
+  });
+}
+
+function requiredNangoEnv(env: Record<string, string>, key: string): string {
+  const value = env[key];
+  if (!value) {
+    throw new Error(`Missing required Nango setting: ${key}`);
+  }
+
+  return value;
+}
+
+function sameItems(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  const rightItems = new Set(right);
+  return left.every((value) => rightItems.has(value));
 }
 
 async function promptValue(

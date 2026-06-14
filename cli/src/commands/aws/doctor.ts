@@ -102,7 +102,8 @@ async function nangoApiCheck(config: Awaited<ReturnType<typeof requireAwsConfig>
     return {
       label: 'Hosted Nango API key',
       ok: false,
-      detail: 'Open the hosted Nango dashboard, copy the dev API key, then run `aws resume`.',
+      detail:
+        'Open the hosted Nango dashboard, copy the dev API key, then run `bun run company-brain nango integrations --hosted`.',
     };
   }
 

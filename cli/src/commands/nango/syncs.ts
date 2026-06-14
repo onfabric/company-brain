@@ -1,13 +1,11 @@
 import { intro, note, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
+import { readAwsConfig, type AwsConfig, writeAwsConfig } from '../../lib/aws-config.ts';
+import { hostedExistingNangoEnv } from '../../lib/hosted-nango-env.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 import { readLocalConfig, writeLocalConfig } from '../../lib/local-config.ts';
-import {
-  applyNangoEnvOverrides,
-  processNangoEnv,
-  readNangoEnv,
-} from '../../lib/nango-env.ts';
+import { applyNangoEnvOverrides, readNangoEnv } from '../../lib/nango-env.ts';
 import { deploySelectedSyncs, resolveSyncSelection } from '../../lib/sync-deployment.ts';
 
 export const command = defineCommand('nango syncs', {
@@ -25,7 +23,7 @@ export const command = defineCommand('nango syncs', {
     },
     hosted: {
       schema: z.boolean().optional(),
-      description: 'Use Nango values from the current environment instead of local .env files.',
+      description: 'Deploy syncs to the hosted AWS Nango deployment instead of local .env files.',
     },
     only: {
       schema: z.string().optional(),
@@ -40,8 +38,9 @@ export const command = defineCommand('nango syncs', {
     intro('Company Brain sync deployment');
 
     const hosted = Boolean(options.hosted);
+    const awsConfig = hosted ? await readAwsConfig() : undefined;
     const nangoEnv = hosted
-      ? processNangoEnv({
+      ? hostedExistingNangoEnv(awsConfig, {
           nangoHostport: options.nangoHostport,
           nangoSecretKey: options.nangoSecretKey,
         })
@@ -51,12 +50,15 @@ export const command = defineCommand('nango syncs', {
         });
     if (!nangoEnv.NANGO_SECRET_KEY_DEV) {
       throw new Error(
-        'Missing NANGO_SECRET_KEY_DEV. Run `bun run company-brain nango integrations` first.',
+        `Missing NANGO_SECRET_KEY_DEV. Run \`bun run company-brain nango integrations${hosted ? ' --hosted' : ''}\` first.`,
       );
     }
 
     const config = hosted
-      ? { installedIntegrationIds: [], selectedIntegrationIds: [] }
+      ? {
+          installedIntegrationIds: awsConfig?.selectedIntegrationIds ?? [],
+          selectedIntegrationIds: awsConfig?.selectedIntegrationIds ?? [],
+        }
       : await readLocalConfig();
     const selected = resolveSyncSelection(
       options.only,
@@ -82,9 +84,27 @@ export const command = defineCommand('nango syncs', {
 
     if (!hosted) {
       await writeLocalConfig({ ...config, selectedIntegrationIds: integrationIds });
+    } else if (awsConfig) {
+      await writeHostedSyncConfig(awsConfig, nangoEnv, integrationIds);
     }
 
     print.success('Selected syncs are deployed.');
     outro('Company Brain ingestion is ready.');
   },
 });
+
+async function writeHostedSyncConfig(
+  config: AwsConfig,
+  env: Record<string, string>,
+  integrationIds: string[],
+): Promise<void> {
+  await writeAwsConfig({
+    ...config,
+    selectedIntegrationIds: integrationIds,
+    syncsDeployedAt: new Date().toISOString(),
+    secrets: {
+      ...config.secrets,
+      nangoSecretKey: env.NANGO_SECRET_KEY_DEV,
+    },
+  });
+}

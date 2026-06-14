@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import type { AwsConfig } from './aws-config.ts';
-import { publicDnsRecords } from './aws-config.ts';
+import { hostedNangoEnv, hostedNangoEnvDefaults, publicDnsRecords } from './aws-config.ts';
 
 describe('publicDnsRecords', () => {
   it('builds A and AAAA records for every public hostname', () => {
@@ -16,6 +16,32 @@ describe('publicDnsRecords', () => {
       { type: 'AAAA', name: 'brain.example.com', value: '2001:db8::10' },
       { type: 'AAAA', name: 'logs.example.com', value: '2001:db8::10' },
     ]);
+  });
+});
+
+describe('hostedNangoEnvDefaults', () => {
+  it('builds hosted Nango env without requiring the API key', () => {
+    const values = hostedNangoEnvDefaults({
+      ...config(),
+      scopes: { NOTION_SCOPES: 'read' },
+      secrets: {
+        oauth: { NOTION_CLIENT_ID: 'client-id' },
+      },
+    });
+
+    expect(values).toMatchObject({
+      NANGO_HOSTPORT: 'https://nango.example.com',
+      AGENT_SYNC_WEBHOOK_SECRET: 'webhook-secret',
+      NOTION_CLIENT_ID: 'client-id',
+      NOTION_SCOPES: 'read',
+    });
+    expect(values.NANGO_SECRET_KEY_DEV).toBeUndefined();
+  });
+
+  it('points missing API keys at the hosted integrations command', () => {
+    expect(() => hostedNangoEnv(config())).toThrow(
+      'bun run company-brain nango integrations --hosted',
+    );
   });
 });
 

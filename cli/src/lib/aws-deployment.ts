@@ -10,8 +10,7 @@ import {
   waitForHttps,
 } from './aws-dns.ts';
 import { buildAndPushImages } from './aws-images.ts';
-import { bootstrapHostedNango, deployHostedNangoSyncs, verifyHostedNangoApi } from './aws-nango.ts';
-import { confirmManualDnsReady, promptHostedNangoKey } from './aws-prompts.ts';
+import { confirmManualDnsReady } from './aws-prompts.ts';
 import { deployOverSsm, putDozzleUsers } from './aws-ssm.ts';
 import { applyAwsTerraform } from './aws-terraform.ts';
 import type { VisibleCommandContext } from './visible-command.ts';
@@ -73,39 +72,18 @@ export async function continueAwsDeployment({
     return current;
   }
 
-  current = await ensureNangoKey(current, context, print);
-  if (!current.secrets.nangoSecretKey) {
-    return current;
-  }
-
-  if (!current.nangoBootstrappedAt) {
-    await bootstrapHostedNango(current, context);
-    current = { ...current, nangoBootstrappedAt: new Date().toISOString() };
-    await writeAwsConfig(current);
-    print.success('Hosted Nango integrations are bootstrapped.');
-  }
-
-  if (!current.syncsDeployedAt) {
-    try {
-      await deployHostedNangoSyncs(current, context);
-    } catch (error) {
-      print.warn(formatError(error));
-      note(
-        [
-          `Open https://${current.nangoHostname}`,
-          'Create OAuth connections for the integrations listed above, then run:',
-          'bun run company-brain aws resume',
-        ].join('\n'),
-        'OAuth connections required',
-      );
-      return current;
-    }
-    current = { ...current, syncsDeployedAt: new Date().toISOString() };
-    await writeAwsConfig(current);
-    print.success('Hosted Nango syncs are deployed.');
-  }
-
-  print.success('AWS deployment is complete.');
+  print.success('AWS deployment is ready for hosted Nango configuration.');
+  note(
+    [
+      `Brain dashboard: https://${current.brainHostname}/dashboard`,
+      `Hosted Nango dashboard/login and API keys: https://${current.nangoHostname}`,
+      `Dozzle logs: https://${current.dozzleHostname}`,
+      '',
+      'Next: create/sign in to the hosted Nango dashboard, copy the dev API key, then run:',
+      'bun run company-brain nango integrations --hosted',
+    ].join('\n'),
+    'AWS URLs',
+  );
   return current;
 }
 
@@ -190,35 +168,6 @@ async function ensureHttps(config: AwsConfig, print: Printer): Promise<boolean> 
   return true;
 }
 
-async function ensureNangoKey(
-  config: AwsConfig,
-  context: VisibleCommandContext,
-  print: Printer,
-): Promise<AwsConfig> {
-  const nangoSecretKey = await promptHostedNangoKey(
-    config.secrets.nangoSecretKey,
-    Boolean(context.nonInteractive || context.yes),
-  );
-  if (!nangoSecretKey) {
-    note(
-      [
-        `Open https://${config.nangoHostname}`,
-        'Create or sign in to the hosted Nango dashboard.',
-        'Copy the dev API key, then run: bun run company-brain aws resume',
-      ].join('\n'),
-      'Nango API key required',
-    );
-    return config;
-  }
-
-  const updated = { ...config, secrets: { ...config.secrets, nangoSecretKey } };
-  await verifyHostedNangoApi(updated);
-  await writeAwsConfig(updated);
-  print.success('Hosted Nango API key works.');
-
-  return updated;
-}
-
 function makeDeployId(): string {
   return new Date().toISOString().replace(/\D/g, '').slice(0, DEPLOY_ID_LENGTH);
 }
@@ -248,8 +197,4 @@ function formatWaitTime(progress: WaitProgress): string {
 function formatHiddenIssueCount(issues: string[]): string[] {
   const hiddenCount = issues.length - MAX_WAIT_PROGRESS_ISSUES;
   return hiddenCount > 0 ? [`  and ${hiddenCount} more...`] : [];
-}
-
-function formatError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

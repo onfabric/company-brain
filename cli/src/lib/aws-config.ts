@@ -142,8 +142,17 @@ export function publicDnsRecords(config: AwsConfig): PublicDnsRecord[] {
 
 export function hostedNangoEnv(config: AwsConfig): Record<string, string> {
   return {
-    NANGO_HOSTPORT: `https://${config.nangoHostname}`,
+    ...hostedNangoEnvDefaults(config),
     NANGO_SECRET_KEY_DEV: requiredSecret(config.secrets.nangoSecretKey, 'Nango dev API key'),
+  };
+}
+
+export function hostedNangoEnvDefaults(config: AwsConfig): Record<string, string> {
+  return {
+    NANGO_HOSTPORT: `https://${config.nangoHostname}`,
+    ...(config.secrets.nangoSecretKey
+      ? { NANGO_SECRET_KEY_DEV: config.secrets.nangoSecretKey }
+      : {}),
     AGENT_SYNC_WEBHOOK_SECRET: config.agentSyncWebhookSecret,
     ...config.secrets.oauth,
     ...config.scopes,
@@ -152,7 +161,7 @@ export function hostedNangoEnv(config: AwsConfig): Record<string, string> {
 
 function requiredSecret(value: string | undefined, label: string): string {
   if (!value) {
-    throw new Error(`Missing ${label}. Run \`bun run company-brain aws resume\`.`);
+    throw new Error(`Missing ${label}. Run \`bun run company-brain nango integrations --hosted\`.`);
   }
 
   return value;

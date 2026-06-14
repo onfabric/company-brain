@@ -8,7 +8,7 @@ import { verifyAwsPrerequisites } from '../../lib/aws-tools.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 
 export const command = defineCommand('aws resume', {
-  description: 'Resume a paused AWS deployment after DNS, Nango, or OAuth setup.',
+  description: 'Resume a paused AWS deployment after DNS or HTTPS setup.',
   options: {
     yes: {
       schema: z.boolean().optional(),

@@ -1,4 +1,4 @@
-import { confirm, isCancel, multiselect, note, password, select, text } from '@clack/prompts';
+import { confirm, isCancel, note, password, select, text } from '@clack/prompts';
 import type { AwsConfig } from './aws-config.ts';
 import { normalizeAwsEnvironment, validateAwsEnvironment } from './aws-environment.ts';
 import {
@@ -20,10 +20,7 @@ import {
   DEFAULT_ROOT_VOLUME_SIZE_GB,
   optionsWithCurrent,
 } from './aws-prompt-options.ts';
-import { nangoIntegrationSpecs } from './nango.ts';
 import { randomToken } from './secrets.ts';
-
-type IntegrationSpec = (typeof nangoIntegrationSpecs)[number];
 
 const WEBHOOK_SECRET_BYTES = 32;
 
@@ -178,13 +175,6 @@ export async function collectAwsConfig({
     nonInteractive,
   );
 
-  note(
-    'Choose which providers hosted Nango should configure, then provide their OAuth credentials.',
-    'Hosted Nango integrations',
-  );
-  const selected = await promptIntegrations(existing, force, nonInteractive);
-  const oauthValues = await promptProviderCredentials(selected, existing, force, nonInteractive);
-
   const config: AwsConfig = {
     version: 1,
     terraformCommand: existing?.terraformCommand,
@@ -206,8 +196,8 @@ export async function collectAwsConfig({
     dozzleEmail,
     dozzleName,
     agentSyncWebhookSecret: existing?.agentSyncWebhookSecret ?? randomToken(WEBHOOK_SECRET_BYTES),
-    selectedIntegrationIds: selected.map((integration) => integration.id),
-    scopes: oauthValues.scopes,
+    selectedIntegrationIds: existing?.selectedIntegrationIds ?? [],
+    scopes: existing?.scopes ?? {},
     dns,
     outputs: existing?.outputs,
     lastDeployId: existing?.lastDeployId,
@@ -218,38 +208,11 @@ export async function collectAwsConfig({
       googleClientSecret,
       dozzlePassword,
       nangoSecretKey: existing?.secrets.nangoSecretKey,
-      oauth: oauthValues.secrets,
+      oauth: existing?.secrets.oauth ?? {},
     },
   };
 
   return config;
-}
-
-export async function promptHostedNangoKey(
-  existing: string | undefined,
-  nonInteractive: boolean,
-): Promise<string | undefined> {
-  if (existing) {
-    return existing;
-  }
-
-  if (nonInteractive) {
-    return undefined;
-  }
-
-  const answer = await password({
-    message: promptMessage(
-      'Hosted Nango dev API key',
-      'API key from the hosted Nango dashboard; used to bootstrap integrations and deploy syncs.',
-    ),
-    validate: validateRequired,
-  });
-
-  if (isCancel(answer)) {
-    throw new Error('Setup cancelled.');
-  }
-
-  return answer || undefined;
 }
 
 export async function confirmManualDnsReady(
@@ -387,78 +350,6 @@ async function promptDns(
       nonInteractive,
     ),
   };
-}
-
-async function promptIntegrations(
-  existing: AwsConfig | undefined,
-  force: boolean | undefined,
-  nonInteractive: boolean | undefined,
-): Promise<IntegrationSpec[]> {
-  if (existing && existing.selectedIntegrationIds.length > 0 && !force) {
-    const selected = new Set(existing.selectedIntegrationIds);
-    return nangoIntegrationSpecs.filter((integration) => selected.has(integration.id));
-  }
-  if (nonInteractive) {
-    throw new Error('Missing selected integrations in .company-brain.aws.json.');
-  }
-
-  const answer = await multiselect({
-    message: promptMessage(
-      'Which integrations should the hosted Nango deploy configure?',
-      'The CLI will configure these providers in hosted Nango and later check their connections.',
-    ),
-    options: nangoIntegrationSpecs.map((integration) => ({
-      value: integration.id,
-      label: integration.displayName,
-      hint: integration.provider,
-    })),
-    initialValues: existing?.selectedIntegrationIds ?? [],
-    required: true,
-  });
-
-  if (isCancel(answer)) {
-    throw new Error('Setup cancelled.');
-  }
-
-  return nangoIntegrationSpecs.filter((integration) => answer.includes(integration.id));
-}
-
-async function promptProviderCredentials(
-  selected: IntegrationSpec[],
-  existing: AwsConfig | undefined,
-  force: boolean | undefined,
-  nonInteractive: boolean | undefined,
-): Promise<{ secrets: Record<string, string>; scopes: Record<string, string> }> {
-  const secrets: Record<string, string> = { ...existing?.secrets.oauth };
-  const scopes: Record<string, string> = { ...existing?.scopes };
-
-  for (const integration of selected) {
-    if (!integration.oauth) {
-      continue;
-    }
-
-    secrets[integration.oauth.clientIdEnv] = await promptText(
-      `${integration.displayName} client ID`,
-      `OAuth client ID from ${integration.displayName}; Nango uses it for user connection flows.`,
-      secrets[integration.oauth.clientIdEnv] ?? '',
-      force,
-      nonInteractive,
-    );
-    secrets[integration.oauth.clientSecretEnv] = await promptSecret(
-      `${integration.displayName} client secret`,
-      `OAuth client secret from ${integration.displayName}; stored in the local AWS config and sent to hosted Nango.`,
-      secrets[integration.oauth.clientSecretEnv],
-      force,
-      nonInteractive,
-    );
-
-    if (integration.oauth.scopesEnv && integration.oauth.scopes) {
-      scopes[integration.oauth.scopesEnv] =
-        scopes[integration.oauth.scopesEnv] ?? integration.oauth.scopes;
-    }
-  }
-
-  return { secrets, scopes };
 }
 
 async function promptText(
