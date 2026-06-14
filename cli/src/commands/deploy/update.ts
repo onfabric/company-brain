@@ -7,8 +7,8 @@ import { deployAwsApplication } from '../../lib/aws-deployment.ts';
 import { verifyAwsPrerequisites } from '../../lib/aws-tools.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 
-export const command = defineCommand('aws deploy', {
-  description: 'Rebuild images and redeploy the app to an existing AWS deployment.',
+export const command = defineCommand('deploy update', {
+  description: 'Rebuild images and update an existing hosted deployment.',
   options: {
     yes: {
       schema: z.boolean().optional(),
@@ -16,11 +16,11 @@ export const command = defineCommand('aws deploy', {
     },
   },
   handler: async ({ options, rootOptions, print }) => {
-    intro('Company Brain AWS deploy');
+    intro('Company Brain deployment update');
 
     const context = {
       yes: Boolean(options.yes),
-      nonInteractive: isNonInteractive(rootOptions.nonInteractive),
+      nonInteractive: isNonInteractive(rootOptions['non-interactive']),
     };
     const prerequisites = await verifyAwsPrerequisites(context);
     const config = {
@@ -32,6 +32,6 @@ export const command = defineCommand('aws deploy', {
     await writeAwsConfig(config);
     await deployAwsApplication(withAwsCredentials(config, prerequisites), context, print);
 
-    outro('AWS deploy finished.');
+    outro('Deployment update finished.');
   },
 });

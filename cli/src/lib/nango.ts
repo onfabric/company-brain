@@ -1,5 +1,6 @@
 import {
   BOOTSTRAPPED_CONNECTIONS,
+  DEFAULT_SYNC_SPECS,
   INTEGRATIONS,
   SYNC_SPECS,
 } from '../../../nango-integrations/_scripts/lib/catalog.ts';
@@ -8,6 +9,7 @@ import { run } from './shell.ts';
 
 export const nangoIntegrationSpecs = INTEGRATIONS;
 export const nangoSyncSpecs = SYNC_SPECS;
+export const nangoDefaultSyncSpecs = DEFAULT_SYNC_SPECS;
 
 type NangoCommandOptions = {
   env?: Record<string, string | undefined>;

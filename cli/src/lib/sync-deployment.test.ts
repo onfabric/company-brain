@@ -38,6 +38,21 @@ describe('resolveSyncSelection', () => {
     expect(selected.map((sync) => sync.integrationId)).toEqual(['github']);
   });
 
+  it('uses managed syncs for --all', () => {
+    const selected = resolveSyncSelection(undefined, true, true, {
+      installedIntegrationIds: [],
+      selectedIntegrationIds: [],
+    });
+
+    expect(selected.map((sync) => sync.integrationId)).toEqual([
+      'notion',
+      'slack',
+      'github',
+      'google-mail',
+      'agent-conversations',
+    ]);
+  });
+
   it('errors in non-interactive mode when no selection exists', () => {
     expect(() =>
       resolveSyncSelection(undefined, false, true, {

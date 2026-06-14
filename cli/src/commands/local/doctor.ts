@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { styleText } from 'node:util';
-import { intro, log, outro } from '@clack/prompts';
+import { intro, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import {
   type ComposeService,
@@ -8,16 +8,11 @@ import {
   isComposeServiceReady,
   verifyLocalPrerequisites,
 } from '../../lib/docker.ts';
+import { type DoctorCheck, formatAttentionOutro, renderDoctorSection } from '../../lib/doctor.ts';
 import { endpointOk } from '../../lib/http.ts';
 import { readLocalConfig } from '../../lib/local-config.ts';
 import { readNangoEnv } from '../../lib/nango-env.ts';
 import { localConfigPath, nangoEnvPath, rootEnvPath } from '../../lib/paths.ts';
-
-type DoctorCheck = {
-  ok: boolean;
-  label: string;
-  detail?: string;
-};
 
 export const command = defineCommand('local doctor', {
   description: 'Check local Company Brain setup health.',
@@ -39,7 +34,7 @@ export const command = defineCommand('local doctor', {
           : 'Run `bun run company-brain local setup`.',
       },
     ];
-    renderSection('Config', configChecks);
+    renderDoctorSection('Config', configChecks);
 
     const issues = await verifyLocalPrerequisites();
     const serviceChecks: DoctorCheck[] = [
@@ -65,7 +60,7 @@ export const command = defineCommand('local doctor', {
         detail: error instanceof Error ? error.message : String(error),
       });
     }
-    renderSection('Services', serviceChecks);
+    renderDoctorSection('Services', serviceChecks);
 
     const endpointChecks: DoctorCheck[] = [
       {
@@ -84,7 +79,7 @@ export const command = defineCommand('local doctor', {
         detail: 'http://localhost:3010/api/health',
       },
     ];
-    renderSection('Endpoints', endpointChecks);
+    renderDoctorSection('Endpoints', endpointChecks);
 
     const nangoEnv = await readNangoEnv();
     const localConfig = await readLocalConfig();
@@ -94,7 +89,7 @@ export const command = defineCommand('local doctor', {
         label: 'Nango dev API key',
         detail: nangoEnv.NANGO_SECRET_KEY_DEV
           ? 'Saved in nango-integrations/.env'
-          : 'Copy it from http://localhost:3003/dev/environment-settings#api-keys, then run `bun run company-brain nango integrations`.',
+          : 'Copy it from http://localhost:3003/dev/environment-settings#api-keys, then run `bun run company-brain local add integrations`.',
       },
       {
         ok: existsSync(localConfigPath),
@@ -109,7 +104,7 @@ export const command = defineCommand('local doctor', {
         detail:
           localConfig.installedIntegrationIds.length > 0
             ? localConfig.installedIntegrationIds.join(', ')
-            : 'Run `bun run company-brain nango integrations`.',
+            : 'Run `bun run company-brain local add integrations`.',
       },
       {
         ok: localConfig.selectedIntegrationIds.length > 0,
@@ -117,10 +112,10 @@ export const command = defineCommand('local doctor', {
         detail:
           localConfig.selectedIntegrationIds.length > 0
             ? localConfig.selectedIntegrationIds.join(', ')
-            : 'Run `bun run company-brain nango syncs` after connecting sources.',
+            : 'Run `bun run company-brain local add syncs` after connecting sources.',
       },
     ];
-    renderSection('Nango setup', nangoChecks);
+    renderDoctorSection('Nango setup', nangoChecks);
 
     const failed = [...configChecks, ...serviceChecks, ...endpointChecks, ...nangoChecks].filter(
       (check) => !check.ok,
@@ -132,27 +127,6 @@ export const command = defineCommand('local doctor', {
     );
   },
 });
-
-function renderSection(title: string, checks: DoctorCheck[]): void {
-  log.info(styleText('blue', title), { spacing: 0 });
-  for (const check of checks) {
-    log.message(formatCheck(check), {
-      symbol: check.ok ? styleText('green', '◆') : styleText('yellow', '▲'),
-      spacing: 0,
-    });
-  }
-}
-
-function formatCheck(check: DoctorCheck): string {
-  const color = check.ok ? 'green' : 'yellow';
-  const lines = [`${check.ok ? 'Ready' : 'Needs attention'}: ${check.label}`];
-
-  if (check.detail) {
-    lines.push(...check.detail.split('\n').map((line) => `   ${line}`));
-  }
-
-  return lines.map((line) => styleText(color, line)).join('\n');
-}
 
 function formatComposeSummary(services: ComposeService[], verbose: boolean): string {
   if (services.length === 0) {
@@ -193,9 +167,4 @@ function formatServiceStatus(service: ComposeService): string {
 
 function serviceName(name: string): string {
   return name.replace(/^company-brain-/, '').replace(/-1$/, '');
-}
-
-function formatAttentionOutro(failed: DoctorCheck[]): string {
-  const label = failed.length === 1 ? 'item needs' : 'items need';
-  return `${failed.length} ${label} attention. The next step is shown beside each one.`;
 }

@@ -11,13 +11,13 @@ import { verifyAwsDestroyPrerequisites } from '../../lib/aws-tools.ts';
 import { awsDestroyPhrase, confirmDestructiveAction } from '../../lib/destroy-confirmation.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 
-export const command = defineCommand('aws destroy', {
-  description: 'Destroy the AWS deployment and remove Terraform state for a clean setup rerun.',
+export const command = defineCommand('deploy destroy', {
+  description: 'Destroy the hosted deployment and remove Terraform state for a clean setup rerun.',
   options: {},
   handler: async ({ rootOptions, print }) => {
-    intro('Company Brain AWS destroy');
+    intro('Company Brain deployment destroy');
 
-    const context = { nonInteractive: isNonInteractive(rootOptions.nonInteractive) };
+    const context = { nonInteractive: isNonInteractive(rootOptions['non-interactive']) };
     const prerequisites = await verifyAwsDestroyPrerequisites(context);
     const config = {
       ...(await requireAwsConfig()),
@@ -32,7 +32,7 @@ export const command = defineCommand('aws destroy', {
 
     await confirmDestructiveAction({
       expected: phrase,
-      label: `AWS Company Brain ${config.environment}`,
+      label: `hosted Company Brain ${config.environment}`,
       nonInteractive: context.nonInteractive,
     });
 
@@ -44,7 +44,7 @@ export const command = defineCommand('aws destroy', {
     });
 
     print.success(
-      'AWS Company Brain resources, backups, state, and local AWS config were removed.',
+      'Hosted Company Brain resources, backups, state, and local deploy config were removed.',
     );
     const dnsCleanupMessage = manualDnsCleanupMessage(runtimeConfig);
     if (dnsCleanupMessage) {
@@ -53,8 +53,8 @@ export const command = defineCommand('aws destroy', {
 
     outro(
       dnsCleanupMessage
-        ? 'AWS destroy finished. Delete the DNS records above from your DNS provider.'
-        : 'AWS destroy finished.',
+        ? 'Deployment destroy finished. Delete the DNS records above from your DNS provider.'
+        : 'Deployment destroy finished.',
     );
   },
 });

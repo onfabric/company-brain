@@ -72,7 +72,7 @@ export async function continueAwsDeployment({
     return current;
   }
 
-  print.success('AWS deployment is ready for hosted Nango configuration.');
+  print.success('Hosted deployment is ready for Nango configuration.');
   note(
     [
       `Brain dashboard: https://${current.brainHostname}/dashboard`,
@@ -80,9 +80,9 @@ export async function continueAwsDeployment({
       `Dozzle logs: https://${current.dozzleHostname}`,
       '',
       'Next: create/sign in to the hosted Nango dashboard, copy the dev API key, then run:',
-      'bun run company-brain nango integrations --hosted',
+      'bun run company-brain deploy add integrations',
     ].join('\n'),
-    'AWS URLs',
+    'Deployment URLs',
   );
   return current;
 }
@@ -123,7 +123,7 @@ async function ensureDns(
       [
         'Create the DNS records above in your DNS provider.',
         'Use DNS-only records if your provider has a proxy mode.',
-        'Then run: bun run company-brain aws resume',
+        'Then run: bun run company-brain deploy resume',
       ].join('\n'),
       'Manual DNS required',
     );
@@ -137,7 +137,7 @@ async function ensureDns(
   if (issues.length > 0) {
     print.warn('DNS records are not ready yet.');
     note(issues.join('\n'), 'DNS check');
-    note('Fix DNS, wait for propagation, then run: bun run company-brain aws resume', 'Next');
+    note('Fix DNS, wait for propagation, then run: bun run company-brain deploy resume', 'Next');
     return false;
   }
 
@@ -157,7 +157,7 @@ async function ensureHttps(config: AwsConfig, print: Printer): Promise<boolean> 
         ...issues,
         '',
         'Common causes: DNS records are wrong, a DNS proxy is enabled, or ports 80/443 are blocked.',
-        'After fixing it, run: bun run company-brain aws resume',
+        'After fixing it, run: bun run company-brain deploy resume',
       ].join('\n'),
       'Certificate/service check',
     );

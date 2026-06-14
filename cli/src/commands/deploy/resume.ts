@@ -7,8 +7,8 @@ import { continueAwsDeployment } from '../../lib/aws-deployment.ts';
 import { verifyAwsPrerequisites } from '../../lib/aws-tools.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 
-export const command = defineCommand('aws resume', {
-  description: 'Resume a paused AWS deployment after DNS or HTTPS setup.',
+export const command = defineCommand('deploy resume', {
+  description: 'Resume a paused hosted deployment after DNS or HTTPS setup.',
   options: {
     yes: {
       schema: z.boolean().optional(),
@@ -16,11 +16,11 @@ export const command = defineCommand('aws resume', {
     },
   },
   handler: async ({ options, rootOptions, print }) => {
-    intro('Company Brain AWS resume');
+    intro('Company Brain deployment resume');
 
     const context = {
       yes: Boolean(options.yes),
-      nonInteractive: isNonInteractive(rootOptions.nonInteractive),
+      nonInteractive: isNonInteractive(rootOptions['non-interactive']),
     };
     const prerequisites = await verifyAwsPrerequisites(context);
     const config = {
@@ -35,6 +35,6 @@ export const command = defineCommand('aws resume', {
       print,
     });
 
-    outro('AWS resume flow finished.');
+    outro('Deployment resume flow finished.');
   },
 });

@@ -39,9 +39,7 @@ describe('hostedNangoEnvDefaults', () => {
   });
 
   it('points missing API keys at the hosted integrations command', () => {
-    expect(() => hostedNangoEnv(config())).toThrow(
-      'bun run company-brain nango integrations --hosted',
-    );
+    expect(() => hostedNangoEnv(config())).toThrow('bun run company-brain deploy add integrations');
   });
 });
 

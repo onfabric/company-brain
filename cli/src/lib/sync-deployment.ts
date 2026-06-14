@@ -1,6 +1,11 @@
 import { parseSelection } from '../../../nango-integrations/_scripts/lib/selection.ts';
 import type { LocalConfig } from './local-config.ts';
-import { checkNangoConnections, deployNangoSyncs, nangoSyncSpecs } from './nango.ts';
+import {
+  checkNangoConnections,
+  deployNangoSyncs,
+  nangoDefaultSyncSpecs,
+  nangoSyncSpecs,
+} from './nango.ts';
 
 export type SyncSpec = (typeof nangoSyncSpecs)[number];
 
@@ -11,7 +16,7 @@ export function resolveSyncSelection(
   config: LocalConfig,
 ): SyncSpec[] {
   if (all) {
-    return nangoSyncSpecs;
+    return nangoDefaultSyncSpecs;
   }
 
   if (only) {
@@ -35,7 +40,7 @@ export function resolveSyncSelection(
   }
 
   throw new Error(
-    'No installed integrations found. Run `bun run company-brain nango integrations` first, or pass --all.',
+    'No installed integrations found. Run the matching add integrations command first, or pass --all.',
   );
 }
 

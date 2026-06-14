@@ -30,7 +30,7 @@ export async function uploadRuntimeBundle(
 
 function requiredOutputs(config: AwsConfig): NonNullable<AwsConfig['outputs']> {
   if (!config.outputs) {
-    throw new Error('Missing Terraform outputs. Run `bun run company-brain aws setup` first.');
+    throw new Error('Missing Terraform outputs. Run `bun run company-brain deploy setup` first.');
   }
 
   return config.outputs;

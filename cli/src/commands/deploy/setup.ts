@@ -8,8 +8,8 @@ import { collectAwsConfig } from '../../lib/aws-prompts.ts';
 import { type AwsPrerequisites, verifyAwsPrerequisites } from '../../lib/aws-tools.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 
-export const command = defineCommand('aws setup', {
-  description: 'Deploy Company Brain directly to AWS from this local checkout.',
+export const command = defineCommand('deploy setup', {
+  description: 'Provision the hosted Company Brain deployment on AWS.',
   options: {
     force: {
       schema: z.boolean().optional(),
@@ -21,9 +21,9 @@ export const command = defineCommand('aws setup', {
     },
   },
   handler: async ({ options, rootOptions, print }) => {
-    intro('Company Brain AWS setup');
+    intro('Company Brain deployment setup');
 
-    const nonInteractive = isNonInteractive(rootOptions.nonInteractive);
+    const nonInteractive = isNonInteractive(rootOptions['non-interactive']);
     const context = { yes: Boolean(options.yes), nonInteractive };
     const existing = await readAwsConfig();
     const prerequisites = await verifyAwsPrerequisites(context);
@@ -52,7 +52,7 @@ export const command = defineCommand('aws setup', {
     config = await provisionAwsInfrastructure(config, context, print);
     await continueAwsDeployment({ config, context, print });
 
-    outro('AWS setup flow finished.');
+    outro('Deployment setup flow finished.');
   },
 });
 
