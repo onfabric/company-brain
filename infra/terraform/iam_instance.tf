@@ -11,6 +11,10 @@ data "aws_iam_policy_document" "instance_assume" {
 resource "aws_iam_role" "instance" {
   name               = "${local.resource_name_prefix}-instance"
   assume_role_policy = data.aws_iam_policy_document.instance_assume.json
+
+  tags = {
+    Name = "${local.resource_name_prefix}-instance"
+  }
 }
 
 # SSM Session Manager + SSM RunCommand agent connectivity.
@@ -83,4 +87,8 @@ resource "aws_iam_role_policy" "instance" {
 resource "aws_iam_instance_profile" "instance" {
   name = "${local.resource_name_prefix}-instance"
   role = aws_iam_role.instance.name
+
+  tags = {
+    Name = "${local.resource_name_prefix}-instance"
+  }
 }

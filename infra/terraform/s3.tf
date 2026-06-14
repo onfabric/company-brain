@@ -3,6 +3,10 @@
 # unique name.
 resource "aws_s3_bucket" "artifacts" {
   bucket = "company-brain-deploy-${data.aws_caller_identity.current.account_id}-${var.environment}"
+
+  tags = {
+    Name = "${local.resource_name_prefix}-deploy"
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "artifacts" {

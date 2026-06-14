@@ -12,6 +12,11 @@ import { terraformPath } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
 const TF_PLAN = 'company-brain-aws.tfplan';
+const LEGACY_DEFAULT_NETWORKING_RESOURCES = [
+  'aws_default_subnet.app',
+  'aws_route.ipv6_default',
+  'aws_vpc_ipv6_cidr_block_association.default',
+] as const;
 
 export async function applyAwsTerraform(
   config: AwsConfig,
@@ -43,7 +48,7 @@ export async function applyAwsTerraform(
   );
 
   terraformConfig = await withFreshAwsCredentials(config, context);
-  await clearDefaultSubnetTaintIfPresent(terraform, terraformConfig, context);
+  await forgetLegacyDefaultNetworking(terraform, terraformConfig, context);
 
   terraformConfig = await withFreshAwsCredentials(config, context);
   await runVisible([terraform, 'plan', '-input=false', `-out=${TF_PLAN}`, ...vars], context, {
@@ -138,6 +143,49 @@ function terraformVar(key: string, value: string | number | boolean): string {
   return `-var=${key}=${value}`;
 }
 
+async function forgetLegacyDefaultNetworking(
+  terraform: string,
+  config: AwsConfig & AwsCredentialConfig,
+  context: VisibleCommandContext,
+): Promise<void> {
+  let stateList = '';
+  try {
+    stateList = await runVisible([terraform, 'state', 'list'], context, {
+      cwd: terraformPath,
+      env: terraformEnv(config),
+      capture: true,
+      purpose: 'Check for legacy default-VPC resources in Terraform state.',
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    if (detail.includes('No state file was found')) {
+      console.log('No Terraform state exists yet; continuing.');
+      return;
+    }
+    throw error;
+  }
+
+  const resources = legacyDefaultNetworkingResourcesInState(stateList);
+  if (resources.length === 0) {
+    console.log('No legacy default-VPC resources are tracked in Terraform state; continuing.');
+    return;
+  }
+
+  for (const resource of resources) {
+    await runVisible([terraform, 'state', 'rm', resource], context, {
+      cwd: terraformPath,
+      env: terraformEnv(config),
+      approve: true,
+      purpose: `Stop managing legacy default-VPC resource ${resource}. This does not delete AWS infrastructure.`,
+    });
+  }
+}
+
+export function legacyDefaultNetworkingResourcesInState(stateList: string): string[] {
+  const resources = new Set(stateList.split('\n').map((line) => line.trim()));
+  return LEGACY_DEFAULT_NETWORKING_RESOURCES.filter((resource) => resources.has(resource));
+}
+
 async function terraformPlanDeletes(
   terraform: string,
   context: VisibleCommandContext,
@@ -152,51 +200,6 @@ async function terraformPlanDeletes(
 
   return (
     plan.resource_changes?.some((change) => change.change?.actions?.includes('delete')) ?? false
-  );
-}
-
-async function clearDefaultSubnetTaintIfPresent(
-  terraform: string,
-  config: AwsConfig & AwsCredentialConfig,
-  context: VisibleCommandContext,
-): Promise<void> {
-  const state = await runVisible([terraform, 'state', 'pull'], context, {
-    cwd: terraformPath,
-    env: terraformEnv(config),
-    capture: true,
-    purpose: 'Check whether the adopted default subnet is tainted in Terraform state.',
-  });
-
-  if (!hasTaintedResource(state, 'aws_default_subnet', 'app')) {
-    console.log('The adopted default subnet is not tainted; continuing.');
-    return;
-  }
-
-  await runVisible([terraform, 'untaint', '-allow-missing', 'aws_default_subnet.app'], context, {
-    cwd: terraformPath,
-    env: terraformEnv(config),
-    approve: true,
-    purpose: 'Clear stale Terraform taint on the adopted default subnet.',
-  });
-}
-
-export function hasTaintedResource(stateJson: string, type: string, name: string): boolean {
-  const state = JSON.parse(stateJson) as {
-    resources?: {
-      mode?: string;
-      type?: string;
-      name?: string;
-      instances?: { status?: string }[];
-    }[];
-  };
-
-  return (
-    state.resources
-      ?.find(
-        (resource) =>
-          resource.mode === 'managed' && resource.type === type && resource.name === name,
-      )
-      ?.instances?.some((instance) => instance.status === 'tainted') ?? false
   );
 }
 

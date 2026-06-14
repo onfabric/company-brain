@@ -11,6 +11,10 @@ data "aws_iam_policy_document" "dlm_assume" {
 resource "aws_iam_role" "dlm" {
   name               = "${local.resource_name_prefix}-dlm"
   assume_role_policy = data.aws_iam_policy_document.dlm_assume.json
+
+  tags = {
+    Name = "${local.resource_name_prefix}-dlm"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "dlm" {
@@ -22,6 +26,10 @@ resource "aws_dlm_lifecycle_policy" "data" {
   description        = "Daily snapshots of the company-brain ${var.environment} data volume"
   execution_role_arn = aws_iam_role.dlm.arn
   state              = "ENABLED"
+
+  tags = {
+    Name = "${local.resource_name_prefix}-data-snapshots"
+  }
 
   policy_details {
     resource_types = ["VOLUME"]

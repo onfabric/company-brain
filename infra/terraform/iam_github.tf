@@ -36,6 +36,10 @@ resource "aws_iam_role" "github_deploy" {
 
   name               = "${local.resource_name_prefix}-github-deploy"
   assume_role_policy = data.aws_iam_policy_document.github_assume[0].json
+
+  tags = {
+    Name = "${local.resource_name_prefix}-github-deploy"
+  }
 }
 
 data "aws_iam_policy_document" "github_deploy" {

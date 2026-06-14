@@ -25,6 +25,12 @@ variable "data_volume_size" {
   description = "Persistent data EBS volume size in GB. Backs the data-bearing compose volumes (Postgres/ES/Caddy certs). Survives instance replacement."
 }
 
+variable "vpc_cidr_block" {
+  type        = string
+  default     = "10.42.0.0/16"
+  description = "IPv4 CIDR block for the environment-owned VPC."
+}
+
 variable "hostname" {
   type        = string
   description = "Public hostname served over HTTPS by Caddy. You add this A record in Cloudflare (DNS only / grey cloud)."

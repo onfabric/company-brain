@@ -1,40 +1,25 @@
 import { describe, expect, it } from 'bun:test';
-import { hasTaintedResource } from './aws-terraform.ts';
+import { legacyDefaultNetworkingResourcesInState } from './aws-terraform.ts';
 
 describe('Terraform state helpers', () => {
-  it('detects tainted managed resources', () => {
-    const state = JSON.stringify({
-      resources: [
-        {
-          mode: 'managed',
-          type: 'aws_default_subnet',
-          name: 'app',
-          instances: [{ status: 'tainted' }],
-        },
-      ],
-    });
-
-    expect(hasTaintedResource(state, 'aws_default_subnet', 'app')).toBe(true);
+  it('finds legacy default-networking resources in state listings', () => {
+    expect(
+      legacyDefaultNetworkingResourcesInState(
+        [
+          'aws_default_subnet.app',
+          'aws_eip.app',
+          'aws_route.ipv6_default',
+          'aws_vpc_ipv6_cidr_block_association.default',
+        ].join('\n'),
+      ),
+    ).toEqual([
+      'aws_default_subnet.app',
+      'aws_route.ipv6_default',
+      'aws_vpc_ipv6_cidr_block_association.default',
+    ]);
   });
 
-  it('does not treat healthy resources as tainted', () => {
-    const state = JSON.stringify({
-      resources: [
-        {
-          mode: 'managed',
-          type: 'aws_default_subnet',
-          name: 'app',
-          instances: [{}],
-        },
-      ],
-    });
-
-    expect(hasTaintedResource(state, 'aws_default_subnet', 'app')).toBe(false);
-  });
-
-  it('ignores missing resources', () => {
-    expect(hasTaintedResource(JSON.stringify({ resources: [] }), 'aws_default_subnet', 'app')).toBe(
-      false,
-    );
+  it('ignores resources that can stay managed', () => {
+    expect(legacyDefaultNetworkingResourcesInState('aws_eip.app\naws_instance.app')).toEqual([]);
   });
 });

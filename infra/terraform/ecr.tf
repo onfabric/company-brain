@@ -5,6 +5,10 @@ resource "aws_ecr_repository" "nango" {
   image_scanning_configuration {
     scan_on_push = true
   }
+
+  tags = {
+    Name = "${local.resource_name_prefix}-nango"
+  }
 }
 
 resource "aws_ecr_repository" "brain" {
@@ -14,6 +18,10 @@ resource "aws_ecr_repository" "brain" {
   image_scanning_configuration {
     scan_on_push = true
   }
+
+  tags = {
+    Name = "${local.resource_name_prefix}-brain"
+  }
 }
 
 resource "aws_ecr_repository" "pg_backup" {
@@ -22,6 +30,10 @@ resource "aws_ecr_repository" "pg_backup" {
 
   image_scanning_configuration {
     scan_on_push = true
+  }
+
+  tags = {
+    Name = "${local.resource_name_prefix}-pg-backup"
   }
 }
 
