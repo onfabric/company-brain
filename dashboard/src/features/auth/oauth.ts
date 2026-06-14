@@ -1,6 +1,5 @@
 const DEFAULT_CALLBACK_URL = '/dashboard';
 const AUTHORIZE_PATH = '/api/auth/oauth2/authorize';
-const PUBLIC_CLIENT_PATH = '/api/auth/oauth2/public-client';
 const SOCIAL_SIGN_IN_PATH = '/api/auth/sign-in/social';
 const CONSENT_PATH = '/api/auth/oauth2/consent';
 
@@ -25,36 +24,6 @@ function safeCallbackURL(value: string | undefined): string {
   return DEFAULT_CALLBACK_URL;
 }
 
-export function parseClientId(search: string): string {
-  return new URLSearchParams(search).get('client_id') ?? '';
-}
-
-export function parseScopes(search: string): string[] {
-  const scope = new URLSearchParams(search).get('scope');
-  return scope ? scope.split(' ').filter(Boolean) : [];
-}
-
-// The consent redirect carries only the client id, so resolve the registered
-// display name from better-auth's public-client endpoint; fall back to the id.
-export async function fetchClientName(clientId: string): Promise<string> {
-  try {
-    const response = await fetch(
-      `${PUBLIC_CLIENT_PATH}?client_id=${encodeURIComponent(clientId)}`,
-      {
-        credentials: 'include',
-        headers: { accept: 'application/json' },
-      },
-    );
-    if (!response.ok) {
-      return clientId;
-    }
-    const data = (await response.json()) as { client_name?: string };
-    return data.client_name ?? clientId;
-  } catch {
-    return clientId;
-  }
-}
-
 // better-auth answers a browser fetch with `{ url }` (200) rather than a 302, so
 // the page follows the returned URL itself.
 export async function startGoogleSignIn(callbackURL: string): Promise<string | null> {
@@ -69,7 +38,7 @@ export async function startGoogleSignIn(callbackURL: string): Promise<string | n
 }
 
 // The consent endpoint verifies the signed authorize request the page was
-// redirected with, so accept/deny replay the full query string as `oauth_query`.
+// redirected with, so the grant replays the full query string as `oauth_query`.
 export async function submitConsent(accept: boolean, search: string): Promise<string | null> {
   const response = await fetch(CONSENT_PATH, {
     method: 'POST',
