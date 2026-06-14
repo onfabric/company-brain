@@ -51,15 +51,14 @@ runs:
       uses: docker/setup-buildx-action@v3
 
     - name: Build and push image
-      uses: docker/build-push-action@v6
-      with:
-        context: ${{ inputs.context }}
-        file: ${{ inputs.dockerfile }}
-        push: true
-        tags: |
-          ${{ steps.tags.outputs.commit }}
-          ${{ steps.tags.outputs.latest }}
-        labels: |
-          org.opencontainers.image.source=https://github.com/${{ github.repository }}
-        cache-from: type=gha,scope=${{ inputs.cache-scope }}
-        cache-to: type=gha,mode=max,scope=${{ inputs.cache-scope }}
+      shell: bash
+      env:
+        ECR_REPOSITORY_URL: ${{ inputs.ecr-repository-url }}
+        IMAGE_TAG: ${{ github.sha }}
+        BUILD_CONTEXT: ${{ inputs.context }}
+        DOCKERFILE: ${{ inputs.dockerfile }}
+        CACHE_SCOPE: ${{ inputs.cache-scope }}
+        CACHE_FROM: type=gha,scope=${{ inputs.cache-scope }}
+        CACHE_TO: type=gha,mode=max,scope=${{ inputs.cache-scope }}
+        SOURCE_LABEL: https://github.com/${{ github.repository }}
+      run: infra/deploy/build_and_push_image.sh

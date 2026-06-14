@@ -1,7 +1,7 @@
 resource "aws_security_group" "instance" {
-  name        = "company-brain-${var.environment}"
+  name        = local.resource_name_prefix
   description = "company-brain ${var.environment} instance"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = aws_vpc.app.id
 
   # Public HTTPS (Caddy). Port 80 is needed for the ACME HTTP-01 challenge
   # and to redirect to HTTPS.
@@ -31,5 +31,9 @@ resource "aws_security_group" "instance" {
     protocol         = "-1"
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = local.resource_name_prefix
   }
 }

@@ -25,10 +25,46 @@ variable "data_volume_size" {
   description = "Persistent data EBS volume size in GB. Backs the data-bearing compose volumes (Postgres/ES/Caddy certs). Survives instance replacement."
 }
 
+variable "vpc_cidr_block" {
+  type        = string
+  default     = "10.42.0.0/16"
+  description = "IPv4 CIDR block for the environment-owned VPC."
+}
+
 variable "hostname" {
   type        = string
   description = "Public hostname served over HTTPS by Caddy. You add this A record in Cloudflare (DNS only / grey cloud)."
   default     = "nango-dev.onfabric.io"
+}
+
+variable "nango_hostname" {
+  type        = string
+  description = "Public hostname for the Nango dashboard/API."
+  default     = "nango-dev.onfabric.io"
+}
+
+variable "nango_connect_hostname" {
+  type        = string
+  description = "Public hostname for the Nango Connect UI."
+  default     = "nango-auth-dev.onfabric.io"
+}
+
+variable "brain_hostname" {
+  type        = string
+  description = "Public hostname for the Company Brain service."
+  default     = "brain-dev.onfabric.io"
+}
+
+variable "dozzle_hostname" {
+  type        = string
+  description = "Public hostname for Dozzle logs."
+  default     = "dozzle-dev.onfabric.io"
+}
+
+variable "enable_github_deploy" {
+  type        = bool
+  description = "Create the GitHub Actions OIDC deploy role. Local AWS CLI deployments do not need it."
+  default     = false
 }
 
 variable "github_repo" {

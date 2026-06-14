@@ -44,13 +44,18 @@ export function syncsForIntegrationIds(integrationIds: string[]): SyncSpec[] {
   return nangoSyncSpecs.filter((sync) => selectedIds.has(sync.integrationId));
 }
 
+type DeploySelectedSyncsOptions = {
+  env?: Record<string, string | undefined>;
+  verbose: boolean;
+};
+
 export async function deploySelectedSyncs(
   selected: SyncSpec[],
-  verbose: boolean,
+  options: DeploySelectedSyncsOptions,
 ): Promise<string[]> {
   const integrationIds = selected.map((sync) => sync.integrationId);
-  await checkNangoConnections(integrationIds, verbose);
-  await deployNangoSyncs(integrationIds, verbose);
+  await checkNangoConnections(integrationIds, options);
+  await deployNangoSyncs(integrationIds, options);
 
   return integrationIds;
 }

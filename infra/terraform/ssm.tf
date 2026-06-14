@@ -22,24 +22,40 @@ resource "aws_ssm_parameter" "db_password" {
   name  = "${var.ssm_secret_prefix}/nango_db_password"
   type  = "SecureString"
   value = random_password.db.result
+
+  tags = {
+    Name = "${local.resource_name_prefix}-nango-db-password"
+  }
 }
 
 resource "aws_ssm_parameter" "brain_db_password" {
   name  = "${var.ssm_secret_prefix}/brain_db_password"
   type  = "SecureString"
   value = random_password.brain_db.result
+
+  tags = {
+    Name = "${local.resource_name_prefix}-brain-db-password"
+  }
 }
 
 resource "aws_ssm_parameter" "brain_api_key" {
   name  = "${var.ssm_secret_prefix}/brain_api_key"
   type  = "SecureString"
   value = random_uuid4.brain_api_key.result
+
+  tags = {
+    Name = "${local.resource_name_prefix}-brain-api-key"
+  }
 }
 
 resource "aws_ssm_parameter" "better_auth_secret" {
   name  = "${var.ssm_secret_prefix}/better_auth_secret"
   type  = "SecureString"
   value = random_password.better_auth_secret.result
+
+  tags = {
+    Name = "${local.resource_name_prefix}-better-auth-secret"
+  }
 }
 
 # Google OAuth client for the brain's in-process better-auth server. Created
@@ -50,12 +66,20 @@ resource "aws_ssm_parameter" "google_client_id" {
   name  = "${var.ssm_secret_prefix}/google_client_id"
   type  = "SecureString"
   value = var.google_client_id
+
+  tags = {
+    Name = "${local.resource_name_prefix}-google-client-id"
+  }
 }
 
 resource "aws_ssm_parameter" "google_client_secret" {
   name  = "${var.ssm_secret_prefix}/google_client_secret"
   type  = "SecureString"
   value = var.google_client_secret
+
+  tags = {
+    Name = "${local.resource_name_prefix}-google-client-secret"
+  }
 }
 
 # Dozzle simple-auth users.yml. Can't be generated here (it holds a bcrypt
@@ -66,6 +90,10 @@ resource "aws_ssm_parameter" "dozzle_users" {
   name  = "${var.ssm_secret_prefix}/dozzle_users"
   type  = "SecureString"
   value = "users: {}"
+
+  tags = {
+    Name = "${local.resource_name_prefix}-dozzle-users"
+  }
 
   lifecycle {
     ignore_changes = [value]

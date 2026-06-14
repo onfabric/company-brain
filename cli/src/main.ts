@@ -5,7 +5,7 @@ import { commandTree } from './command-tree.gen.ts';
 
 const cli = createCli({
   programName: 'company-brain',
-  programDescription: 'Set up and operate a local Company Brain.',
+  programDescription: 'Set up and operate Company Brain locally or on AWS.',
   tree: commandTree,
 });
 

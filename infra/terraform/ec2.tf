@@ -1,15 +1,12 @@
 resource "aws_instance" "app" {
   ami                    = data.aws_ssm_parameter.al2023_ami.value
   instance_type          = var.instance_type
-  subnet_id              = data.aws_subnets.default.ids[0]
+  subnet_id              = aws_subnet.app.id
   vpc_security_group_ids = [aws_security_group.instance.id]
   iam_instance_profile   = aws_iam_instance_profile.instance.name
   ipv6_address_count     = 1
 
-  # Same physical subnet as data.aws_subnets.default.ids[0], but referencing the
-  # known data-source id keeps subnet_id (ForceNew) diff-free. depends_on ensures
-  # the subnet has its IPv6 CIDR before the address is assigned to the instance.
-  depends_on = [aws_default_subnet.app]
+  depends_on = [aws_route_table_association.app]
 
   user_data                   = templatefile("${path.module}/user_data.sh.tftpl", {})
   user_data_replace_on_change = false
@@ -18,6 +15,10 @@ resource "aws_instance" "app" {
     volume_size = var.root_volume_size
     volume_type = "gp3"
     encrypted   = true
+
+    tags = {
+      Name = "${local.resource_name_prefix}-root"
+    }
   }
 
   metadata_options {
@@ -29,21 +30,13 @@ resource "aws_instance" "app" {
   }
 
   lifecycle {
-    # The AMI comes from a floating SSM parameter that AWS bumps every few
-    # weeks; acting on that drift would terminate and replace the instance
-    # (and on 2026-06-10 it did, destroying all data). New instances get the
-    # latest AL2023; existing ones keep theirs and patch via dnf.
     ignore_changes = [ami]
-    # ami is not the only force-replacement attribute. Replacing the instance
-    # must be an explicit human decision: remove this flag in the PR that
-    # intends it.
-    prevent_destroy = true
   }
 
   tags = {
-    Name = "company-brain-${var.environment}"
+    Name = local.resource_name_prefix
     # The deploy workflow targets the instance by these tags.
-    DeployGroup = "company-brain-${var.environment}"
+    DeployGroup = local.resource_name_prefix
   }
 }
 
@@ -51,4 +44,8 @@ resource "aws_instance" "app" {
 resource "aws_eip" "app" {
   instance = aws_instance.app.id
   domain   = "vpc"
+
+  tags = {
+    Name = "${local.resource_name_prefix}-public-ip"
+  }
 }

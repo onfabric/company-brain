@@ -3,15 +3,15 @@
 # instance so instance replacement can't take the data with it — unlike the
 # root volume, which AWS deletes on termination.
 resource "aws_ebs_volume" "data" {
-  availability_zone = aws_instance.app.availability_zone
+  availability_zone = local.availability_zone
   size              = var.data_volume_size
   type              = "gp3"
   encrypted         = true
 
   tags = {
-    Name = "company-brain-${var.environment}-data"
+    Name = "${local.resource_name_prefix}-data"
     # The DLM snapshot policy targets volumes by this tag.
-    Backup = "company-brain-${var.environment}"
+    Backup = local.resource_name_prefix
   }
 
   lifecycle {

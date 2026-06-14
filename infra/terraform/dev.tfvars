@@ -1,8 +1,9 @@
-region            = "eu-west-2"
-environment       = "dev"
-instance_type     = "t3.large"
-root_volume_size  = 50
-hostname          = "nango-dev.onfabric.io"
-github_repo       = "onfabric/company-brain"
-github_branch     = "main"
-ssm_secret_prefix = "/company-brain/dev"
+region               = "eu-west-2"
+environment          = "dev"
+instance_type        = "t3.large"
+root_volume_size     = 50
+hostname             = "nango-dev.onfabric.io"
+github_repo          = "onfabric/company-brain"
+github_branch        = "main"
+ssm_secret_prefix    = "/company-brain/dev"
+enable_github_deploy = true
