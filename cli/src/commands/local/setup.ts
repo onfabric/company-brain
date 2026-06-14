@@ -51,7 +51,7 @@ export const command = defineCommand('local setup', {
 
     note(
       [
-        'Brain dashboard: http://localhost:3010/dashboard',
+        'Brain dashboard: http://localhost:3010/',
         'Nango dashboard/login and API keys: http://localhost:3003',
         '',
         'Next: create/sign in to the local Nango dashboard, copy the dev API key, then run:',

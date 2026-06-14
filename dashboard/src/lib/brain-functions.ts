@@ -250,6 +250,8 @@ function exclusiveEndOfDayIso(date: string) {
   return parsed.toISOString();
 }
 
+const API_BASE = '/api';
+
 async function fetchBrain<T>(
   path: string,
   schema: z.ZodType<T>,
@@ -257,7 +259,7 @@ async function fetchBrain<T>(
 ): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('accept', 'application/json');
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers,
     credentials: 'include',

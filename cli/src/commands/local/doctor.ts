@@ -79,9 +79,9 @@ export const command = defineCommand('local doctor', {
         detail: 'http://localhost:3003',
       },
       {
-        ok: await endpointOk('http://localhost:3010/health'),
+        ok: await endpointOk('http://localhost:3010/api/health'),
         label: 'Brain API',
-        detail: 'http://localhost:3010/health',
+        detail: 'http://localhost:3010/api/health',
       },
     ];
     renderSection('Endpoints', endpointChecks);

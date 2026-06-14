@@ -285,7 +285,7 @@ services:
     ports:
       - "127.0.0.1:${BRAIN_SERVER_PORT}:3010"
     healthcheck:
-      test: ["CMD", "/busybox/wget", "-q", "--spider", "http://localhost:3010/health"]
+      test: ["CMD", "/busybox/wget", "-q", "--spider", "http://localhost:3010/api/health"]
       interval: 10s
       timeout: 5s
       retries: 5

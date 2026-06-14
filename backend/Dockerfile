@@ -29,5 +29,5 @@ COPY --from=build /monorepo/backend/dist/ ./
 ENV NODE_ENV=production
 EXPOSE 3010/tcp
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD ["/busybox/wget", "-q", "--spider", "http://localhost:3010/health"]
+  CMD ["/busybox/wget", "-q", "--spider", "http://localhost:3010/api/health"]
 ENTRYPOINT ["/app/server"]

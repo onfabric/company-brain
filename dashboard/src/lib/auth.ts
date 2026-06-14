@@ -1,4 +1,4 @@
-const SIGN_IN_PATH = '/dashboard/sign-in';
+const SIGN_IN_PATH = '/sign-in';
 const SIGN_OUT_PATH = '/api/auth/sign-out';
 const GET_SESSION_PATH = '/api/auth/get-session';
 
@@ -12,9 +12,9 @@ export type AuthContext = {
   signOut: () => Promise<void>;
 };
 
-// `SIGN_IN_PATH` already carries the `/dashboard` basepath: callers here
-// (`signOut`, the 401 handler, the auth gate) navigate the whole document rather
-// than the router, so the href must be basepath-absolute, not router-relative.
+// Callers here (`signOut`, the 401 handler, the auth gate) navigate the whole
+// document rather than the router, so the href must be origin-absolute, not
+// router-relative.
 export function signInUrl() {
   const callbackURL = window.location.pathname + window.location.search;
   return `${window.location.origin}${SIGN_IN_PATH}?callbackURL=${encodeURIComponent(callbackURL)}`;

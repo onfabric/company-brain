@@ -34,11 +34,11 @@ export const KNOWLEDGE_HTML_HEADERS = {
 } satisfies HTTPHeaders;
 
 export function knowledgePagePath(id: string): string {
-  return `/knowledge/pages/${id}`;
+  return `/api/knowledge/pages/${id}`;
 }
 
 export function knowledgeIndexPagePath(): string {
-  return '/knowledge/pages/index';
+  return '/api/knowledge/pages/index';
 }
 
 export function sanitizeKnowledgeHtml(html: string): string {

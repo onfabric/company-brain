@@ -19,16 +19,18 @@
 }
 
 {$BRAIN_HOSTNAME} {
-	@public path /api/auth/* /.well-known/* /dashboard /dashboard/* /data-sources /data-sources/* /health /knowledge /knowledge/* /knowledge-types /knowledge-types/* /mcp /people /people/* /records /records/* /sessions /openapi /openapi/*
-	handle @public {
+	# Forward everything to the brain EXCEPT /internal/* (e.g. the Nango batch-save
+	# webhook), which must stay reachable only on the compose network.
+	@internal path /internal /internal/*
+	handle @internal {
+		respond 404
+	}
+	handle {
 		reverse_proxy brain:3010 {
 			# Retry dial failures to ride out the container recreate gap on deploy.
 			lb_try_duration 30s
 			lb_try_interval 250ms
 		}
-	}
-	handle {
-		respond 404
 	}
 }
 

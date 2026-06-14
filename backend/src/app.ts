@@ -4,22 +4,9 @@ import { apiKeySecuritySchemes } from '#lib/auth/api-key.ts';
 import { sessionSecuritySchemes } from '#lib/auth/better-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
-import { dashboardController } from '#routes/dashboard/controller.ts';
-import { dataSourcesController } from '#routes/data-sources/controller.ts';
-import { healthController } from '#routes/health/controller.ts';
-import { knowledgeIdController } from '#routes/knowledge/[id]/controller.ts';
-import { knowledgeController } from '#routes/knowledge/controller.ts';
-import { knowledgePagesIdController } from '#routes/knowledge/pages/[id]/controller.ts';
-import { knowledgePagesIndexController } from '#routes/knowledge/pages/index/controller.ts';
-import { knowledgeTypesIdController } from '#routes/knowledge-types/[id]/controller.ts';
-import { knowledgeTypesController } from '#routes/knowledge-types/controller.ts';
-import { mcpController } from '#routes/mcp/controller.ts';
-import { peopleIdController } from '#routes/people/[id]/controller.ts';
-import { peopleController } from '#routes/people/controller.ts';
-import { peopleMergeController } from '#routes/people/merge/controller.ts';
-import { recordsIdController } from '#routes/records/[id]/controller.ts';
-import { recordsController } from '#routes/records/controller.ts';
-import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
+import { apiController } from '#routes/api/controller.ts';
+import { rootController } from '#routes/controller.ts';
+import { internalController } from '#routes/internal/controller.ts';
 
 export function createApp() {
   return new Elysia()
@@ -63,20 +50,7 @@ export function createApp() {
         },
       }),
     )
-    .use(dashboardController)
-    .use(healthController)
-    .use(peopleController)
-    .use(peopleIdController)
-    .use(peopleMergeController)
-    .use(dataSourcesController)
-    .use(knowledgeController)
-    .use(knowledgeIdController)
-    .use(knowledgePagesIndexController)
-    .use(knowledgePagesIdController)
-    .use(knowledgeTypesController)
-    .use(knowledgeTypesIdController)
-    .use(recordsController)
-    .use(recordsIdController)
-    .use(mcpController)
-    .use(batchSaveController);
+    .use(apiController)
+    .use(internalController)
+    .use(rootController);
 }

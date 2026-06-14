@@ -29,7 +29,7 @@ const PERSON_ID = '019e8882-07f1-779b-9a26-56602bcd1b3f';
 const RECORD_ID = '019e8882-07f1-77c5-934a-0e53d907a839';
 const PERSON_NAME = 'Ada Lovelace';
 const PERSON_EMAIL = 'ada@example.com';
-const INDEX_HTML = `<html><body><a href="/knowledge/pages/${KNOWLEDGE_ID}">Onboarding</a></body></html>`;
+const INDEX_HTML = `<html><body><a href="/api/knowledge/pages/${KNOWLEDGE_ID}">Onboarding</a></body></html>`;
 const PAGE_HTML = '<html><body><h1>Onboarding</h1></body></html>';
 
 const KNOWLEDGE_ITEM: KnowledgeItem = {
@@ -38,7 +38,7 @@ const KNOWLEDGE_ITEM: KnowledgeItem = {
   updated_at: '2026-01-02T00:00:00.000Z',
   title: 'Q1 pricing decision',
   body: '<p>Keep the starter tier free.</p>',
-  html_url: `/knowledge/pages/${KNOWLEDGE_ID}`,
+  html_url: `/api/knowledge/pages/${KNOWLEDGE_ID}`,
   knowledge_type: { id: KNOWLEDGE_TYPE_ID, name: KNOWLEDGE_TYPE_NAME },
   participants: [
     {

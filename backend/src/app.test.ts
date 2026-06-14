@@ -68,7 +68,7 @@ describe('app', () => {
 describe('api key auth', () => {
   it('rejects a protected route without a valid api key', async () => {
     const { createApp } = await import('#app.ts');
-    const res = await createApp().handle(new Request('http://localhost/people'));
+    const res = await createApp().handle(new Request('http://localhost/api/people'));
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
 
@@ -76,7 +76,7 @@ describe('api key auth', () => {
     const { createApp } = await import('#app.ts');
     const { API_KEY_HEADER } = await import('#lib/auth/api-key.ts');
     const res = await createApp().handle(
-      new Request('http://localhost/people', {
+      new Request('http://localhost/api/people', {
         headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
       }),
     );
@@ -87,7 +87,7 @@ describe('api key auth', () => {
     const { createApp } = await import('#app.ts');
     const { API_KEY_HEADER } = await import('#lib/auth/api-key.ts');
     const res = await createApp().handle(
-      new Request('http://localhost/knowledge/pages/index', {
+      new Request('http://localhost/api/knowledge/pages/index', {
         headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
       }),
     );
@@ -97,21 +97,21 @@ describe('api key auth', () => {
   it('rejects navigable knowledge pages without api key or session', async () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(
-      new Request('http://localhost/knowledge/pages/019e8882-07f1-771c-993e-f6825a9224bb'),
+      new Request('http://localhost/api/knowledge/pages/019e8882-07f1-771c-993e-f6825a9224bb'),
     );
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
 
   it('rejects the knowledge index page without api key or session', async () => {
     const { createApp } = await import('#app.ts');
-    const res = await createApp().handle(new Request('http://localhost/knowledge/pages/index'));
+    const res = await createApp().handle(new Request('http://localhost/api/knowledge/pages/index'));
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
 
   it('leaves the internal webhook open to in-network callers', async () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(
-      new Request('http://localhost/webhooks/batch-save', { method: 'POST' }),
+      new Request('http://localhost/internal/webhooks/batch-save', { method: 'POST' }),
     );
     expect(res.status).not.toBe(StatusMap.Unauthorized);
   });
@@ -119,7 +119,7 @@ describe('api key auth', () => {
   it('rejects a protected route with an invalid session cookie', async () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(
-      new Request('http://localhost/people', {
+      new Request('http://localhost/api/people', {
         headers: { cookie: 'better-auth.session_token=not-a-real-session' },
       }),
     );

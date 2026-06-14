@@ -5,22 +5,13 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import viteReact from '@vitejs/plugin-react';
 import { defineConfig, type ProxyOptions } from 'vite';
 
-const BRAIN_API_PROXY_PATHS = [
-  '/api/auth',
-  '/data-sources',
-  '/health',
-  '/knowledge',
-  '/knowledge-types',
-  '/openapi',
-  '/people',
-  '/records',
-] as const;
+const BRAIN_API_PROXY_PATHS = ['/api'] as const;
 
 const brainApiOrigin = apiOriginFrom(process.env.BRAIN_API_ORIGIN);
 const brainApiProxy = brainApiOrigin ? apiProxyConfig(brainApiOrigin) : undefined;
 
 export default defineConfig({
-  base: '/dashboard/',
+  base: '/',
   resolve: { tsconfigPaths: true },
   plugins: [tanstackRouter({ target: 'react' }), viteReact(), tailwindcss()],
   server: brainApiProxy ? { proxy: brainApiProxy } : undefined,
