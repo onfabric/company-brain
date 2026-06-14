@@ -2,11 +2,12 @@ import { useMutation } from '@tanstack/react-query';
 import { Button } from '#/components/ui/button.tsx';
 import { AuthCard } from '#/features/auth/auth-card.tsx';
 import { resolveSignInTarget, startGoogleSignIn } from '#/features/auth/oauth.ts';
+import { SIGNED_QUERY } from '#/features/auth/signed-query.ts';
 
 export function SignInView() {
   const signIn = useMutation({
     mutationFn: async () => {
-      const url = await startGoogleSignIn(resolveSignInTarget(window.location.search));
+      const url = await startGoogleSignIn(resolveSignInTarget(SIGNED_QUERY));
       if (!url) {
         throw new Error('No sign-in URL returned.');
       }
