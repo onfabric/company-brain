@@ -12,7 +12,7 @@ export type AwsPrerequisites = {
 export async function verifyAwsPrerequisites(
   context: VisibleCommandContext,
 ): Promise<AwsPrerequisites> {
-  const missing = await missingCommands(['aws', 'docker', 'jq', 'tar']);
+  const missing = await missingCommands(['aws', 'bash', 'docker', 'jq', 'tar']);
   const terraformCommand = await resolveTerraformCommand();
   if (!terraformCommand) {
     missing.push('terraform or tofu');

@@ -1,5 +1,5 @@
 import type { AwsConfig } from './aws-config.ts';
-import { repoRoot } from './paths.ts';
+import { deployPath, repoRoot } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
 export type ImageUris = {
@@ -80,37 +80,21 @@ async function buildAndPushImage({
   const deployTag = `${repositoryUrl}:${deployId}`;
   const latestTag = `${repositoryUrl}:latest`;
 
-  await runVisible(
-    [
-      'docker',
-      'buildx',
-      'build',
-      '--platform',
-      'linux/amd64',
-      '--push',
-      '--tag',
-      deployTag,
-      '--tag',
-      latestTag,
-      '--cache-from',
-      `type=registry,ref=${latestTag}`,
-      '--cache-to',
-      `type=inline`,
-      '--label',
-      'org.opencontainers.image.source=https://github.com/onfabric/company-brain',
-      '--label',
-      `company-brain.cache-scope=${cacheScope}`,
-      '--file',
-      dockerfile,
-      contextDir,
-    ],
-    context,
-    {
-      cwd: repoRoot,
-      approve: true,
-      purpose: `Build and push ${repositoryUrl}.`,
+  await runVisible(['bash', `${deployPath}/build_and_push_image.sh`], context, {
+    cwd: repoRoot,
+    env: {
+      ECR_REPOSITORY_URL: repositoryUrl,
+      IMAGE_TAG: deployId,
+      BUILD_CONTEXT: contextDir,
+      DOCKERFILE: dockerfile,
+      CACHE_SCOPE: cacheScope,
+      CACHE_FROM: `type=registry,ref=${latestTag}`,
+      CACHE_TO: 'type=inline',
+      SOURCE_LABEL: 'https://github.com/onfabric/company-brain',
     },
-  );
+    approve: true,
+    purpose: `Build and push ${repositoryUrl}.`,
+  });
 
   return deployTag;
 }
