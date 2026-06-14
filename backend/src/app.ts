@@ -2,7 +2,6 @@ import { openapi } from '@elysiajs/openapi';
 import { Elysia } from 'elysia';
 import { apiKeySecuritySchemes } from '#lib/auth/api-key.ts';
 import { sessionSecuritySchemes } from '#lib/auth/better-auth.ts';
-import { dashboardAssets } from '#lib/dashboard.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
 import { apiController } from '#routes/api/controller.ts';
@@ -53,6 +52,5 @@ export function createApp() {
     )
     .use(apiController)
     .use(internalController)
-    .use(dashboardAssets)
     .use(rootController);
 }

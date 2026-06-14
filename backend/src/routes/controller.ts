@@ -13,5 +13,5 @@ import { knowledgeMcpService } from '#services/plugins.ts';
 // no route matched.
 export const rootController = new Elysia().mount(async (request) => {
   const fromMcp = await knowledgeMcpService.fetch(request);
-  return fromMcp.status === StatusMap['Not Found'] ? serveDashboard() : fromMcp;
+  return fromMcp.status === StatusMap['Not Found'] ? serveDashboard(request) : fromMcp;
 });
