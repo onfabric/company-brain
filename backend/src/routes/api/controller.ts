@@ -14,7 +14,8 @@ import { recordsIdController } from '#routes/api/records/[id]/controller.ts';
 import { recordsController } from '#routes/api/records/controller.ts';
 
 // The `/api` prefix is applied here, so child controllers keep bare path strings.
-export const apiController = new Elysia({ prefix: '/api' })
+export const API_PREFIX = '/api';
+export const apiController = new Elysia({ prefix: API_PREFIX })
   .use(healthController)
   .use(peopleController)
   .use(peopleIdController)

@@ -1,5 +1,7 @@
 import { Elysia, StatusMap } from 'elysia';
 import { serveDashboard } from '#lib/dashboard.ts';
+import { API_PREFIX } from '#routes/api/controller.ts';
+import { INTERNAL_PREFIX } from '#routes/internal/controller.ts';
 import { knowledgeMcpService } from '#services/plugins.ts';
 
 // Catch-all for the mcp-use + better-auth Hono app. Must be a `.mount()`, not a
@@ -14,7 +16,7 @@ export const rootController = new Elysia().mount(async (request) => {
   // error shape — a clear contract for clients); anything else is a browser
   // navigation that the dashboard SPA shell resolves.
   const { pathname } = new URL(request.url);
-  if (pathname.startsWith('/api') || pathname.startsWith('/internal')) {
+  if (pathname.startsWith(API_PREFIX) || pathname.startsWith(INTERNAL_PREFIX)) {
     return Response.json({ error: 'Not Found' }, { status: StatusMap['Not Found'] });
   }
   return serveDashboard(request);
