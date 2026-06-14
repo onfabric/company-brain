@@ -5,6 +5,7 @@ import { writeAwsConfig } from './aws-config.ts';
 import {
   formatDnsRecords,
   upsertRoute53Records,
+  type WaitProgress,
   waitForDnsRecords,
   waitForHttps,
 } from './aws-dns.ts';
@@ -21,6 +22,8 @@ import { applyAwsTerraform } from './aws-terraform.ts';
 import type { VisibleCommandContext } from './visible-command.ts';
 
 const DEPLOY_ID_LENGTH = 14;
+const FIRST_WAIT_ATTEMPT = 1;
+const WAIT_PROGRESS_LOG_INTERVAL = 3;
 
 type Printer = {
   success: (message: string) => void;
@@ -141,7 +144,9 @@ async function ensureDns(
 
   if (config.dns.mode === 'route53') {
     await upsertRoute53Records(config, context);
-  } else if (!(await confirmManualDnsReady(Boolean(context.nonInteractive)))) {
+  } else if (
+    !(await confirmManualDnsReady(Boolean(context.nonInteractive), Boolean(context.yes)))
+  ) {
     note(
       [
         'Create the DNS records above in your DNS provider.',
@@ -153,7 +158,10 @@ async function ensureDns(
     return false;
   }
 
-  const issues = await waitForDnsRecords(config);
+  console.log('Checking DNS records...');
+  const issues = await waitForDnsRecords(config, {
+    onRetry: (progress) => logWaitProgress('DNS', progress),
+  });
   if (issues.length > 0) {
     print.warn('DNS records are not ready yet.');
     note(issues.join('\n'), 'DNS check');
@@ -166,7 +174,10 @@ async function ensureDns(
 }
 
 async function ensureHttps(config: AwsConfig, print: Printer): Promise<boolean> {
-  const issues = await waitForHttps(config);
+  console.log('Checking HTTPS endpoints and certificates...');
+  const issues = await waitForHttps(config, {
+    onRetry: (progress) => logWaitProgress('HTTPS', progress),
+  });
   if (issues.length > 0) {
     print.warn('HTTPS is not ready yet.');
     note(
@@ -192,7 +203,7 @@ async function ensureNangoKey(
 ): Promise<AwsConfig> {
   const nangoSecretKey = await promptHostedNangoKey(
     config.secrets.nangoSecretKey,
-    Boolean(context.nonInteractive),
+    Boolean(context.nonInteractive || context.yes),
   );
   if (!nangoSecretKey) {
     note(
@@ -216,6 +227,20 @@ async function ensureNangoKey(
 
 function makeDeployId(): string {
   return new Date().toISOString().replace(/\D/g, '').slice(0, DEPLOY_ID_LENGTH);
+}
+
+function logWaitProgress(label: string, progress: WaitProgress): void {
+  if (
+    progress.attempt !== FIRST_WAIT_ATTEMPT &&
+    progress.attempt % WAIT_PROGRESS_LOG_INTERVAL !== 0
+  ) {
+    return;
+  }
+
+  const firstIssue = progress.issues[0] ?? 'waiting for checks to pass';
+  console.log(
+    `${label} check still waiting (${progress.elapsedSeconds}s/${progress.timeoutSeconds}s): ${firstIssue}`,
+  );
 }
 
 function formatError(error: unknown): string {

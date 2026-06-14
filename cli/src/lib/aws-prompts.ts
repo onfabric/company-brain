@@ -252,7 +252,14 @@ export async function promptHostedNangoKey(
   return answer || undefined;
 }
 
-export async function confirmManualDnsReady(nonInteractive: boolean): Promise<boolean> {
+export async function confirmManualDnsReady(
+  nonInteractive: boolean,
+  autoApprove = false,
+): Promise<boolean> {
+  if (autoApprove) {
+    return true;
+  }
+
   if (nonInteractive) {
     return false;
   }

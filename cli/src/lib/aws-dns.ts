@@ -1,4 +1,4 @@
-import { lookup } from 'node:dns/promises';
+import { resolve4, resolve6 } from 'node:dns/promises';
 import { writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -17,6 +17,21 @@ const FETCH_TIMEOUT_MS = 10_000;
 const HTTP_SERVER_ERROR_STATUS = 500;
 const IPV4 = 4;
 const IPV6 = 6;
+
+export type WaitProgress = {
+  attempt: number;
+  elapsedSeconds: number;
+  timeoutSeconds: number;
+  issues: string[];
+};
+
+type WaitOptions = {
+  onRetry?: (progress: WaitProgress) => void;
+  pollMs?: number;
+  timeoutMs?: number;
+};
+
+type ResolveAddresses = (host: string, family: typeof IPV4 | typeof IPV6) => Promise<string[]>;
 
 export function formatDnsRecords(config: AwsConfig): string {
   const records = publicDnsRecords(config);
@@ -70,22 +85,33 @@ export async function upsertRoute53Records(
   );
 }
 
-export async function waitForDnsRecords(config: AwsConfig): Promise<string[]> {
+export async function waitForDnsRecords(
+  config: AwsConfig,
+  options: WaitOptions = {},
+): Promise<string[]> {
   const startedAt = Date.now();
+  const timeoutMs = options.timeoutMs ?? DNS_TIMEOUT_MS;
+  const pollMs = options.pollMs ?? DNS_POLL_MS;
   let issues: string[] = [];
+  let attempt = 0;
 
-  while (Date.now() - startedAt < DNS_TIMEOUT_MS) {
+  while (Date.now() - startedAt < timeoutMs) {
     issues = await dnsIssues(config);
     if (issues.length === 0) {
       return [];
     }
-    await Bun.sleep(DNS_POLL_MS);
+    attempt += 1;
+    options.onRetry?.(waitProgress({ attempt, issues, startedAt, timeoutMs }));
+    await Bun.sleep(pollMs);
   }
 
   return issues;
 }
 
-export async function dnsIssues(config: AwsConfig): Promise<string[]> {
+export async function dnsIssues(
+  config: AwsConfig,
+  resolveAddresses: ResolveAddresses = resolveRecordAddresses,
+): Promise<string[]> {
   const outputs = config.outputs;
   if (!outputs) {
     return ['Terraform outputs are missing.'];
@@ -98,7 +124,7 @@ export async function dnsIssues(config: AwsConfig): Promise<string[]> {
     config.brainHostname,
     config.dozzleHostname,
   ]) {
-    const ipv4 = await lookupAddresses(host, IPV4);
+    const ipv4 = await resolveAddresses(host, IPV4);
     if (!ipv4.includes(outputs.publicIp)) {
       issues.push(
         `${host} A record resolves to ${formatAddresses(ipv4)}, expected ${outputs.publicIp}`,
@@ -106,7 +132,7 @@ export async function dnsIssues(config: AwsConfig): Promise<string[]> {
     }
 
     if (outputs.publicIpv6) {
-      const ipv6 = await lookupAddresses(host, IPV6);
+      const ipv6 = await resolveAddresses(host, IPV6);
       if (!ipv6.includes(outputs.publicIpv6)) {
         issues.push(
           `${host} AAAA record resolves to ${formatAddresses(ipv6)}, expected ${outputs.publicIpv6}`,
@@ -141,16 +167,24 @@ export async function httpsIssues(config: AwsConfig): Promise<string[]> {
   return issues;
 }
 
-export async function waitForHttps(config: AwsConfig): Promise<string[]> {
+export async function waitForHttps(
+  config: AwsConfig,
+  options: WaitOptions = {},
+): Promise<string[]> {
   const startedAt = Date.now();
+  const timeoutMs = options.timeoutMs ?? HTTPS_TIMEOUT_MS;
+  const pollMs = options.pollMs ?? DNS_POLL_MS;
   let issues: string[] = [];
+  let attempt = 0;
 
-  while (Date.now() - startedAt < HTTPS_TIMEOUT_MS) {
+  while (Date.now() - startedAt < timeoutMs) {
     issues = await httpsIssues(config);
     if (issues.length === 0) {
       return [];
     }
-    await Bun.sleep(DNS_POLL_MS);
+    attempt += 1;
+    options.onRetry?.(waitProgress({ attempt, issues, startedAt, timeoutMs }));
+    await Bun.sleep(pollMs);
   }
 
   return issues;
@@ -170,12 +204,34 @@ function route53ChangeBatch(records: PublicDnsRecord[]): unknown {
   };
 }
 
-async function lookupAddresses(host: string, family: 4 | 6): Promise<string[]> {
+async function resolveRecordAddresses(
+  host: string,
+  family: typeof IPV4 | typeof IPV6,
+): Promise<string[]> {
   try {
-    return (await lookup(host, { all: true, family })).map((address) => address.address);
+    return family === IPV4 ? await resolve4(host) : await resolve6(host);
   } catch {
     return [];
   }
+}
+
+function waitProgress({
+  attempt,
+  issues,
+  startedAt,
+  timeoutMs,
+}: {
+  attempt: number;
+  issues: string[];
+  startedAt: number;
+  timeoutMs: number;
+}): WaitProgress {
+  return {
+    attempt,
+    elapsedSeconds: Math.floor((Date.now() - startedAt) / MILLISECONDS_PER_SECOND),
+    timeoutSeconds: Math.floor(timeoutMs / MILLISECONDS_PER_SECOND),
+    issues,
+  };
 }
 
 function formatAddresses(addresses: string[]): string {
