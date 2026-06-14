@@ -11,12 +11,12 @@ export const rootController = new Elysia().mount(async (request) => {
   if (fromMcp.status !== StatusMap['Not Found']) {
     return fromMcp;
   }
-  // Nothing matched. An /api or /internal request gets a JSON 404 (the API's
-  // error shape — a clear contract for clients); anything else is a browser
-  // navigation that the dashboard SPA shell resolves.
-  const { pathname } = new URL(request.url);
-  if (pathname.startsWith(RoutePrefix.Api) || pathname.startsWith(RoutePrefix.Internal)) {
-    return Response.json({ error: 'Not Found' }, { status: StatusMap['Not Found'] });
+  if (isStaticAssetsPath(new URL(request.url).pathname)) {
+    return serveDashboard(request);
   }
-  return serveDashboard(request);
+  return Response.json({ error: 'Not Found' }, { status: StatusMap['Not Found'] });
 });
+
+function isStaticAssetsPath(pathname: string): boolean {
+  return !pathname.startsWith(RoutePrefix.Api) && !pathname.startsWith(RoutePrefix.Internal);
+}
