@@ -1,6 +1,12 @@
 import { join } from 'node:path';
 import type { AwsConfig, AwsOutputs } from './aws-config.ts';
-import { awsCommandEnv } from './aws-credentials.ts';
+import { exportAwsCredentials } from './aws-credential-export.ts';
+import {
+  type AwsCredentialConfig,
+  awsSdkEnv,
+  hasExportedAwsCredentials,
+  withAwsCredentials,
+} from './aws-credentials.ts';
 import { ensureTerraformStateBackend, terraformBackendConfigArgs } from './aws-terraform-state.ts';
 import { terraformPath } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
@@ -12,9 +18,9 @@ export async function applyAwsTerraform(
   context: VisibleCommandContext,
 ): Promise<AwsOutputs> {
   const terraform = config.terraformCommand ?? 'terraform';
-  const env = terraformEnv(config);
   const vars = terraformVarArgs(config);
   const backend = await ensureTerraformStateBackend(config, context);
+  let terraformConfig = await withFreshAwsCredentials(config, context);
 
   await runVisible(
     [
@@ -22,50 +28,59 @@ export async function applyAwsTerraform(
       'init',
       '-reconfigure',
       '-input=false',
-      ...terraformBackendConfigArgs(backend, config.awsProfile),
+      ...terraformBackendConfigArgs(
+        backend,
+        hasExportedAwsCredentials(terraformConfig) ? undefined : config.awsProfile,
+      ),
     ],
     context,
     {
       cwd: terraformPath,
-      env,
+      env: terraformEnv(terraformConfig),
       approve: true,
       purpose: 'Initialize Terraform S3 state backend.',
     },
   );
 
+  terraformConfig = await withFreshAwsCredentials(config, context);
   await runVisible([terraform, 'plan', '-input=false', `-out=${TF_PLAN}`, ...vars], context, {
     cwd: terraformPath,
-    env,
+    env: terraformEnv(terraformConfig),
     purpose: 'Create the AWS infrastructure plan.',
   });
 
   if (await terraformPlanDeletes(terraform, context)) {
     await runVisible([terraform, 'show', TF_PLAN], context, { cwd: terraformPath });
+    terraformConfig = await withFreshAwsCredentials(config, context);
     await runVisible([terraform, 'apply', '-input=false', TF_PLAN], context, {
       cwd: terraformPath,
-      env,
+      env: terraformEnv(terraformConfig),
       approve: true,
       purpose: 'The plan deletes or replaces resources. Review carefully before approving.',
     });
   } else {
+    terraformConfig = await withFreshAwsCredentials(config, context);
     await runVisible([terraform, 'apply', '-input=false', TF_PLAN], context, {
       cwd: terraformPath,
-      env,
+      env: terraformEnv(terraformConfig),
       approve: true,
       purpose: 'Apply the AWS infrastructure plan.',
     });
   }
 
-  return await readTerraformOutputs(terraform, context);
+  terraformConfig = await withFreshAwsCredentials(config, context);
+  return await readTerraformOutputs(terraform, context, terraformConfig);
 }
 
 export async function readTerraformOutputs(
   terraformCommand: string,
   context: VisibleCommandContext,
+  config?: AwsCredentialConfig,
 ): Promise<AwsOutputs> {
   const output = await runVisible([terraformCommand, 'output', '-json'], context, {
     cwd: terraformPath,
     capture: true,
+    env: config ? awsSdkEnv(config) : undefined,
   });
   const parsed = JSON.parse(output) as Record<string, { value?: unknown }>;
 
@@ -82,12 +97,21 @@ export async function readTerraformOutputs(
   };
 }
 
-function terraformEnv(config: AwsConfig): Record<string, string> {
+function terraformEnv(config: AwsConfig): Record<string, string | undefined> {
   return {
-    ...awsCommandEnv(config),
+    ...awsSdkEnv(config),
     TF_VAR_google_client_id: config.googleClientId,
     TF_VAR_google_client_secret: config.secrets.googleClientSecret ?? '',
   };
+}
+
+async function withFreshAwsCredentials(
+  config: AwsConfig,
+  context: VisibleCommandContext,
+): Promise<AwsConfig & AwsCredentialConfig> {
+  return withAwsCredentials(config, {
+    awsCredentials: await exportAwsCredentials(config, context),
+  });
 }
 
 function terraformVarArgs(config: AwsConfig): string[] {

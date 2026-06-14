@@ -2,6 +2,7 @@ import { intro, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
 import { requireAwsConfig, writeAwsConfig } from '../../lib/aws-config.ts';
+import { withAwsCredentials } from '../../lib/aws-credentials.ts';
 import { continueAwsDeployment } from '../../lib/aws-deployment.ts';
 import { verifyAwsPrerequisites } from '../../lib/aws-tools.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
@@ -28,7 +29,11 @@ export const command = defineCommand('aws resume', {
       terraformCommand: prerequisites.terraformCommand,
     };
     await writeAwsConfig(config);
-    await continueAwsDeployment({ config, context, print });
+    await continueAwsDeployment({
+      config: withAwsCredentials(config, prerequisites),
+      context,
+      print,
+    });
 
     outro('AWS resume flow finished.');
   },

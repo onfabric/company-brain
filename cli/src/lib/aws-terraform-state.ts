@@ -149,7 +149,7 @@ export function createStateBucketCommand(bucket: string, region: string): string
 
 async function resolveAwsAccountId(
   context: VisibleCommandContext,
-  env: Record<string, string>,
+  env: Record<string, string | undefined>,
 ): Promise<string> {
   const accountId = (
     await runVisible(
@@ -168,7 +168,7 @@ async function resolveAwsAccountId(
 async function stateBucketExists(
   bucket: string,
   context: VisibleCommandContext,
-  env: Record<string, string>,
+  env: Record<string, string | undefined>,
 ): Promise<boolean> {
   try {
     await runVisible(['aws', 's3api', 'head-bucket', '--bucket', bucket], context, {

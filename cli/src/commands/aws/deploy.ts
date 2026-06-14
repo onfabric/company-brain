@@ -2,6 +2,7 @@ import { intro, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
 import { requireAwsConfig, writeAwsConfig } from '../../lib/aws-config.ts';
+import { withAwsCredentials } from '../../lib/aws-credentials.ts';
 import { deployAwsApplication } from '../../lib/aws-deployment.ts';
 import { verifyAwsPrerequisites } from '../../lib/aws-tools.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
@@ -29,7 +30,7 @@ export const command = defineCommand('aws deploy', {
       appDeployedAt: undefined,
     };
     await writeAwsConfig(config);
-    await deployAwsApplication(config, context, print);
+    await deployAwsApplication(withAwsCredentials(config, prerequisites), context, print);
 
     outro('AWS deploy finished.');
   },

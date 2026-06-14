@@ -3,6 +3,7 @@ import { intro, note, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
 import { requireAwsConfig, writeAwsConfig } from '../../lib/aws-config.ts';
+import { withAwsCredentials } from '../../lib/aws-credentials.ts';
 import { dnsIssues, httpsIssues } from '../../lib/aws-dns.ts';
 import { verifyHostedNangoApi } from '../../lib/aws-nango.ts';
 import { runRemoteHealthCommand } from '../../lib/aws-ssm.ts';
@@ -37,6 +38,7 @@ export const command = defineCommand('aws doctor', {
       terraformCommand: prerequisites.terraformCommand,
     };
     await writeAwsConfig(config);
+    const runtimeConfig = withAwsCredentials(config, prerequisites);
 
     const checks: Check[] = [
       { label: 'AWS login', ok: true, detail: `${prerequisites.accountId} (${prerequisites.arn})` },
@@ -49,17 +51,17 @@ export const command = defineCommand('aws doctor', {
       },
     ];
 
-    if (config.outputs) {
-      const dns = await dnsIssues(config);
+    if (runtimeConfig.outputs) {
+      const dns = await dnsIssues(runtimeConfig);
       checks.push({ label: 'DNS records', ok: dns.length === 0, detail: dns.join('\n') });
 
-      const https = await httpsIssues(config);
+      const https = await httpsIssues(runtimeConfig);
       checks.push({ label: 'HTTPS endpoints', ok: https.length === 0, detail: https.join('\n') });
 
-      checks.push(await remoteComposeCheck(config, context));
+      checks.push(await remoteComposeCheck(runtimeConfig, context));
     }
 
-    checks.push(await nangoApiCheck(config));
+    checks.push(await nangoApiCheck(runtimeConfig));
     renderChecks(checks);
 
     const failed = checks.filter((check) => !check.ok);

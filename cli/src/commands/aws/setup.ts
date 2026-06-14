@@ -2,9 +2,10 @@ import { intro, note, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
 import { readAwsConfig, writeAwsConfig } from '../../lib/aws-config.ts';
+import { withAwsCredentials } from '../../lib/aws-credentials.ts';
 import { continueAwsDeployment, provisionAwsInfrastructure } from '../../lib/aws-deployment.ts';
 import { collectAwsConfig } from '../../lib/aws-prompts.ts';
-import { verifyAwsPrerequisites } from '../../lib/aws-tools.ts';
+import { type AwsPrerequisites, verifyAwsPrerequisites } from '../../lib/aws-tools.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 
 export const command = defineCommand('aws setup', {
@@ -30,7 +31,7 @@ export const command = defineCommand('aws setup', {
       [
         `AWS account: ${prerequisites.accountId}`,
         `AWS identity: ${prerequisites.arn}`,
-        `AWS credentials: ${formatCredentialSource(prerequisites.awsProfile)}`,
+        `AWS credentials: ${formatCredentialSource(prerequisites)}`,
       ].join('\n'),
       'AWS login',
     );
@@ -46,6 +47,7 @@ export const command = defineCommand('aws setup', {
       terraformCommand: prerequisites.terraformCommand,
     };
     await writeAwsConfig(config);
+    config = withAwsCredentials(config, prerequisites);
 
     config = await provisionAwsInfrastructure(config, context, print);
     await continueAwsDeployment({ config, context, print });
@@ -54,8 +56,11 @@ export const command = defineCommand('aws setup', {
   },
 });
 
-function formatCredentialSource(awsProfile: string | undefined): string {
-  return awsProfile
-    ? `current shell profile "${awsProfile}"`
+function formatCredentialSource(prerequisites: AwsPrerequisites): string {
+  const source = prerequisites.awsProfile
+    ? `current shell profile "${prerequisites.awsProfile}"`
     : 'current shell default credential chain';
+  const expiration = prerequisites.awsCredentials.expiration;
+
+  return expiration ? `${source}; exported credentials expire at ${expiration}` : source;
 }
