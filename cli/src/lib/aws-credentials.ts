@@ -20,6 +20,7 @@ export function awsCredentialResolutionEnv(
   const awsProfile = normalizeAwsProfile(config.awsProfile);
   return {
     AWS_EC2_METADATA_DISABLED: 'true',
+    AWS_PAGER: '',
     AWS_SDK_LOAD_CONFIG: '1',
     ...(awsProfile
       ? {
@@ -43,6 +44,7 @@ export function awsSdkEnv(config: AwsCredentialConfig = {}): Record<string, stri
 
   return {
     AWS_EC2_METADATA_DISABLED: 'true',
+    AWS_PAGER: '',
     AWS_SDK_LOAD_CONFIG: '1',
     AWS_PROFILE: undefined,
     AWS_DEFAULT_PROFILE: undefined,

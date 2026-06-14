@@ -3,9 +3,11 @@
 import type { InferForwardedOptions, InferParams, RuntimeNode } from '@parshjs/core';
 import type { command as rootCmd } from './commands/_root.ts';
 import type { command as awsDeployCmd } from './commands/aws/deploy.ts';
+import type { command as awsDestroyCmd } from './commands/aws/destroy.ts';
 import type { command as awsDoctorCmd } from './commands/aws/doctor.ts';
 import type { command as awsResumeCmd } from './commands/aws/resume.ts';
 import type { command as awsSetupCmd } from './commands/aws/setup.ts';
+import type { command as localDestroyCmd } from './commands/local/destroy.ts';
 import type { command as localDoctorCmd } from './commands/local/doctor.ts';
 import type { command as localSetupCmd } from './commands/local/setup.ts';
 import type { command as nangoIntegrationsCmd } from './commands/nango/integrations.ts';
@@ -14,6 +16,10 @@ import type { command as nangoSyncsCmd } from './commands/nango/syncs.ts';
 declare module '@parshjs/core' {
   interface CommandRegistry {
     'aws deploy': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'aws destroy': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -26,6 +32,10 @@ declare module '@parshjs/core' {
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
     'aws setup': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'local destroy': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -65,6 +75,15 @@ export const commandTree: RuntimeNode = {
           literalChildren: {},
           paramChild: null,
         },
+        destroy: {
+          segment: { kind: 'literal', value: 'destroy' },
+          command: {
+            path: 'aws destroy',
+            load: () => import('./commands/aws/destroy.ts').then((m) => m.command),
+          },
+          literalChildren: {},
+          paramChild: null,
+        },
         doctor: {
           segment: { kind: 'literal', value: 'doctor' },
           command: {
@@ -99,6 +118,15 @@ export const commandTree: RuntimeNode = {
       segment: { kind: 'literal', value: 'local' },
       command: null,
       literalChildren: {
+        destroy: {
+          segment: { kind: 'literal', value: 'destroy' },
+          command: {
+            path: 'local destroy',
+            load: () => import('./commands/local/destroy.ts').then((m) => m.command),
+          },
+          literalChildren: {},
+          paramChild: null,
+        },
         doctor: {
           segment: { kind: 'literal', value: 'doctor' },
           command: {

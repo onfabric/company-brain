@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AwsConfig, PublicDnsRecord } from './aws-config.ts';
 import { publicDnsRecords } from './aws-config.ts';
-import { awsCommandEnv } from './aws-credentials.ts';
+import { awsSdkEnv } from './aws-credentials.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
 const SECONDS_PER_MINUTE = 60;
@@ -33,6 +33,17 @@ type WaitOptions = {
 
 type ResolveAddresses = (host: string, family: typeof IPV4 | typeof IPV6) => Promise<string[]>;
 
+type Printer = {
+  warn: (message: string) => void;
+};
+
+type Route53RecordSet = {
+  Name: string;
+  Type: string;
+  TTL?: number;
+  ResourceRecords?: { Value: string }[];
+};
+
 export function formatDnsRecords(config: AwsConfig): string {
   const records = publicDnsRecords(config);
   if (records.length === 0) {
@@ -53,8 +64,8 @@ export async function upsertRoute53Records(
 
   const records = publicDnsRecords(config);
   const changeBatchPath = join(tmpdir(), `company-brain-dns-${config.environment}.json`);
-  const env = awsCommandEnv(config);
-  await writeFile(changeBatchPath, JSON.stringify(route53ChangeBatch(records), null, 2));
+  const env = awsSdkEnv(config);
+  await writeFile(changeBatchPath, JSON.stringify(route53UpsertChangeBatch(records), null, 2));
 
   const changeId = await runVisible(
     [
@@ -82,6 +93,55 @@ export async function upsertRoute53Records(
     ['aws', 'route53', 'wait', 'resource-record-sets-changed', '--id', changeId.trim()],
     context,
     { env, purpose: 'Wait for Route53 to publish the DNS change.' },
+  );
+}
+
+export async function removeRoute53Records(
+  config: AwsConfig,
+  context: VisibleCommandContext,
+  print: Printer,
+): Promise<void> {
+  const hostedZoneId = config.dns.hostedZoneId;
+  if (!hostedZoneId) {
+    throw new Error('Route53 DNS mode requires a hosted zone ID.');
+  }
+
+  const records = await route53RecordSets(hostedZoneId, config, context);
+  const deletions = route53RecordSetsToDelete(records, publicDnsRecords(config));
+  if (deletions.length === 0) {
+    print.warn('No matching Route53 records were found to delete.');
+    return;
+  }
+
+  const changeBatchPath = join(tmpdir(), `company-brain-dns-delete-${config.environment}.json`);
+  const env = awsSdkEnv(config);
+  await writeFile(changeBatchPath, JSON.stringify(route53DeleteChangeBatch(deletions), null, 2));
+
+  const changeId = await runVisible(
+    [
+      'aws',
+      'route53',
+      'change-resource-record-sets',
+      '--hosted-zone-id',
+      hostedZoneId,
+      '--change-batch',
+      `file://${changeBatchPath}`,
+      '--query',
+      'ChangeInfo.Id',
+      '--output',
+      'text',
+    ],
+    context,
+    {
+      env,
+      purpose: 'Delete public DNS records from Route53.',
+    },
+  );
+
+  await runVisible(
+    ['aws', 'route53', 'wait', 'resource-record-sets-changed', '--id', changeId.trim()],
+    context,
+    { env, purpose: 'Wait for Route53 to publish the DNS deletion.' },
   );
 }
 
@@ -190,7 +250,19 @@ export async function waitForHttps(
   return issues;
 }
 
-function route53ChangeBatch(records: PublicDnsRecord[]): unknown {
+export function route53RecordSetsToDelete(
+  existing: Route53RecordSet[],
+  expected: PublicDnsRecord[],
+): Route53RecordSet[] {
+  const desired = new Set(expected.map((record) => route53RecordKey(record)));
+
+  return existing.filter((record) => {
+    const value = record.ResourceRecords?.[0]?.Value;
+    return value ? desired.has(route53RecordKey({ ...record, value })) : false;
+  });
+}
+
+function route53UpsertChangeBatch(records: PublicDnsRecord[]): unknown {
   return {
     Changes: records.map((record) => ({
       Action: 'UPSERT',
@@ -204,6 +276,42 @@ function route53ChangeBatch(records: PublicDnsRecord[]): unknown {
   };
 }
 
+function route53DeleteChangeBatch(records: Route53RecordSet[]): unknown {
+  return {
+    Changes: records.map((record) => ({
+      Action: 'DELETE',
+      ResourceRecordSet: record,
+    })),
+  };
+}
+
+async function route53RecordSets(
+  hostedZoneId: string,
+  config: AwsConfig,
+  context: VisibleCommandContext,
+): Promise<Route53RecordSet[]> {
+  const output = await runVisible(
+    [
+      'aws',
+      'route53',
+      'list-resource-record-sets',
+      '--hosted-zone-id',
+      hostedZoneId,
+      '--output',
+      'json',
+    ],
+    context,
+    {
+      capture: true,
+      env: awsSdkEnv(config),
+      purpose: 'List existing Route53 records before deletion.',
+    },
+  );
+  const parsed = JSON.parse(output) as { ResourceRecordSets?: Route53RecordSet[] };
+
+  return parsed.ResourceRecordSets ?? [];
+}
+
 async function resolveRecordAddresses(
   host: string,
   family: typeof IPV4 | typeof IPV6,
@@ -213,6 +321,17 @@ async function resolveRecordAddresses(
   } catch {
     return [];
   }
+}
+
+function route53RecordKey(record: {
+  Name?: string;
+  Type?: string;
+  name?: string;
+  type?: string;
+  value: string;
+}): string {
+  const name = (record.Name ?? record.name ?? '').replace(/\.$/, '');
+  return `${record.Type ?? record.type}:${name}:${record.value}`;
 }
 
 function waitProgress({

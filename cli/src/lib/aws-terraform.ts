@@ -12,6 +12,7 @@ import { terraformPath } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
 const TF_PLAN = 'company-brain-aws.tfplan';
+const TF_DESTROY_PLAN = 'company-brain-aws-destroy.tfplan';
 const LEGACY_DEFAULT_NETWORKING_RESOURCES = [
   'aws_default_subnet.app',
   'aws_route.ipv6_default',
@@ -105,7 +106,7 @@ export async function readTerraformOutputs(
   };
 }
 
-function terraformEnv(config: AwsConfig): Record<string, string | undefined> {
+export function terraformEnv(config: AwsConfig): Record<string, string | undefined> {
   return {
     ...awsSdkEnv(config),
     TF_VAR_google_client_id: config.googleClientId,
@@ -122,7 +123,7 @@ async function withFreshAwsCredentials(
   });
 }
 
-function terraformVarArgs(config: AwsConfig): string[] {
+export function terraformVarArgs(config: AwsConfig): string[] {
   return [
     terraformVar('region', config.region),
     terraformVar('environment', config.environment),
@@ -222,4 +223,8 @@ function optionalOutputValue(
 
 export function terraformPlanPath(): string {
   return join(terraformPath, TF_PLAN);
+}
+
+export function terraformDestroyPlanPath(): string {
+  return join(terraformPath, TF_DESTROY_PLAN);
 }
