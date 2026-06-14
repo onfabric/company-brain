@@ -39,12 +39,12 @@ export async function startGoogleSignIn(callbackURL: string): Promise<string | n
 
 // The consent endpoint verifies the signed authorize request the page was
 // redirected with, so the grant replays the full query string as `oauth_query`.
-export async function submitConsent(accept: boolean, search: string): Promise<string | null> {
+export async function approveConsent(search: string): Promise<string | null> {
   const response = await fetch(CONSENT_PATH, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ accept, oauth_query: search.replace(/^\?/, '') }),
+    body: JSON.stringify({ accept: true, oauth_query: search.replace(/^\?/, '') }),
   });
   const data = (await response.json().catch(() => ({}))) as { url?: string };
   return data.url ?? null;
