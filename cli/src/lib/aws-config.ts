@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { chmod, readFile, writeFile } from 'node:fs/promises';
 import { z } from 'zod';
+import { normalizeAwsEnvironment, validateAwsEnvironment } from './aws-environment.ts';
 import { awsConfigPath } from './paths.ts';
 
 export const AWS_CONFIG_VERSION = 1;
@@ -24,6 +25,13 @@ const AwsDnsSchema = z.object({
   verifiedAt: z.string().optional(),
 });
 
+const AwsEnvironmentSchema = z
+  .string()
+  .transform(normalizeAwsEnvironment)
+  .refine((value) => validateAwsEnvironment(value) === undefined, {
+    message: 'Environment must use 18 or fewer lowercase letters, numbers, and hyphens.',
+  });
+
 const AwsSecretsSchema = z.object({
   googleClientSecret: z.string().optional(),
   dozzlePassword: z.string().optional(),
@@ -35,7 +43,7 @@ const AwsConfigSchema = z.object({
   version: z.literal(AWS_CONFIG_VERSION).default(AWS_CONFIG_VERSION),
   terraformCommand: z.string().optional(),
   region: z.string(),
-  environment: z.string(),
+  environment: AwsEnvironmentSchema,
   baseDomain: z.string().optional(),
   instanceType: z.string(),
   rootVolumeSize: z.number(),

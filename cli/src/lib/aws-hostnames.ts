@@ -1,4 +1,5 @@
 import type { AwsConfig } from './aws-config.ts';
+import { normalizeAwsEnvironment } from './aws-environment.ts';
 
 export type AwsHostnames = Pick<
   AwsConfig,
@@ -7,7 +8,7 @@ export type AwsHostnames = Pick<
 
 export function deriveAwsHostnames(environment: string, baseDomain: string): AwsHostnames {
   const suffix = stripDomain(baseDomain);
-  const env = environment.trim();
+  const env = normalizeAwsEnvironment(environment);
 
   return {
     nangoHostname: `nango-${env}.${suffix}`,

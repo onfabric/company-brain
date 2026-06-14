@@ -1,4 +1,5 @@
 import type { AwsConfig } from './aws-config.ts';
+import { normalizeAwsEnvironment } from './aws-environment.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
 const PUBLIC_ACCESS_BLOCK = [
@@ -30,7 +31,7 @@ export async function ensureTerraformStateBackend(
 ): Promise<TerraformBackend> {
   const accountId = await resolveAwsAccountId(context);
   const backend = {
-    bucket: terraformStateBucketName(accountId, config.region),
+    bucket: terraformStateBucketName(accountId, config.region, config.environment),
     key: terraformStateKey(config.environment),
     region: config.region,
   };
@@ -100,12 +101,16 @@ export async function ensureTerraformStateBackend(
   return backend;
 }
 
-export function terraformStateBucketName(accountId: string, region: string): string {
-  return `company-brain-tfstate-${accountId}-${region}`;
+export function terraformStateBucketName(
+  accountId: string,
+  region: string,
+  environment: string,
+): string {
+  return `company-brain-${normalizeAwsEnvironment(environment)}-tfstate-${accountId}-${region}`;
 }
 
 export function terraformStateKey(environment: string): string {
-  return `company-brain/${environment}/terraform.tfstate`;
+  return `company-brain/${normalizeAwsEnvironment(environment)}/terraform.tfstate`;
 }
 
 export function terraformBackendConfigArgs(backend: TerraformBackend): string[] {

@@ -1,5 +1,6 @@
 import { confirm, isCancel, multiselect, note, password, select, text } from '@clack/prompts';
 import type { AwsConfig } from './aws-config.ts';
+import { normalizeAwsEnvironment, validateAwsEnvironment } from './aws-environment.ts';
 import {
   type AwsHostnames,
   deriveAwsHostnames,
@@ -41,6 +42,10 @@ export async function collectAwsConfig({
     );
   }
 
+  note(
+    'Choose where this deployment lives and how public service hostnames are derived.',
+    'AWS environment',
+  );
   const region = await promptSelect(
     'AWS region',
     'Where AWS will create the EC2 instance, ECR repositories, S3 bucket, and SSM parameters.',
@@ -49,7 +54,7 @@ export async function collectAwsConfig({
     force,
     nonInteractive,
   );
-  const environment = await promptText(
+  const environment = await promptEnvironment(
     'Environment name',
     'Short name used in AWS resource names, SSM paths, and derived hostnames.',
     existing?.environment ?? 'dev',
@@ -78,6 +83,10 @@ export async function collectAwsConfig({
     'Service URLs',
   );
 
+  note(
+    'Size the single EC2 host and its disks. Persistent app data lives on the data volume.',
+    'AWS compute and storage',
+  );
   const instanceType = await promptSelect(
     'EC2 instance type',
     'Compute size for the single EC2 host running Nango, Brain, Postgres, Redis, Elasticsearch, Caddy, and Dozzle.',
@@ -102,6 +111,11 @@ export async function collectAwsConfig({
     force,
     nonInteractive,
   );
+
+  note(
+    'Caddy uses ACME certificates, and DNS must point at the AWS instance before HTTPS can issue.',
+    'TLS and DNS',
+  );
   const acmeEmail = await promptText(
     'ACME certificate email',
     "Email address Caddy gives Let's Encrypt for certificate notices and recovery.",
@@ -109,6 +123,9 @@ export async function collectAwsConfig({
     force,
     nonInteractive,
   );
+  const dns = await promptDns(existing, force, nonInteractive);
+
+  note('Configure who can sign in to the Brain web app.', 'Brain sign-in');
   const workspaceDomain = await promptText(
     'Google Workspace domain allowed to sign in',
     'Only Google accounts from this domain can sign in to the Brain web app.',
@@ -130,6 +147,8 @@ export async function collectAwsConfig({
     force,
     nonInteractive,
   );
+
+  note('Create the admin account for the hosted container logs UI.', 'Dozzle logs');
   const dozzleUsername = await promptText(
     'Dozzle admin username',
     'Username for the hosted logs UI at the Dozzle hostname.',
@@ -158,7 +177,11 @@ export async function collectAwsConfig({
     force,
     nonInteractive,
   );
-  const dns = await promptDns(existing, force, nonInteractive);
+
+  note(
+    'Choose which providers hosted Nango should configure, then provide their OAuth credentials.',
+    'Hosted Nango integrations',
+  );
   const selected = await promptIntegrations(existing, force, nonInteractive);
   const oauthValues = await promptProviderCredentials(selected, existing, force, nonInteractive);
 
@@ -171,7 +194,7 @@ export async function collectAwsConfig({
     instanceType,
     rootVolumeSize,
     dataVolumeSize,
-    ssmSecretPrefix: existing?.ssmSecretPrefix ?? `/company-brain/${environment}`,
+    ssmSecretPrefix: ssmSecretPrefixForEnvironment(existing, environment),
     nangoHostname: hostnames.nangoHostname,
     nangoConnectHostname: hostnames.nangoConnectHostname,
     brainHostname: hostnames.brainHostname,
@@ -382,6 +405,7 @@ async function promptIntegrations(
       label: integration.displayName,
       hint: integration.provider,
     })),
+    initialValues: existing?.selectedIntegrationIds ?? [],
     required: true,
   });
 
@@ -448,14 +472,19 @@ async function promptText(
     message: promptMessage(message, description),
     defaultValue,
     placeholder: defaultValue,
-    validate: validateRequired,
+    validate: (value) => validateRequired(value, defaultValue),
   });
 
   if (isCancel(answer)) {
     throw new Error('Setup cancelled.');
   }
 
-  return answer;
+  const value = (answer || defaultValue).trim();
+  if (!value) {
+    throw new Error(`Missing required AWS setting: ${message}`);
+  }
+
+  return value;
 }
 
 async function promptHostname(
@@ -466,6 +495,44 @@ async function promptHostname(
   nonInteractive: boolean | undefined,
 ): Promise<string> {
   return stripProtocol(await promptText(message, description, defaultValue, force, nonInteractive));
+}
+
+async function promptEnvironment(
+  message: string,
+  description: string,
+  defaultValue: string,
+  _force: boolean | undefined,
+  nonInteractive: boolean | undefined,
+): Promise<string> {
+  if (nonInteractive) {
+    const validation = validateAwsEnvironment(defaultValue);
+    if (validation) {
+      throw new Error(`Invalid AWS setting ${message}: ${validation}`);
+    }
+    const value = normalizeAwsEnvironment(defaultValue);
+    if (value) {
+      return value;
+    }
+    throw new Error(`Missing required AWS setting: ${message}`);
+  }
+
+  const answer = await text({
+    message: promptMessage(message, description),
+    defaultValue,
+    placeholder: defaultValue,
+    validate: (value) => validateEnvironment(value, defaultValue),
+  });
+
+  if (isCancel(answer)) {
+    throw new Error('Setup cancelled.');
+  }
+
+  const value = normalizeAwsEnvironment(answer || defaultValue);
+  if (!value) {
+    throw new Error(`Missing required AWS setting: ${message}`);
+  }
+
+  return value;
 }
 
 async function promptSelect<Value extends number | string>(
@@ -529,12 +596,19 @@ async function promptSecret(
   return value;
 }
 
-function validateRequired(value: string | undefined): string | undefined {
-  if (!value || value.trim().length === 0) {
+function validateRequired(value: string | undefined, defaultValue?: string): string | undefined {
+  if ((!value || value.trim().length === 0) && !defaultValue) {
     return 'Required';
   }
 
   return undefined;
+}
+
+function validateEnvironment(
+  value: string | undefined,
+  defaultValue: string | undefined,
+): string | undefined {
+  return validateAwsEnvironment(value || defaultValue || '');
 }
 
 function validateSecret(
@@ -550,6 +624,24 @@ function validateSecret(
 
 function promptMessage(message: string, description: string): string {
   return `${message}\n${description}`;
+}
+
+function ssmSecretPrefixForEnvironment(
+  existing: AwsConfig | undefined,
+  environment: string,
+): string {
+  if (!existing) {
+    return defaultSsmSecretPrefix(environment);
+  }
+
+  const oldDefault = defaultSsmSecretPrefix(existing.environment);
+  return existing.ssmSecretPrefix.toLowerCase() === oldDefault
+    ? defaultSsmSecretPrefix(environment)
+    : existing.ssmSecretPrefix;
+}
+
+function defaultSsmSecretPrefix(environment: string): string {
+  return `/company-brain/${environment}`;
 }
 
 function stripProtocol(value: string): string {
