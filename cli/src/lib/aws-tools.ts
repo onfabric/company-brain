@@ -21,11 +21,8 @@ export type AwsPrerequisites = {
 export async function verifyAwsPrerequisites(
   context: VisibleCommandContext,
 ): Promise<AwsPrerequisites> {
-  const missing = await missingCommands(['aws', 'bash', 'docker', 'jq', 'tar']);
-  const terraformCommand = await resolveTerraformCommand();
-  if (!terraformCommand) {
-    missing.push('terraform or tofu');
-  }
+  const prerequisites = await verifyAwsDestroyPrerequisites(context);
+  const missing = await missingCommands(['bash', 'docker', 'jq', 'tar']);
 
   if (missing.length > 0) {
     throw new Error(`Missing required local tools: ${missing.join(', ')}`);
@@ -35,6 +32,28 @@ export async function verifyAwsPrerequisites(
     throw new Error(
       'The nango submodule is missing. Run `git submodule update --init --recursive`.',
     );
+  }
+
+  await runVisible(['docker', 'info'], context, { capture: true });
+  await runVisible(['docker', 'buildx', 'version'], context, { capture: true });
+
+  return prerequisites;
+}
+
+export async function verifyAwsDestroyPrerequisites(
+  context: VisibleCommandContext,
+): Promise<AwsPrerequisites> {
+  const missing = await missingCommands(['aws']);
+  const terraformCommand = await resolveTerraformCommand();
+  if (!terraformCommand) {
+    missing.push('terraform or tofu');
+  }
+
+  if (missing.length > 0) {
+    throw new Error(`Missing required local tools: ${missing.join(', ')}`);
+  }
+  if (!terraformCommand) {
+    throw new Error('Missing required local tools: terraform or tofu');
   }
 
   await runVisible(['aws', '--version'], context, { capture: true });
@@ -50,9 +69,7 @@ export async function verifyAwsPrerequisites(
     context,
     { capture: true, env: awsSdkEnv({ awsCredentials }) },
   );
-  await runVisible(['docker', 'info'], context, { capture: true });
-  await runVisible(['docker', 'buildx', 'version'], context, { capture: true });
-  await runVisible([terraformCommand ?? 'terraform', 'version'], context, { capture: true });
+  await runVisible([terraformCommand, 'version'], context, { capture: true });
 
   const parsed = JSON.parse(identity) as { Account?: string; Arn?: string };
   if (!parsed.Account || !parsed.Arn) {
@@ -60,7 +77,7 @@ export async function verifyAwsPrerequisites(
   }
 
   return {
-    terraformCommand: terraformCommand ?? 'terraform',
+    terraformCommand,
     accountId: parsed.Account,
     arn: parsed.Arn,
     awsProfile,

@@ -29,6 +29,7 @@ describe('AWS credential environment', () => {
   it('passes the selected profile to AWS CLI commands', () => {
     expect(awsCommandEnv({ awsProfile: 'onfabric' })).toEqual({
       AWS_EC2_METADATA_DISABLED: 'true',
+      AWS_PAGER: '',
       AWS_SDK_LOAD_CONFIG: '1',
       AWS_PROFILE: 'onfabric',
       AWS_DEFAULT_PROFILE: 'onfabric',
@@ -46,6 +47,7 @@ describe('AWS credential environment', () => {
       }),
     ).toEqual({
       AWS_EC2_METADATA_DISABLED: 'true',
+      AWS_PAGER: '',
       AWS_SDK_LOAD_CONFIG: '1',
       AWS_PROFILE: 'onfabric',
       AWS_DEFAULT_PROFILE: 'onfabric',
@@ -64,6 +66,7 @@ describe('AWS credential environment', () => {
       }),
     ).toEqual({
       AWS_EC2_METADATA_DISABLED: 'true',
+      AWS_PAGER: '',
       AWS_SDK_LOAD_CONFIG: '1',
       AWS_PROFILE: undefined,
       AWS_DEFAULT_PROFILE: undefined,

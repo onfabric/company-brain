@@ -1,6 +1,7 @@
 resource "aws_ecr_repository" "nango" {
   name                 = "${local.resource_name_prefix}/nango"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
@@ -14,6 +15,7 @@ resource "aws_ecr_repository" "nango" {
 resource "aws_ecr_repository" "brain" {
   name                 = "${local.resource_name_prefix}/brain"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
@@ -27,6 +29,7 @@ resource "aws_ecr_repository" "brain" {
 resource "aws_ecr_repository" "pg_backup" {
   name                 = "${local.resource_name_prefix}/pg-backup"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true

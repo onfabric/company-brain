@@ -5,11 +5,57 @@ import { commandSucceeds, run } from './shell.ts';
 const HEALTH_TIMEOUT_SECONDS = 600;
 const HEALTH_POLL_MS = 5000;
 const MILLISECONDS_PER_SECOND = 1000;
+const LOCAL_COMPANY_BRAIN_CONTAINERS = [
+  'postgres-db',
+  'nango-server',
+  'nango-orchestrator',
+  'nango-persist',
+  'nango-jobs',
+  'nango-redis',
+  'nango-elasticsearch',
+  'db-prepare',
+  'brain',
+  'dozzle',
+] as const;
+const LOCAL_COMPANY_BRAIN_IMAGES = [
+  'company-brain/nango:local',
+  'company-brain/brain:local',
+] as const;
+const LOCAL_COMPOSE_PROJECT = 'company-brain';
+const LOCAL_DESTROY_ENV = {
+  NANGO_DB_USER: 'nango',
+  NANGO_DB_NAME: 'nango',
+  NANGO_DB_PASSWORD: 'nango',
+  NANGO_DB_SCHEMA: 'nango',
+  NANGO_RECORDS_DATABASE_SCHEMA: 'nango_records',
+  NANGO_ENCRYPTION_KEY: '',
+  NANGO_SERVER_URL: 'http://localhost:3003',
+  NANGO_PUBLIC_SERVER_URL: 'http://localhost:3003',
+  NANGO_PUBLIC_CONNECT_URL: 'http://localhost:3009',
+  NANGO_SECRET_KEY_DEV: '',
+  FLAG_AUTH_ENABLED: 'false',
+  NANGO_DASHBOARD_USERNAME: 'admin',
+  NANGO_DASHBOARD_PASSWORD: 'admin',
+  LOG_LEVEL: 'info',
+  NANGO_SERVER_PORT: '3003',
+  NANGO_CONNECT_UI_PORT: '3009',
+  REDIS_PORT: '6379',
+  ELASTICSEARCH_PORT: '9200',
+  BRAIN_DB_USER: 'brain',
+  BRAIN_DB_PASSWORD: 'brain',
+  BRAIN_API_KEY: 'local',
+  BRAIN_PUBLIC_URL: 'http://localhost:3010',
+  BETTER_AUTH_SECRET: 'local',
+  GOOGLE_CLIENT_ID: 'local',
+  GOOGLE_CLIENT_SECRET: 'local',
+  BRAIN_SERVER_PORT: '3010',
+  DOZZLE_PORT: '8080',
+};
 
 export async function verifyLocalPrerequisites(): Promise<string[]> {
   const issues: string[] = [];
 
-  if (!(await commandSucceeds(['docker', 'info']))) {
+  if (!(await dockerDaemonIsReachable())) {
     issues.push('Docker is not running or the Docker CLI cannot reach the daemon.');
   }
 
@@ -20,9 +66,35 @@ export async function verifyLocalPrerequisites(): Promise<string[]> {
   return issues;
 }
 
+export async function verifyDockerDaemon(): Promise<void> {
+  if (!(await dockerDaemonIsReachable())) {
+    throw new Error('Docker is not running or the Docker CLI cannot reach the daemon.');
+  }
+}
+
 export async function startLocalStack(verbose = false): Promise<void> {
   await run(['docker', 'compose', 'up', '-d', '--build'], { cwd: repoRoot, verbose });
   await waitForComposeHealth(verbose);
+}
+
+export async function destroyLocalStack(verbose = false): Promise<void> {
+  await run(['docker', 'compose', 'down', '--volumes', '--remove-orphans'], {
+    cwd: repoRoot,
+    env: LOCAL_DESTROY_ENV,
+    verbose,
+  });
+  for (const container of LOCAL_COMPANY_BRAIN_CONTAINERS) {
+    if (await commandSucceeds(['docker', 'container', 'inspect', container])) {
+      await run(['docker', 'container', 'rm', '--force', container], { verbose });
+    }
+  }
+  for (const image of LOCAL_COMPANY_BRAIN_IMAGES) {
+    if (await commandSucceeds(['docker', 'image', 'inspect', image])) {
+      await run(['docker', 'image', 'rm', '--force', image], { verbose });
+    }
+  }
+  await removeLabeledComposeObjects('volume', verbose);
+  await removeLabeledComposeObjects('network', verbose);
 }
 
 export async function waitForComposeHealth(verbose = false): Promise<void> {
@@ -48,6 +120,29 @@ export async function waitForComposeHealth(verbose = false): Promise<void> {
   throw new Error(
     `Timed out waiting for local services: ${unhealthy.map((row) => `${row.name} ${row.state}/${row.health}`).join(', ')}`,
   );
+}
+
+async function dockerDaemonIsReachable(): Promise<boolean> {
+  return await commandSucceeds(['docker', 'info']);
+}
+
+async function removeLabeledComposeObjects(kind: 'network' | 'volume', verbose: boolean) {
+  const objects = await run(
+    [
+      'docker',
+      kind,
+      'ls',
+      '--filter',
+      `label=com.docker.compose.project=${LOCAL_COMPOSE_PROJECT}`,
+      '--format',
+      '{{.Name}}',
+    ],
+    { capture: true },
+  );
+
+  for (const name of objects.split('\n').filter(Boolean)) {
+    await run(['docker', kind, 'rm', name], { verbose });
+  }
 }
 
 export type ComposeService = {

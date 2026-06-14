@@ -2,7 +2,8 @@
 # workflow uploads and the instance downloads. Account-id suffix for a globally
 # unique name.
 resource "aws_s3_bucket" "artifacts" {
-  bucket = "company-brain-deploy-${data.aws_caller_identity.current.account_id}-${var.environment}"
+  bucket        = "company-brain-deploy-${data.aws_caller_identity.current.account_id}-${var.environment}"
+  force_destroy = true
 
   tags = {
     Name = "${local.resource_name_prefix}-deploy"

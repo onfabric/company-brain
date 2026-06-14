@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import type { AwsConfig } from './aws-config.ts';
-import { dnsIssues } from './aws-dns.ts';
+import { publicDnsRecords } from './aws-config.ts';
+import { dnsIssues, route53RecordSetsToDelete } from './aws-dns.ts';
 
 const IPV4 = 4;
 const IPV6 = 6;
@@ -24,6 +25,43 @@ describe('dnsIssues', () => {
       { host: 'brain.example.com', family: 6 },
       { host: 'logs.example.com', family: 4 },
       { host: 'logs.example.com', family: 6 },
+    ]);
+  });
+});
+
+describe('route53RecordSetsToDelete', () => {
+  it('keeps only matching Company Brain public records', () => {
+    expect(
+      route53RecordSetsToDelete(
+        [
+          {
+            Name: 'nango.example.com.',
+            Type: 'A',
+            TTL: 60,
+            ResourceRecords: [{ Value: '203.0.113.10' }],
+          },
+          {
+            Name: 'other.example.com.',
+            Type: 'A',
+            TTL: 60,
+            ResourceRecords: [{ Value: '203.0.113.10' }],
+          },
+          {
+            Name: 'brain.example.com.',
+            Type: 'A',
+            TTL: 300,
+            ResourceRecords: [{ Value: '198.51.100.10' }],
+          },
+        ],
+        publicDnsRecords(config()),
+      ),
+    ).toEqual([
+      {
+        Name: 'nango.example.com.',
+        Type: 'A',
+        TTL: 60,
+        ResourceRecords: [{ Value: '203.0.113.10' }],
+      },
     ]);
   });
 });
