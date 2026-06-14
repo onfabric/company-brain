@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import type { AwsConfig, AwsOutputs } from './aws-config.ts';
+import { ensureTerraformStateBackend, terraformBackendConfigArgs } from './aws-terraform-state.ts';
 import { terraformPath } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
@@ -12,12 +13,17 @@ export async function applyAwsTerraform(
   const terraform = config.terraformCommand ?? 'terraform';
   const env = terraformEnv(config);
   const vars = terraformVarArgs(config);
+  const backend = await ensureTerraformStateBackend(config, context);
 
-  await runVisible([terraform, 'init', '-backend=false', '-input=false'], context, {
-    cwd: terraformPath,
-    approve: true,
-    purpose: 'Initialize local Terraform state.',
-  });
+  await runVisible(
+    [terraform, 'init', '-reconfigure', '-input=false', ...terraformBackendConfigArgs(backend)],
+    context,
+    {
+      cwd: terraformPath,
+      approve: true,
+      purpose: 'Initialize Terraform S3 state backend.',
+    },
+  );
 
   await runVisible([terraform, 'plan', '-input=false', `-out=${TF_PLAN}`, ...vars], context, {
     cwd: terraformPath,
