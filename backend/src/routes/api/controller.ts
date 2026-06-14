@@ -12,10 +12,10 @@ import { peopleController } from '#routes/api/people/controller.ts';
 import { peopleMergeController } from '#routes/api/people/merge/controller.ts';
 import { recordsIdController } from '#routes/api/records/[id]/controller.ts';
 import { recordsController } from '#routes/api/records/controller.ts';
+import { RoutePrefix } from '#routes/prefixes.ts';
 
 // The `/api` prefix is applied here, so child controllers keep bare path strings.
-export const API_PREFIX = '/api';
-export const apiController = new Elysia({ prefix: API_PREFIX })
+export const apiController = new Elysia({ prefix: RoutePrefix.Api })
   .use(healthController)
   .use(peopleController)
   .use(peopleIdController)
