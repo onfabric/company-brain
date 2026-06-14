@@ -1,70 +1,19 @@
-import { existsSync, statSync } from 'node:fs';
-import { dirname, extname, isAbsolute, join, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { Elysia, StatusMap } from 'elysia';
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { StatusMap } from 'elysia';
 
-const sourceDashboardDir = join(
-  dirname(fileURLToPath(import.meta.url)),
-  '../../../../dashboard/dist',
-);
-const dashboardDir = existsSync(sourceDashboardDir)
-  ? sourceDashboardDir
-  : join(dirname(process.execPath), 'dashboard');
+// The build copies the dashboard bundle to `public/` next to the compiled
+// binary, so the directory is always present in the container.
+export const dashboardDir = join(dirname(process.execPath), 'public');
 const indexPath = join(dashboardDir, 'index.html');
 
-export const dashboardController = new Elysia()
-  .get('/dashboard', () => serveIndex(), { detail: { hide: true } })
-  .get('/dashboard/', () => serveIndex(), { detail: { hide: true } })
-  .get('/dashboard/*', ({ params }) => serveDashboardPath(params['*']), {
-    detail: { hide: true },
-  });
-
-function serveDashboardPath(path: string | undefined) {
-  const assetPath = resolveDashboardPath(path ?? '');
-  if (!assetPath) {
-    return new Response('Not found', { status: StatusMap['Not Found'] });
-  }
-  if (existsSync(assetPath) && statSync(assetPath).isFile()) {
-    return fileResponse(assetPath);
-  }
-  return serveIndex();
-}
-
-function serveIndex() {
+// The SPA shell, served for the root and every client-side route that maps to no
+// built asset so they resolve on reload. The static plugin serves the built
+// files; the shell is owned here (not by the plugin) so it stays fresh and a
+// deploy's new asset hashes are always picked up.
+export function serveDashboard(): Response {
   if (!existsSync(indexPath)) {
     return new Response('Dashboard has not been built.', { status: StatusMap['Not Found'] });
   }
-  return fileResponse(indexPath);
-}
-
-function resolveDashboardPath(path: string) {
-  const target = join(dashboardDir, path);
-  const relativePath = relative(dashboardDir, target);
-  if (relativePath.startsWith('..') || isAbsolute(relativePath)) {
-    return null;
-  }
-  return target;
-}
-
-function fileResponse(path: string) {
-  return new Response(Bun.file(path), {
-    headers: {
-      'content-type': contentTypeFor(path),
-    },
-  });
-}
-
-function contentTypeFor(path: string) {
-  switch (extname(path)) {
-    case '.css':
-      return 'text/css; charset=utf-8';
-    case '.html':
-      return 'text/html; charset=utf-8';
-    case '.js':
-      return 'text/javascript; charset=utf-8';
-    case '.svg':
-      return 'image/svg+xml';
-    default:
-      return 'application/octet-stream';
-  }
+  return new Response(Bun.file(indexPath));
 }

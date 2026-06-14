@@ -171,7 +171,7 @@ describe('KnowledgeService', () => {
     const service = new KnowledgeService(new MockKnowledgeRepository({ row: ROW }));
     const item = await service.getKnowledge(ROW.id);
     expect(item.title).toBe('Q1 pricing decision');
-    expect(item.html_url).toBe(`/knowledge/pages/${ROW.id}`);
+    expect(item.html_url).toBe(`/api/knowledge/pages/${ROW.id}`);
     expect(item.knowledge_type.name).toBe('decision');
   });
 
@@ -232,7 +232,7 @@ describe('KnowledgeService', () => {
 
     const html = await service.getKnowledgeHtmlPage(ROW.id);
 
-    expect(html).toContain('/knowledge/pages/019e8882-07f1-771c-993e-f6825a9224bc');
+    expect(html).toContain('/api/knowledge/pages/019e8882-07f1-771c-993e-f6825a9224bc');
     expect(html).not.toContain('<script>');
   });
 
@@ -244,7 +244,7 @@ describe('KnowledgeService', () => {
 
     expect(repo.knowledgeTypeNameCalls).toEqual(['index']);
     expect(html).toContain('Q1 pricing decision');
-    expect(html).toContain('/knowledge/pages/index');
+    expect(html).toContain('/api/knowledge/pages/index');
   });
 
   it('throws when the knowledge index is missing', async () => {

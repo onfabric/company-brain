@@ -48,7 +48,7 @@ function initializeRequest(headers: Record<string, string>): Request {
   });
 }
 
-describe('mcp controller', () => {
+describe('root controller (mcp mount)', () => {
   it('rejects unauthenticated requests', async () => {
     const res = await fetch(initializeRequest({}));
     expect(res.status).toBe(StatusMap.Unauthorized);
@@ -64,5 +64,13 @@ describe('mcp controller', () => {
       const res = await fetch(mcpUrl, { method });
       expect(res.status).toBe(StatusMap.Unauthorized);
     }
+  });
+
+  it('falls through unknown paths to the dashboard SPA instead of the mcp mount', async () => {
+    const res = await fetch(new URL('/some/client-route', mcpUrl.origin));
+    // No bundle is built in the backend test run, so the SPA handler reports it
+    // is missing — proving the request reached the SPA fallback, not mcp-use.
+    expect(res.status).toBe(StatusMap['Not Found']);
+    expect(await res.text()).toBe('Dashboard has not been built.');
   });
 });

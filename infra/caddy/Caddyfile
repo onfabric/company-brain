@@ -19,16 +19,13 @@
 }
 
 {$BRAIN_HOSTNAME} {
-	@public path /api/auth/* /.well-known/* /dashboard /dashboard/* /data-sources /data-sources/* /health /knowledge /knowledge/* /knowledge-types /knowledge-types/* /mcp /people /people/* /records /records/* /sessions /openapi /openapi/*
-	handle @public {
-		reverse_proxy brain:3010 {
-			# Retry dial failures to ride out the container recreate gap on deploy.
-			lb_try_duration 30s
-			lb_try_interval 250ms
-		}
-	}
-	handle {
-		respond 404
+	# The brain owns the whole origin: the dashboard SPA at the root, the REST API
+	# under /api, the MCP transport at /mcp, and the OAuth discovery documents at
+	# /.well-known. Unknown paths resolve to the SPA shell, so forward everything.
+	reverse_proxy brain:3010 {
+		# Retry dial failures to ride out the container recreate gap on deploy.
+		lb_try_duration 30s
+		lb_try_interval 250ms
 	}
 }
 

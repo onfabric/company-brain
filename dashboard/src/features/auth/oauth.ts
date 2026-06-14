@@ -1,4 +1,4 @@
-const DEFAULT_CALLBACK_URL = '/dashboard';
+const DEFAULT_CALLBACK_URL = '/';
 const AUTHORIZE_PATH = '/api/auth/oauth2/authorize';
 const SOCIAL_SIGN_IN_PATH = '/api/auth/sign-in/social';
 const CONSENT_PATH = '/api/auth/oauth2/consent';

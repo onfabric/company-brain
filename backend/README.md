@@ -56,11 +56,11 @@ Example client configuration:
 The REST API accepts either the `Api-Key` header or a better-auth session cookie
 (Google sign-in, restricted to the workspace domain). The dashboard SPA relies on
 the session cookie: when a request is unauthenticated it redirects the browser to
-the dashboard's `/dashboard/sign-in` page, which signs in with Google and returns
-to the `callbackURL`. The OAuth login and consent prompts are dashboard routes too
-(`/dashboard/sign-in`, `/dashboard/consent`); better-auth redirects into the SPA,
-which reads the appended authorize query client-side. `/mcp` stays OAuth-only and
-never accepts the `Api-Key` header.
+the dashboard's `/sign-in` page, which signs in with Google and returns to the
+`callbackURL`. The OAuth login and consent prompts are dashboard routes too
+(`/sign-in`, `/consent`); better-auth redirects into the SPA, which reads the
+appended authorize query client-side. `/mcp` stays OAuth-only and never accepts
+the `Api-Key` header.
 
 ## Build
 

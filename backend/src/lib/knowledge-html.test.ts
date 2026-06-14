@@ -12,11 +12,11 @@ const LINKED_KNOWLEDGE_ID = '019e8882-07f1-771c-993e-f6825a9224bc';
 
 describe('knowledge HTML', () => {
   it('builds the canonical page path', () => {
-    expect(knowledgePagePath(KNOWLEDGE_ID)).toBe(`/knowledge/pages/${KNOWLEDGE_ID}`);
+    expect(knowledgePagePath(KNOWLEDGE_ID)).toBe(`/api/knowledge/pages/${KNOWLEDGE_ID}`);
   });
 
   it('builds the canonical index path', () => {
-    expect(knowledgeIndexPagePath()).toBe('/knowledge/pages/index');
+    expect(knowledgeIndexPagePath()).toBe('/api/knowledge/pages/index');
   });
 
   it('sanitizes unsafe markup while preserving knowledge links', () => {
@@ -39,8 +39,8 @@ describe('knowledge HTML', () => {
 
     expect(html).toContain('<!doctype html>');
     expect(html).toContain('Pricing &lt;Decision&gt;');
-    expect(html).toContain(`/knowledge/pages/${LINKED_KNOWLEDGE_ID}`);
-    expect(html).toContain('href="/knowledge/pages/index"');
+    expect(html).toContain(`/api/knowledge/pages/${LINKED_KNOWLEDGE_ID}`);
+    expect(html).toContain('href="/api/knowledge/pages/index"');
     expect(html).toContain('target="_self"');
     expect(html).not.toContain('javascript:');
   });

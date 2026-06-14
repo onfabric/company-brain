@@ -6,7 +6,6 @@ export function getRouter() {
   return createTanStackRouter({
     routeTree,
     context: { auth: createAuth() },
-    basepath: '/dashboard',
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,

@@ -1,10 +1,11 @@
 import { openapi } from '@elysiajs/openapi';
+import { staticPlugin } from '@elysiajs/static';
 import { Elysia } from 'elysia';
 import { apiKeySecuritySchemes } from '#lib/auth/api-key.ts';
 import { sessionSecuritySchemes } from '#lib/auth/better-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
-import { dashboardController } from '#routes/dashboard/controller.ts';
+import { dashboardDir } from '#routes/dashboard/controller.ts';
 import { dataSourcesController } from '#routes/data-sources/controller.ts';
 import { healthController } from '#routes/health/controller.ts';
 import { knowledgeIdController } from '#routes/knowledge/[id]/controller.ts';
@@ -13,70 +14,92 @@ import { knowledgePagesIdController } from '#routes/knowledge/pages/[id]/control
 import { knowledgePagesIndexController } from '#routes/knowledge/pages/index/controller.ts';
 import { knowledgeTypesIdController } from '#routes/knowledge-types/[id]/controller.ts';
 import { knowledgeTypesController } from '#routes/knowledge-types/controller.ts';
-import { mcpController } from '#routes/mcp/controller.ts';
 import { peopleIdController } from '#routes/people/[id]/controller.ts';
 import { peopleController } from '#routes/people/controller.ts';
 import { peopleMergeController } from '#routes/people/merge/controller.ts';
 import { recordsIdController } from '#routes/records/[id]/controller.ts';
 import { recordsController } from '#routes/records/controller.ts';
+import { rootController } from '#routes/root/controller.ts';
 import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
 
+// Every REST endpoint is served under `/api`; the prefix is applied here so the
+// controllers keep their bare path strings and the root origin is free for the
+// dashboard SPA (served by `rootController`).
+const apiController = new Elysia({ prefix: '/api' })
+  .use(healthController)
+  .use(peopleController)
+  .use(peopleIdController)
+  .use(peopleMergeController)
+  .use(dataSourcesController)
+  .use(knowledgeController)
+  .use(knowledgeIdController)
+  .use(knowledgePagesIndexController)
+  .use(knowledgePagesIdController)
+  .use(knowledgeTypesController)
+  .use(knowledgeTypesIdController)
+  .use(recordsController)
+  .use(recordsIdController)
+  .use(batchSaveController);
+
 export function createApp() {
-  return new Elysia()
-    .onError(elysiaErrorHandler)
-    .use(requestResponsePlugin)
-    .use(
-      openapi({
-        documentation: {
-          info: {
-            title: 'Company Brain API',
-            version: '1.0.0',
+  return (
+    new Elysia()
+      .onError(elysiaErrorHandler)
+      .use(requestResponsePlugin)
+      .use(
+        openapi({
+          documentation: {
+            info: {
+              title: 'Company Brain API',
+              version: '1.0.0',
+            },
+            tags: [
+              {
+                name: 'People',
+                description: 'List, update, and merge the people derived from ingested records.',
+              },
+              {
+                name: 'Records',
+                description: 'Search ingested records.',
+              },
+              {
+                name: 'Data Sources',
+                description: 'Inspect the data sources that have ingested records.',
+              },
+              {
+                name: 'Knowledge',
+                description: 'Search and read knowledge distilled from records.',
+              },
+              {
+                name: 'Knowledge Types',
+                description: 'Manage the controlled vocabulary of knowledge types.',
+              },
+            ],
+            components: {
+              securitySchemes: {
+                ...apiKeySecuritySchemes,
+                ...sessionSecuritySchemes,
+              },
+            },
           },
-          tags: [
-            {
-              name: 'People',
-              description: 'List, update, and merge the people derived from ingested records.',
-            },
-            {
-              name: 'Records',
-              description: 'Search ingested records.',
-            },
-            {
-              name: 'Data Sources',
-              description: 'Inspect the data sources that have ingested records.',
-            },
-            {
-              name: 'Knowledge',
-              description: 'Search and read knowledge distilled from records.',
-            },
-            {
-              name: 'Knowledge Types',
-              description: 'Manage the controlled vocabulary of knowledge types.',
-            },
-          ],
-          components: {
-            securitySchemes: {
-              ...apiKeySecuritySchemes,
-              ...sessionSecuritySchemes,
-            },
-          },
-        },
-      }),
-    )
-    .use(dashboardController)
-    .use(healthController)
-    .use(peopleController)
-    .use(peopleIdController)
-    .use(peopleMergeController)
-    .use(dataSourcesController)
-    .use(knowledgeController)
-    .use(knowledgeIdController)
-    .use(knowledgePagesIndexController)
-    .use(knowledgePagesIdController)
-    .use(knowledgeTypesController)
-    .use(knowledgeTypesIdController)
-    .use(recordsController)
-    .use(recordsIdController)
-    .use(mcpController)
-    .use(batchSaveController);
+        }),
+      )
+      .use(apiController)
+      // Serve the built dashboard files (hashed assets, etc.) from disk.
+      // `indexHTML: false` leaves the SPA shell to `rootController`, so the root
+      // and unknown client-side routes get the same always-fresh `index.html`.
+      // `alwaysStatic` registers one route per file so the plugin never adds a
+      // catch-all that would shadow the root mount. When the bundle is absent (a
+      // backend-only `bun test` run never builds the dashboard) the plugin's
+      // directory scan rejects, so recover to a no-op rather than crash startup.
+      .use(
+        staticPlugin({
+          assets: dashboardDir,
+          prefix: '/',
+          indexHTML: false,
+          alwaysStatic: true,
+        }).catch(() => new Elysia()),
+      )
+      .use(rootController)
+  );
 }

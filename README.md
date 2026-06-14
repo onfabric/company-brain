@@ -17,7 +17,7 @@ bun run company-brain local setup
 
 Local URLs:
 
-- Brain dashboard: http://localhost:3010/dashboard
+- Brain dashboard: http://localhost:3010/
 - Nango dashboard/login and API keys: http://localhost:3003
 
 After the stack is running, create or sign in to the local Nango dashboard and
