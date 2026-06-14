@@ -29,12 +29,10 @@ const WEBHOOK_SECRET_BYTES = 32;
 
 export async function collectAwsConfig({
   existing,
-  detectedAwsProfile,
   force,
   nonInteractive,
 }: {
   existing?: AwsConfig;
-  detectedAwsProfile?: string;
   force?: boolean;
   nonInteractive?: boolean;
 }): Promise<AwsConfig> {
@@ -47,13 +45,6 @@ export async function collectAwsConfig({
   note(
     'Choose where this deployment lives and how public service hostnames are derived.',
     'AWS environment',
-  );
-  const awsProfile = await promptOptionalText(
-    'AWS CLI profile',
-    'AWS profile Terraform and AWS CLI commands should use. Leave blank to use the default credential chain.',
-    existing?.awsProfile ?? detectedAwsProfile ?? '',
-    force,
-    nonInteractive,
   );
   const region = await promptSelect(
     'AWS region',
@@ -197,7 +188,6 @@ export async function collectAwsConfig({
   const config: AwsConfig = {
     version: 1,
     terraformCommand: existing?.terraformCommand,
-    awsProfile,
     region,
     environment,
     baseDomain,
@@ -497,30 +487,6 @@ async function promptText(
   return value;
 }
 
-async function promptOptionalText(
-  message: string,
-  description: string,
-  defaultValue: string,
-  _force: boolean | undefined,
-  nonInteractive: boolean | undefined,
-): Promise<string | undefined> {
-  if (nonInteractive) {
-    return optionalText(defaultValue);
-  }
-
-  const answer = await text({
-    message: promptMessage(message, description),
-    defaultValue,
-    placeholder: defaultValue,
-  });
-
-  if (isCancel(answer)) {
-    throw new Error('Setup cancelled.');
-  }
-
-  return optionalText(answer || defaultValue);
-}
-
 async function promptHostname(
   message: string,
   description: string,
@@ -654,11 +620,6 @@ function validateSecret(
   }
 
   return undefined;
-}
-
-function optionalText(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
 }
 
 function promptMessage(message: string, description: string): string {

@@ -24,6 +24,7 @@ export const command = defineCommand('aws deploy', {
     const prerequisites = await verifyAwsPrerequisites(context);
     const config = {
       ...(await requireAwsConfig()),
+      awsProfile: prerequisites.awsProfile,
       terraformCommand: prerequisites.terraformCommand,
       appDeployedAt: undefined,
     };

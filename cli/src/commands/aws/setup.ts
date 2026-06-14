@@ -30,18 +30,21 @@ export const command = defineCommand('aws setup', {
       [
         `AWS account: ${prerequisites.accountId}`,
         `AWS identity: ${prerequisites.arn}`,
-        `AWS profile: ${prerequisites.awsProfile ?? 'default credential chain'}`,
+        `AWS credentials: ${formatCredentialSource(prerequisites.awsProfile)}`,
       ].join('\n'),
       'AWS login',
     );
 
     let config = await collectAwsConfig({
       existing,
-      detectedAwsProfile: prerequisites.awsProfile,
       force: options.force,
       nonInteractive,
     });
-    config = { ...config, terraformCommand: prerequisites.terraformCommand };
+    config = {
+      ...config,
+      awsProfile: prerequisites.awsProfile,
+      terraformCommand: prerequisites.terraformCommand,
+    };
     await writeAwsConfig(config);
 
     config = await provisionAwsInfrastructure(config, context, print);
@@ -50,3 +53,9 @@ export const command = defineCommand('aws setup', {
     outro('AWS setup flow finished.');
   },
 });
+
+function formatCredentialSource(awsProfile: string | undefined): string {
+  return awsProfile
+    ? `current shell profile "${awsProfile}"`
+    : 'current shell default credential chain';
+}
