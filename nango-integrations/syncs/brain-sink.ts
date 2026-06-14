@@ -22,7 +22,7 @@ export function createBrainSink(nango: BrainSinkNango) {
       throw new Error('brain batch-save requires nangoConnectionId');
     }
 
-    const { error } = await client('/api/webhooks/batch-save', {
+    const { error } = await client('/internal/webhooks/batch-save', {
       method: 'POST',
       body: {
         nango_integration_id: nango.providerConfigKey,

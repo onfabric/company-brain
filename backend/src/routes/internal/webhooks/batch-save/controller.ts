@@ -2,7 +2,7 @@ import { Elysia, StatusMap } from 'elysia';
 import {
   BatchSaveBodySchema,
   BatchSaveResponseSchema,
-} from '#routes/api/webhooks/batch-save/model.ts';
+} from '#routes/internal/webhooks/batch-save/model.ts';
 import { loggerPlugin, RecordsServicePlugin } from '#services/plugins.ts';
 
 export const batchSaveController = new Elysia()

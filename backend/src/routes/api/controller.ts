@@ -12,11 +12,10 @@ import { peopleController } from '#routes/api/people/controller.ts';
 import { peopleMergeController } from '#routes/api/people/merge/controller.ts';
 import { recordsIdController } from '#routes/api/records/[id]/controller.ts';
 import { recordsController } from '#routes/api/records/controller.ts';
-import { batchSaveController } from '#routes/api/webhooks/batch-save/controller.ts';
 
-// Every REST endpoint is served under `/api`; the prefix is applied here so the
-// child controllers keep their bare path strings and the root origin is left to
-// `rootController` (the MCP mount and the dashboard SPA).
+// Every public REST endpoint is served under `/api`; the prefix is applied here
+// so the child controllers keep their bare path strings and the root origin is
+// left to `rootController` (the MCP mount and the dashboard SPA).
 export const apiController = new Elysia({ prefix: '/api' })
   .use(healthController)
   .use(peopleController)
@@ -30,5 +29,4 @@ export const apiController = new Elysia({ prefix: '/api' })
   .use(knowledgeTypesController)
   .use(knowledgeTypesIdController)
   .use(recordsController)
-  .use(recordsIdController)
-  .use(batchSaveController);
+  .use(recordsIdController);

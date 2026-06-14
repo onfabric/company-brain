@@ -91,8 +91,8 @@ describe('gmail thread sync tests', () => {
       'POST',
     ]);
     expect(backendNotifications.map((notification) => notification.url.pathname)).toEqual([
-      '/api/webhooks/batch-save',
-      '/api/webhooks/batch-save',
+      '/internal/webhooks/batch-save',
+      '/internal/webhooks/batch-save',
     ]);
     expect(notificationBodies).toEqual([
       {

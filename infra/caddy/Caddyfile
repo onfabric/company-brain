@@ -19,13 +19,21 @@
 }
 
 {$BRAIN_HOSTNAME} {
-	# The brain owns the whole origin: the dashboard SPA at the root, the REST API
-	# under /api, the MCP transport at /mcp, and the OAuth discovery documents at
-	# /.well-known. Unknown paths resolve to the SPA shell, so forward everything.
-	reverse_proxy brain:3010 {
-		# Retry dial failures to ride out the container recreate gap on deploy.
-		lb_try_duration 30s
-		lb_try_interval 250ms
+	# The brain owns the whole public origin: the dashboard SPA at the root (which
+	# resolves arbitrary client-side routes), the REST API under /api, the MCP
+	# transport at /mcp, and the OAuth discovery documents at /.well-known.
+	# Everything is forwarded EXCEPT /internal/* — those endpoints (e.g. the Nango
+	# batch-save webhook) must stay reachable only on the compose network.
+	@internal path /internal /internal/*
+	handle @internal {
+		respond 404
+	}
+	handle {
+		reverse_proxy brain:3010 {
+			# Retry dial failures to ride out the container recreate gap on deploy.
+			lb_try_duration 30s
+			lb_try_interval 250ms
+		}
 	}
 }
 

@@ -111,7 +111,7 @@ describe('api key auth', () => {
   it('leaves the internal webhook open to in-network callers', async () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(
-      new Request('http://localhost/api/webhooks/batch-save', { method: 'POST' }),
+      new Request('http://localhost/internal/webhooks/batch-save', { method: 'POST' }),
     );
     expect(res.status).not.toBe(StatusMap.Unauthorized);
   });

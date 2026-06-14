@@ -7,6 +7,7 @@ import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
 import { apiController } from '#routes/api/controller.ts';
 import { rootController } from '#routes/controller.ts';
+import { internalController } from '#routes/internal/controller.ts';
 
 export function createApp() {
   return new Elysia()
@@ -51,6 +52,7 @@ export function createApp() {
       }),
     )
     .use(apiController)
+    .use(internalController)
     .use(dashboardAssets)
     .use(rootController);
 }
