@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ConsentRouteImport } from './routes/consent'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as DashboardSplatRouteImport } from './routes/dashboard.$'
 import { Route as AuthenticatedRecordsRouteImport } from './routes/_authenticated/records'
 import { Route as AuthenticatedPeopleRouteImport } from './routes/_authenticated/people'
 import { Route as AuthenticatedKnowledgeRouteImport } from './routes/_authenticated/knowledge'
@@ -31,10 +33,20 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/dashboard/',
+  path: '/dashboard/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const DashboardSplatRoute = DashboardSplatRouteImport.update({
+  id: '/dashboard/$',
+  path: '/dashboard/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRecordsRoute = AuthenticatedRecordsRouteImport.update({
   id: '/records',
@@ -59,6 +71,8 @@ export interface FileRoutesByFullPath {
   '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/people': typeof AuthenticatedPeopleRoute
   '/records': typeof AuthenticatedRecordsRoute
+  '/dashboard/$': typeof DashboardSplatRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/consent': typeof ConsentRoute
@@ -66,7 +80,9 @@ export interface FileRoutesByTo {
   '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/people': typeof AuthenticatedPeopleRoute
   '/records': typeof AuthenticatedRecordsRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/': typeof AuthenticatedIndexRoute
+  '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -76,7 +92,9 @@ export interface FileRoutesById {
   '/_authenticated/knowledge': typeof AuthenticatedKnowledgeRoute
   '/_authenticated/people': typeof AuthenticatedPeopleRoute
   '/_authenticated/records': typeof AuthenticatedRecordsRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,8 +105,18 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/people'
     | '/records'
+    | '/dashboard/$'
+    | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/consent' | '/sign-in' | '/knowledge' | '/people' | '/records' | '/'
+  to:
+    | '/consent'
+    | '/sign-in'
+    | '/knowledge'
+    | '/people'
+    | '/records'
+    | '/dashboard/$'
+    | '/'
+    | '/dashboard'
   id:
     | '__root__'
     | '/_authenticated'
@@ -97,13 +125,17 @@ export interface FileRouteTypes {
     | '/_authenticated/knowledge'
     | '/_authenticated/people'
     | '/_authenticated/records'
+    | '/dashboard/$'
     | '/_authenticated/'
+    | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   ConsentRoute: typeof ConsentRoute
   SignInRoute: typeof SignInRoute
+  DashboardSplatRoute: typeof DashboardSplatRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -129,12 +161,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/': {
       id: '/_authenticated/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/dashboard/$': {
+      id: '/dashboard/$'
+      path: '/dashboard/$'
+      fullPath: '/dashboard/$'
+      preLoaderRoute: typeof DashboardSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/records': {
       id: '/_authenticated/records'
@@ -182,6 +228,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   ConsentRoute: ConsentRoute,
   SignInRoute: SignInRoute,
+  DashboardSplatRoute: DashboardSplatRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
