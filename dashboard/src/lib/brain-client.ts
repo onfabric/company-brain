@@ -3,7 +3,10 @@ import { type edenFetch, treaty } from '@elysiajs/eden';
 import { redirectToSignIn } from '#/lib/auth.ts';
 import { HTTP_UNAUTHORIZED } from '#/lib/constants.ts';
 
-export const brain = treaty<App>('', {
+// The dashboard is served from the same origin as the brain API. Treaty needs an
+// absolute base (an empty domain resolves the first path segment as the host), and
+// the origin keeps the vite dev proxy and production on the same path.
+export const brain = treaty<App>(window.location.origin, {
   fetch: { credentials: 'include' },
   headers: { accept: 'application/json' },
 });
