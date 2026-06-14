@@ -1,55 +1,92 @@
-import { INTEGRATIONS, SYNC_SPECS } from '../../../nango-integrations/_scripts/lib/catalog.ts';
+import {
+  BOOTSTRAPPED_CONNECTIONS,
+  INTEGRATIONS,
+  SYNC_SPECS,
+} from '../../../nango-integrations/_scripts/lib/catalog.ts';
 import { nangoIntegrationsPath } from './paths.ts';
 import { run } from './shell.ts';
 
 export const nangoIntegrationSpecs = INTEGRATIONS;
 export const nangoSyncSpecs = SYNC_SPECS;
 
+type NangoCommandOptions = {
+  env?: Record<string, string | undefined>;
+  verbose?: boolean;
+};
+
 export async function bootstrapNangoIntegrations(
   integrationIds: string[],
-  verbose = false,
+  options: NangoCommandOptions = {},
 ): Promise<void> {
-  const selectionArgs = integrationIds.length > 0 ? ['--only', integrationIds.join(',')] : [];
+  const selectionArgs = selectedArgs(integrationIds);
 
   await run(
     ['bun', 'run', 'bootstrap:integrations', 'dev', '--update-existing', ...selectionArgs],
     {
       cwd: nangoIntegrationsPath,
-      verbose,
+      env: options.env,
+      verbose: options.verbose,
     },
   );
-  await run(['bun', 'run', 'bootstrap:connections', 'dev', ...selectionArgs], {
-    cwd: nangoIntegrationsPath,
-    verbose,
-  });
+
+  const connectionIntegrationIds = bootstrappedConnectionIntegrationIds(integrationIds);
+  if (connectionIntegrationIds.length === 0) {
+    return;
+  }
+
+  await run(
+    ['bun', 'run', 'bootstrap:connections', 'dev', ...selectedArgs(connectionIntegrationIds)],
+    {
+      cwd: nangoIntegrationsPath,
+      env: options.env,
+      verbose: options.verbose,
+    },
+  );
 }
 
 export async function checkNangoConnections(
   integrationIds: string[],
-  verbose = false,
+  options: NangoCommandOptions = {},
 ): Promise<void> {
-  await run(['bun', 'run', 'check:connections', 'dev', '--only', integrationIds.join(',')], {
+  await run(['bun', 'run', 'check:connections', 'dev', ...selectedArgs(integrationIds)], {
     cwd: nangoIntegrationsPath,
-    verbose,
+    env: options.env,
+    verbose: options.verbose,
   });
 }
 
-export async function deployNangoSyncs(integrationIds: string[], verbose = false): Promise<void> {
+export async function deployNangoSyncs(
+  integrationIds: string[],
+  options: NangoCommandOptions = {},
+): Promise<void> {
   await run(
     [
       'bun',
       'run',
       'deploy',
       'dev',
-      '--only',
-      integrationIds.join(','),
+      ...selectedArgs(integrationIds),
       '--auto-confirm',
       '--no-interactive',
       '--no-dependency-update',
     ],
     {
       cwd: nangoIntegrationsPath,
-      verbose,
+      env: options.env,
+      verbose: options.verbose,
     },
   );
+}
+
+export function bootstrappedConnectionIntegrationIds(integrationIds: string[]): string[] {
+  const selectedIds = new Set(integrationIds);
+  const connectionIntegrationIds = BOOTSTRAPPED_CONNECTIONS.filter((connection) =>
+    selectedIds.has(connection.integrationId),
+  ).map((connection) => connection.integrationId);
+
+  return [...new Set(connectionIntegrationIds)];
+}
+
+function selectedArgs(integrationIds: string[]): string[] {
+  return integrationIds.length > 0 ? ['--only', integrationIds.join(',')] : [];
 }

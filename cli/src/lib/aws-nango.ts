@@ -1,6 +1,5 @@
 import type { AwsConfig } from './aws-config.ts';
 import { hostedNangoEnv } from './aws-config.ts';
-import { nangoIntegrationsPath } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
 const FETCH_TIMEOUT_MS = 10_000;
@@ -28,37 +27,25 @@ export async function bootstrapHostedNango(
   config: AwsConfig,
   context: VisibleCommandContext,
 ): Promise<void> {
-  const env = hostedNangoEnv(config);
-  const selectionArgs = selectedArgs(config);
-
   await runVisible(
-    ['bun', 'run', 'bootstrap:integrations', 'dev', '--update-existing', ...selectionArgs],
+    [
+      'bun',
+      'run',
+      'company-brain',
+      '--non-interactive',
+      '--verbose',
+      'nango',
+      'integrations',
+      '--hosted',
+      ...selectedArgs(config),
+    ],
     context,
     {
-      cwd: nangoIntegrationsPath,
-      env,
+      env: hostedNangoEnv(config),
       approve: true,
       purpose: 'Create or update selected hosted Nango integrations.',
     },
   );
-  await runVisible(['bun', 'run', 'bootstrap:connections', 'dev', ...selectionArgs], context, {
-    cwd: nangoIntegrationsPath,
-    env,
-    approve: true,
-    purpose: 'Create hosted non-OAuth Nango connections.',
-  });
-}
-
-export async function checkHostedNangoConnections(
-  config: AwsConfig,
-  context: VisibleCommandContext,
-): Promise<void> {
-  await runVisible(['bun', 'run', 'check:connections', 'dev', ...selectedArgs(config)], context, {
-    cwd: nangoIntegrationsPath,
-    env: hostedNangoEnv(config),
-    approve: true,
-    purpose: 'Check hosted Nango OAuth connections.',
-  });
 }
 
 export async function deployHostedNangoSyncs(
@@ -69,19 +56,19 @@ export async function deployHostedNangoSyncs(
     [
       'bun',
       'run',
-      'deploy',
-      'dev',
+      'company-brain',
+      '--non-interactive',
+      '--verbose',
+      'nango',
+      'syncs',
+      '--hosted',
       ...selectedArgs(config),
-      '--auto-confirm',
-      '--no-interactive',
-      '--no-dependency-update',
     ],
     context,
     {
-      cwd: nangoIntegrationsPath,
       env: hostedNangoEnv(config),
       approve: true,
-      purpose: 'Deploy selected hosted Nango syncs.',
+      purpose: 'Check hosted Nango connections and deploy selected syncs.',
     },
   );
 }

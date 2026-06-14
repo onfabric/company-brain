@@ -10,12 +10,7 @@ import {
   waitForHttps,
 } from './aws-dns.ts';
 import { buildAndPushImages } from './aws-images.ts';
-import {
-  bootstrapHostedNango,
-  checkHostedNangoConnections,
-  deployHostedNangoSyncs,
-  verifyHostedNangoApi,
-} from './aws-nango.ts';
+import { bootstrapHostedNango, deployHostedNangoSyncs, verifyHostedNangoApi } from './aws-nango.ts';
 import { confirmManualDnsReady, promptHostedNangoKey } from './aws-prompts.ts';
 import { deployOverSsm, putDozzleUsers } from './aws-ssm.ts';
 import { applyAwsTerraform } from './aws-terraform.ts';
@@ -90,23 +85,21 @@ export async function continueAwsDeployment({
     print.success('Hosted Nango integrations are bootstrapped.');
   }
 
-  try {
-    await checkHostedNangoConnections(current, context);
-  } catch (error) {
-    print.warn(formatError(error));
-    note(
-      [
-        `Open https://${current.nangoHostname}`,
-        'Create OAuth connections for the integrations listed above, then run:',
-        'bun run company-brain aws resume',
-      ].join('\n'),
-      'OAuth connections required',
-    );
-    return current;
-  }
-
   if (!current.syncsDeployedAt) {
-    await deployHostedNangoSyncs(current, context);
+    try {
+      await deployHostedNangoSyncs(current, context);
+    } catch (error) {
+      print.warn(formatError(error));
+      note(
+        [
+          `Open https://${current.nangoHostname}`,
+          'Create OAuth connections for the integrations listed above, then run:',
+          'bun run company-brain aws resume',
+        ].join('\n'),
+        'OAuth connections required',
+      );
+      return current;
+    }
     current = { ...current, syncsDeployedAt: new Date().toISOString() };
     await writeAwsConfig(current);
     print.success('Hosted Nango syncs are deployed.');

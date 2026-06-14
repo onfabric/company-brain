@@ -13,18 +13,38 @@ import { oauthConnectionHints } from '../../../../nango-integrations/_scripts/li
 import { parseSelection } from '../../../../nango-integrations/_scripts/lib/selection.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 import { readLocalConfig, writeLocalConfig } from '../../lib/local-config.ts';
-import { bootstrapNangoIntegrations, nangoIntegrationSpecs } from '../../lib/nango.ts';
-import { ensureNangoEnvBase, readNangoEnv, upsertNangoEnv } from '../../lib/nango-env.ts';
+import {
+  bootstrappedConnectionIntegrationIds,
+  bootstrapNangoIntegrations,
+  nangoIntegrationSpecs,
+} from '../../lib/nango.ts';
+import {
+  applyNangoEnvOverrides,
+  ensureNangoEnvBase,
+  normalizeNangoHostport,
+  processNangoEnv,
+  readNangoEnv,
+  upsertNangoEnv,
+} from '../../lib/nango-env.ts';
 
 type IntegrationSpec = (typeof nangoIntegrationSpecs)[number];
 
 export const command = defineCommand('nango integrations', {
-  description: 'Create selected Company Brain integrations in local Nango.',
+  description: 'Create selected Company Brain integrations in Nango.',
   options: {
     nangoSecretKey: {
       schema: z.string().optional(),
       aliases: ['nango-api-key', 'nango-secret-key', 'api-key'],
-      description: 'Nango dev API key from the local dashboard.',
+      description: 'Nango dev API key.',
+    },
+    nangoHostport: {
+      schema: z.string().optional(),
+      aliases: ['nango-url', 'nango-base-url', 'nango-hostport'],
+      description: 'Nango dashboard/API base URL.',
+    },
+    hosted: {
+      schema: z.boolean().optional(),
+      description: 'Use Nango values from the current environment instead of local .env files.',
     },
     force: {
       schema: z.boolean().optional(),
@@ -41,8 +61,12 @@ export const command = defineCommand('nango integrations', {
   },
   handler: async ({ options, rootOptions, print }) => {
     intro('Company Brain Nango integrations');
-    await ensureNangoEnvBase();
     const nonInteractive = isNonInteractive(rootOptions.nonInteractive);
+    const hosted = Boolean(options.hosted);
+
+    if (!hosted) {
+      await ensureNangoEnvBase();
+    }
 
     const selected = await resolveSelection(
       options.only,
@@ -55,10 +79,31 @@ export const command = defineCommand('nango integrations', {
       return;
     }
 
+    const existing = hosted
+      ? processNangoEnv({
+          nangoHostport: options.nangoHostport,
+          nangoSecretKey: options.nangoSecretKey,
+        })
+      : applyNangoEnvOverrides(await readNangoEnv(), {
+          nangoHostport: options.nangoHostport,
+          nangoSecretKey: options.nangoSecretKey,
+        });
+    const nangoHostport = normalizeNangoHostport(
+      await promptValue(
+        'Nango dashboard/API URL',
+        existing.NANGO_HOSTPORT ||
+          existing.NANGO_BASE_URL ||
+          (hosted ? undefined : 'http://localhost:3003'),
+        Boolean(options.force),
+        false,
+        nonInteractive,
+      ),
+    );
+
     note(
       [
-        'Use this callback URL for local OAuth apps:',
-        'http://localhost:3003/oauth/callback',
+        'Use this callback URL for OAuth apps:',
+        `${nangoHostport}/oauth/callback`,
         '',
         'This creates only the integrations you select. Create OAuth connections next, then deploy syncs.',
       ].join('\n'),
@@ -77,29 +122,38 @@ export const command = defineCommand('nango integrations', {
     );
 
     const env = await collectNangoEnv(
-      options.nangoSecretKey,
+      existing,
+      nangoHostport,
       selected,
       Boolean(options.force),
       nonInteractive,
     );
-    await upsertNangoEnv(env);
+    if (!hosted) {
+      await upsertNangoEnv(env);
+    }
+
     const integrationIds = selected.map((integration) => integration.id);
-    await bootstrapNangoIntegrations(integrationIds, Boolean(rootOptions.verbose));
+    await bootstrapNangoIntegrations(integrationIds, {
+      env: hosted ? env : undefined,
+      verbose: Boolean(rootOptions.verbose),
+    });
 
-    const config = await readLocalConfig();
-    await writeLocalConfig({ ...config, installedIntegrationIds: integrationIds });
+    if (!hosted) {
+      const config = await readLocalConfig();
+      await writeLocalConfig({ ...config, installedIntegrationIds: integrationIds });
+    }
 
-    print.success('Selected local Nango integrations are configured.');
+    print.success(`Selected ${hosted ? 'hosted' : 'local'} Nango integrations are configured.`);
     note(
       [
         'Open the Nango dashboard and create OAuth connections for the providers you want now:',
-        'http://localhost:3003',
+        nangoHostport,
         '',
         'Suggested connection IDs:',
         ...selectedConnectionHints(integrationIds),
         '',
         'After the connections are ready, run:',
-        `bun run company-brain nango syncs --only ${integrationIds.join(',')}`,
+        `bun run company-brain nango syncs${hosted ? ' --hosted' : ''} --only ${integrationIds.join(',')}`,
       ].join('\n'),
       'Next',
     );
@@ -108,23 +162,22 @@ export const command = defineCommand('nango integrations', {
 });
 
 async function collectNangoEnv(
-  nangoSecretKey: string | undefined,
+  existing: Record<string, string>,
+  nangoHostport: string,
   selected: IntegrationSpec[],
   force: boolean,
   nonInteractive: boolean,
 ): Promise<Record<string, string>> {
-  const existing = await readNangoEnv();
   const values: Record<string, string> = {
-    NANGO_HOSTPORT: existing.NANGO_HOSTPORT || 'http://localhost:3003',
-    NANGO_SECRET_KEY_DEV:
-      nangoSecretKey ??
-      (await promptValue(
-        'Nango dev API key',
-        existing.NANGO_SECRET_KEY_DEV,
-        force,
-        true,
-        nonInteractive,
-      )),
+    ...existing,
+    NANGO_HOSTPORT: nangoHostport,
+    NANGO_SECRET_KEY_DEV: await promptValue(
+      'Nango dev API key',
+      existing.NANGO_SECRET_KEY_DEV,
+      force,
+      true,
+      nonInteractive,
+    ),
   };
 
   for (const integration of selected) {
@@ -206,7 +259,7 @@ async function promptValue(
   }
 
   if (nonInteractive) {
-    throw new Error(`Missing required local Nango setting: ${label}`);
+    throw new Error(`Missing required Nango setting: ${label}`);
   }
 
   const answer = secret
@@ -227,7 +280,7 @@ async function promptValue(
   const value = answer || existing;
 
   if (!value) {
-    throw new Error(`Missing required local Nango setting: ${label}`);
+    throw new Error(`Missing required Nango setting: ${label}`);
   }
 
   return value;
@@ -254,6 +307,12 @@ function validateCredential(
 
 function selectedConnectionHints(integrationIds: string[]): string[] {
   const hints = oauthConnectionHints(integrationIds);
+  const bootstrappedIds = bootstrappedConnectionIntegrationIds(integrationIds);
+  if (bootstrappedIds.length > 0) {
+    hints.push(
+      ...bootstrappedIds.map((integrationId) => `${integrationId} is created by the CLI`),
+    );
+  }
 
   return hints.length > 0 ? hints : ['No OAuth connections are needed for this selection.'];
 }

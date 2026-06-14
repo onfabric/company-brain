@@ -7,6 +7,11 @@ const WEBHOOK_SECRET_BYTES = 32;
 
 export type NangoEnvValues = Record<string, string>;
 
+export type NangoEnvOverrides = {
+  nangoHostport?: string;
+  nangoSecretKey?: string;
+};
+
 export async function readNangoEnv(): Promise<Record<string, string>> {
   return await readEnvFile(nangoEnvPath);
 }
@@ -35,4 +40,33 @@ export async function ensureNangoEnvBase(force = false): Promise<void> {
 
 export async function upsertNangoEnv(values: NangoEnvValues): Promise<void> {
   await upsertEnvFile(nangoEnvPath, values);
+}
+
+export function processNangoEnv(overrides: NangoEnvOverrides = {}): NangoEnvValues {
+  const values: NangoEnvValues = {};
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value) {
+      values[key] = value;
+    }
+  }
+
+  return applyNangoEnvOverrides(values, overrides);
+}
+
+export function applyNangoEnvOverrides(
+  values: NangoEnvValues,
+  overrides: NangoEnvOverrides = {},
+): NangoEnvValues {
+  return {
+    ...values,
+    ...(overrides.nangoHostport
+      ? { NANGO_HOSTPORT: normalizeNangoHostport(overrides.nangoHostport) }
+      : {}),
+    ...(overrides.nangoSecretKey ? { NANGO_SECRET_KEY_DEV: overrides.nangoSecretKey } : {}),
+  };
+}
+
+export function normalizeNangoHostport(value: string): string {
+  return value.trim().replace(/\/+$/, '');
 }
