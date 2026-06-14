@@ -11,8 +11,8 @@ type KnowledgeExplorerProps = {
 };
 
 const KNOWLEDGE_PAGE_PATH_PATTERN =
-  /^\/knowledge\/pages\/(?<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
-const KNOWLEDGE_INDEX_PAGE_PATH = '/knowledge/pages/index';
+  /^\/api\/knowledge\/pages\/(?<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+const KNOWLEDGE_INDEX_PAGE_PATH = '/api/knowledge/pages/index';
 const KNOWLEDGE_INDEX_TYPE = 'index';
 const KNOWLEDGE_INDEX_LIMIT = 2;
 
@@ -118,7 +118,7 @@ async function getKnowledgeIndex(): Promise<KnowledgePreview> {
 }
 
 function knowledgePageSrc(id: string | undefined) {
-  return id ? `/knowledge/pages/${id}` : KNOWLEDGE_INDEX_PAGE_PATH;
+  return id ? `/api/knowledge/pages/${id}` : KNOWLEDGE_INDEX_PAGE_PATH;
 }
 
 function knowledgePathFromFrame(frame: HTMLIFrameElement) {
