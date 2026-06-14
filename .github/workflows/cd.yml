@@ -52,7 +52,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - run: terraform init -input=false
+      - run: terraform init -input=false -backend-config=backends/dev.conf
       - run: terraform plan -input=false -var-file=dev.tfvars -out=tfplan
         env:
           TF_VAR_google_client_id: ${{ vars.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_ID }}
