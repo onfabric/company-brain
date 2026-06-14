@@ -2,10 +2,8 @@ import { existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative } from 'node:path';
 import { StatusMap } from 'elysia';
 
-// The build copies the dashboard bundle to `public/` next to the compiled binary
-// (see build.ts), so it is present whenever the app runs as that binary; it is
-// absent only in non-binary runs (`bun test`/`bun run`, where `process.execPath`
-// is bun itself and the dashboard was never built).
+// The build copies the dashboard bundle next to the compiled binary (build.ts);
+// it is absent only in non-binary runs (bun test/run).
 const dashboardDir = join(dirname(process.execPath), 'public');
 const indexPath = join(dashboardDir, 'index.html');
 
@@ -16,10 +14,9 @@ const SECONDS_PER_DAY = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY;
 // biome-ignore lint/style/noMagicNumbers: a year is plainly 365 days
 const ONE_YEAR_SECONDS = 365 * SECONDS_PER_DAY;
 
-// The single place the dashboard is served from: a built file when the path maps
-// to one — Vite's content-hashed assets, cached immutably — otherwise the SPA
-// shell, so the root and every client-side route resolve on reload. `Bun.file`
-// supplies the content type.
+// Serves a built file when the path maps to one (hashed assets cached immutably),
+// else the SPA shell so client-side routes resolve on reload. Bun.file sets the
+// content type.
 export function serveDashboard(request: Request): Response {
   const { pathname } = new URL(request.url);
   const filePath = resolveAssetPath(pathname);
@@ -35,9 +32,8 @@ export function serveDashboard(request: Request): Response {
   return new Response(Bun.file(indexPath));
 }
 
-// Maps a URL path to a real file inside the bundle, or null when it is not a file
-// (the caller then serves the SPA shell). Paths that escape `dashboardDir` are
-// rejected.
+// Resolves a URL path to a file in the bundle, or null (the caller then serves
+// the SPA shell). Rejects paths that escape dashboardDir.
 function resolveAssetPath(pathname: string): string | null {
   const target = join(dashboardDir, decodeURIComponent(pathname));
   const rel = relative(dashboardDir, target);
