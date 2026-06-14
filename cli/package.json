@@ -1,0 +1,24 @@
+{
+  "name": "@company-brain/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "company-brain": "./src/main.ts"
+  },
+  "scripts": {
+    "codegen": "parsh-codegen generate --commands src/commands --out src/command-tree.gen.ts && bun run --bun biome check --write src/command-tree.gen.ts",
+    "company-brain": "bun run src/main.ts",
+    "check:types": "bun run codegen && bun run --bun tsc",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.5.1",
+    "@parshjs/core": "^0.0.10",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@parshjs/codegen": "^0.0.5",
+    "typescript": "catalog:"
+  }
+}

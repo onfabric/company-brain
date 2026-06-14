@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { parseConnectionResponse, parseConnectionsResponse } from './nango-resources.js';
+import { parseConnectionResponse, parseConnectionsResponse } from './nango-api.js';
 
 const connection = {
   connection_id: 'local-agent-sync',

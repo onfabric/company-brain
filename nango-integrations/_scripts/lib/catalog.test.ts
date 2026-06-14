@@ -1,0 +1,80 @@
+import { describe, expect, it } from 'bun:test';
+
+import {
+  oauthConnectionHints,
+  resolveSelectedIntegrations,
+  resolveSelectedSyncs,
+} from './catalog.js';
+
+describe('resolveSelectedSyncs', () => {
+  it('returns default syncs when no selection is supplied', () => {
+    expect(resolveSelectedSyncs(undefined).map((sync) => sync.integrationId)).toContain('notion');
+  });
+
+  it('excludes manually managed syncs from the default selection', () => {
+    expect(resolveSelectedSyncs(undefined).map((sync) => sync.integrationId)).not.toContain(
+      'circleback-mcp',
+    );
+  });
+
+  it('returns only selected syncs', () => {
+    expect(resolveSelectedSyncs(['notion']).map((sync) => sync.integrationId)).toEqual(['notion']);
+  });
+
+  it('allows manually managed syncs when explicitly selected', () => {
+    expect(resolveSelectedSyncs(['circleback-mcp']).map((sync) => sync.integrationId)).toEqual([
+      'circleback-mcp',
+    ]);
+  });
+
+  it('rejects unknown integrations', () => {
+    expect(() => resolveSelectedSyncs(['unknown'])).toThrow(
+      'Unknown integration selection: unknown',
+    );
+  });
+});
+
+describe('resolveSelectedIntegrations', () => {
+  it('returns all programmatically managed integrations when no selection is supplied', () => {
+    expect(resolveSelectedIntegrations(undefined).map((integration) => integration.id)).toContain(
+      'notion',
+    );
+  });
+
+  it('excludes manually managed integrations from bootstrap selection', () => {
+    expect(
+      resolveSelectedIntegrations(undefined).map((integration) => integration.id),
+    ).not.toContain('circleback-mcp');
+  });
+
+  it('returns only selected integrations', () => {
+    expect(resolveSelectedIntegrations(['notion']).map((integration) => integration.id)).toEqual([
+      'notion',
+    ]);
+  });
+
+  it('rejects manually managed integrations', () => {
+    expect(() => resolveSelectedIntegrations(['circleback-mcp'])).toThrow(
+      'Unknown integration selection: circleback-mcp',
+    );
+  });
+
+  it('rejects unknown integrations', () => {
+    expect(() => resolveSelectedIntegrations(['unknown'])).toThrow(
+      'Unknown integration selection: unknown',
+    );
+  });
+});
+
+describe('oauthConnectionHints', () => {
+  it('returns connection hints only for selected OAuth integrations', () => {
+    expect(oauthConnectionHints(['notion', 'google-mail'])).toEqual([
+      'notion/notion',
+      'google-mail/gmail',
+    ]);
+  });
+
+  it('omits integrations without OAuth connections', () => {
+    expect(oauthConnectionHints(['agent-conversations'])).toEqual([]);
+  });
+});
