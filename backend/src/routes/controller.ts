@@ -10,12 +10,12 @@ export const rootController = new Elysia().mount(async (request) => {
   if (fromMcp.status !== StatusMap['Not Found']) {
     return fromMcp;
   }
-  // The Hono app answers 404 for paths it does not own. Unknown API paths keep
-  // that 404 (a clear contract for clients calling the API); only navigation
-  // paths fall back to the dashboard SPA shell.
+  // Nothing matched. An /api or /internal request gets a JSON 404 (the API's
+  // error shape — a clear contract for clients); anything else is a browser
+  // navigation that the dashboard SPA shell resolves.
   const { pathname } = new URL(request.url);
   if (pathname.startsWith('/api') || pathname.startsWith('/internal')) {
-    return fromMcp;
+    return Response.json({ error: 'Not Found' }, { status: StatusMap['Not Found'] });
   }
   return serveDashboard(request);
 });
