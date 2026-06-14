@@ -13,5 +13,9 @@ import { knowledgeMcpService } from '#services/plugins.ts';
 // no route matched.
 export const rootController = new Elysia().mount(async (request) => {
   const fromMcp = await knowledgeMcpService.fetch(request);
-  return fromMcp.status === StatusMap['Not Found'] ? serveDashboard(request) : fromMcp;
+  // The Hono app answers 404 for paths it does not own; serve the SPA there.
+  if (fromMcp.status === StatusMap['Not Found']) {
+    return serveDashboard(request);
+  }
+  return fromMcp;
 });

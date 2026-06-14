@@ -12,8 +12,9 @@ const indexPath = join(dashboardDir, 'index.html');
 const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
-const DAYS_PER_YEAR = 365;
-const ONE_YEAR_SECONDS = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_YEAR;
+const SECONDS_PER_DAY = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY;
+// biome-ignore lint/style/noMagicNumbers: a year is plainly 365 days
+const ONE_YEAR_SECONDS = 365 * SECONDS_PER_DAY;
 
 // The single place the dashboard is served from: a built file when the path maps
 // to one — Vite's content-hashed assets, cached immutably — otherwise the SPA
