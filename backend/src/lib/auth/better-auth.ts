@@ -9,8 +9,11 @@ import { bunSqlAdapter } from '#lib/auth/adapter.ts';
 import { env } from '#lib/env.ts';
 import { createLogger } from '#lib/logger.ts';
 
-export const SIGN_IN_PATH = '/sign-in';
-export const CONSENT_PATH = '/consent';
+// The sign-in and consent pages are routes of the dashboard SPA (served under
+// `/dashboard`), so better-auth redirects the OAuth/login flow into the SPA,
+// which reads the appended authorize query client-side.
+export const SIGN_IN_PATH = '/dashboard/sign-in';
+export const CONSENT_PATH = '/dashboard/consent';
 export const MCP_SCOPE = 'mcp';
 export const AUTH_BASE_PATH = '/api/auth';
 

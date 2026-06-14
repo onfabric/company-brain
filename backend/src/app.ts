@@ -4,7 +4,6 @@ import { apiKeySecuritySchemes } from '#lib/auth/api-key.ts';
 import { sessionSecuritySchemes } from '#lib/auth/better-auth.ts';
 import { elysiaErrorHandler } from '#lib/errors.ts';
 import { requestResponsePlugin } from '#lib/request-response.ts';
-import { consentController } from '#routes/consent/controller.ts';
 import { dashboardController } from '#routes/dashboard/controller.ts';
 import { dataSourcesController } from '#routes/data-sources/controller.ts';
 import { healthController } from '#routes/health/controller.ts';
@@ -20,7 +19,6 @@ import { peopleController } from '#routes/people/controller.ts';
 import { peopleMergeController } from '#routes/people/merge/controller.ts';
 import { recordsIdController } from '#routes/records/[id]/controller.ts';
 import { recordsController } from '#routes/records/controller.ts';
-import { signInController } from '#routes/sign-in/controller.ts';
 import { batchSaveController } from '#routes/webhooks/batch-save/controller.ts';
 
 export function createApp() {
@@ -65,8 +63,6 @@ export function createApp() {
         },
       }),
     )
-    .use(signInController)
-    .use(consentController)
     .use(dashboardController)
     .use(healthController)
     .use(peopleController)
