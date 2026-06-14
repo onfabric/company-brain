@@ -78,6 +78,87 @@ export async function collectAwsConfig({
     'Service URLs',
   );
 
+  const instanceType = await promptSelect(
+    'EC2 instance type',
+    'Compute size for the single EC2 host running Nango, Brain, Postgres, Redis, Elasticsearch, Caddy, and Dozzle.',
+    AWS_INSTANCE_TYPE_OPTIONS,
+    existing?.instanceType ?? DEFAULT_AWS_INSTANCE_TYPE,
+    force,
+    nonInteractive,
+  );
+  const rootVolumeSize = await promptSelect(
+    'Root volume size in GB',
+    'OS and Docker image-layer disk. App data lives on the persistent data volume.',
+    AWS_ROOT_VOLUME_SIZE_OPTIONS,
+    existing?.rootVolumeSize ?? DEFAULT_ROOT_VOLUME_SIZE_GB,
+    force,
+    nonInteractive,
+  );
+  const dataVolumeSize = await promptSelect(
+    'Persistent data volume size in GB',
+    'Durable EBS volume mounted at /data for Postgres, Elasticsearch, and Caddy certificates.',
+    AWS_DATA_VOLUME_SIZE_OPTIONS,
+    existing?.dataVolumeSize ?? DEFAULT_DATA_VOLUME_SIZE_GB,
+    force,
+    nonInteractive,
+  );
+  const acmeEmail = await promptText(
+    'ACME certificate email',
+    "Email address Caddy gives Let's Encrypt for certificate notices and recovery.",
+    existing?.acmeEmail ?? '',
+    force,
+    nonInteractive,
+  );
+  const workspaceDomain = await promptText(
+    'Google Workspace domain allowed to sign in',
+    'Only Google accounts from this domain can sign in to the Brain web app.',
+    existing?.workspaceDomain ?? 'example.com',
+    force,
+    nonInteractive,
+  );
+  const googleClientId = await promptText(
+    'Brain Google OAuth client ID',
+    'OAuth client ID from Google Cloud for Brain sign-in. Use the Brain redirect URI shown above.',
+    existing?.googleClientId ?? '',
+    force,
+    nonInteractive,
+  );
+  const googleClientSecret = await promptSecret(
+    'Brain Google OAuth client secret',
+    'OAuth client secret from the same Google Cloud OAuth client used for Brain sign-in.',
+    existing?.secrets.googleClientSecret,
+    force,
+    nonInteractive,
+  );
+  const dozzleUsername = await promptText(
+    'Dozzle admin username',
+    'Username for the hosted logs UI at the Dozzle hostname.',
+    existing?.dozzleUsername ?? 'admin',
+    force,
+    nonInteractive,
+  );
+  const dozzleEmail = await promptText(
+    'Dozzle admin email',
+    'Email associated with the Dozzle logs UI admin user.',
+    existing?.dozzleEmail ?? '',
+    force,
+    nonInteractive,
+  );
+  const dozzleName = await promptText(
+    'Dozzle admin display name',
+    'Display name shown inside the Dozzle logs UI.',
+    existing?.dozzleName ?? 'Admin',
+    force,
+    nonInteractive,
+  );
+  const dozzlePassword = await promptSecret(
+    'Dozzle admin password',
+    'Password for the hosted Dozzle logs UI admin account.',
+    existing?.secrets.dozzlePassword,
+    force,
+    nonInteractive,
+  );
+  const dns = await promptDns(existing, force, nonInteractive);
   const selected = await promptIntegrations(existing, force, nonInteractive);
   const oauthValues = await promptProviderCredentials(selected, existing, force, nonInteractive);
 
@@ -87,101 +168,32 @@ export async function collectAwsConfig({
     region,
     environment,
     baseDomain,
-    instanceType: await promptSelect(
-      'EC2 instance type',
-      'Compute size for the single EC2 host running Nango, Brain, Postgres, Redis, Elasticsearch, Caddy, and Dozzle.',
-      AWS_INSTANCE_TYPE_OPTIONS,
-      existing?.instanceType ?? DEFAULT_AWS_INSTANCE_TYPE,
-      force,
-      nonInteractive,
-    ),
-    rootVolumeSize: await promptSelect(
-      'Root volume size in GB',
-      'OS and Docker image-layer disk. App data lives on the persistent data volume.',
-      AWS_ROOT_VOLUME_SIZE_OPTIONS,
-      existing?.rootVolumeSize ?? DEFAULT_ROOT_VOLUME_SIZE_GB,
-      force,
-      nonInteractive,
-    ),
-    dataVolumeSize: await promptSelect(
-      'Persistent data volume size in GB',
-      'Durable EBS volume mounted at /data for Postgres, Elasticsearch, and Caddy certificates.',
-      AWS_DATA_VOLUME_SIZE_OPTIONS,
-      existing?.dataVolumeSize ?? DEFAULT_DATA_VOLUME_SIZE_GB,
-      force,
-      nonInteractive,
-    ),
+    instanceType,
+    rootVolumeSize,
+    dataVolumeSize,
     ssmSecretPrefix: existing?.ssmSecretPrefix ?? `/company-brain/${environment}`,
     nangoHostname: hostnames.nangoHostname,
     nangoConnectHostname: hostnames.nangoConnectHostname,
     brainHostname: hostnames.brainHostname,
     dozzleHostname: hostnames.dozzleHostname,
-    acmeEmail: await promptText(
-      'ACME certificate email',
-      "Email address Caddy gives Let's Encrypt for certificate notices and recovery.",
-      existing?.acmeEmail ?? '',
-      force,
-      nonInteractive,
-    ),
-    workspaceDomain: await promptText(
-      'Google Workspace domain allowed to sign in',
-      'Only Google accounts from this domain can sign in to the Brain web app.',
-      existing?.workspaceDomain ?? 'example.com',
-      force,
-      nonInteractive,
-    ),
-    googleClientId: await promptText(
-      'Brain Google OAuth client ID',
-      'OAuth client ID from Google Cloud for Brain sign-in. Use the Brain redirect URI shown above.',
-      existing?.googleClientId ?? '',
-      force,
-      nonInteractive,
-    ),
-    dozzleUsername: await promptText(
-      'Dozzle admin username',
-      'Username for the hosted logs UI at the Dozzle hostname.',
-      existing?.dozzleUsername ?? 'admin',
-      force,
-      nonInteractive,
-    ),
-    dozzleEmail: await promptText(
-      'Dozzle admin email',
-      'Email associated with the Dozzle logs UI admin user.',
-      existing?.dozzleEmail ?? '',
-      force,
-      nonInteractive,
-    ),
-    dozzleName: await promptText(
-      'Dozzle admin display name',
-      'Display name shown inside the Dozzle logs UI.',
-      existing?.dozzleName ?? 'Admin',
-      force,
-      nonInteractive,
-    ),
+    acmeEmail,
+    workspaceDomain,
+    googleClientId,
+    dozzleUsername,
+    dozzleEmail,
+    dozzleName,
     agentSyncWebhookSecret: existing?.agentSyncWebhookSecret ?? randomToken(WEBHOOK_SECRET_BYTES),
     selectedIntegrationIds: selected.map((integration) => integration.id),
     scopes: oauthValues.scopes,
-    dns: await promptDns(existing, force, nonInteractive),
+    dns,
     outputs: existing?.outputs,
     lastDeployId: existing?.lastDeployId,
     appDeployedAt: existing?.appDeployedAt,
     nangoBootstrappedAt: existing?.nangoBootstrappedAt,
     syncsDeployedAt: existing?.syncsDeployedAt,
     secrets: {
-      googleClientSecret: await promptSecret(
-        'Brain Google OAuth client secret',
-        'OAuth client secret from the same Google Cloud OAuth client used for Brain sign-in.',
-        existing?.secrets.googleClientSecret,
-        force,
-        nonInteractive,
-      ),
-      dozzlePassword: await promptSecret(
-        'Dozzle admin password',
-        'Password for the hosted Dozzle logs UI admin account.',
-        existing?.secrets.dozzlePassword,
-        force,
-        nonInteractive,
-      ),
+      googleClientSecret,
+      dozzlePassword,
       nangoSecretKey: existing?.secrets.nangoSecretKey,
       oauth: oauthValues.secrets,
     },
