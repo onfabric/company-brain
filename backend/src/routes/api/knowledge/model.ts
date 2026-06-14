@@ -1,4 +1,5 @@
 import { t } from 'elysia';
+import { literalUnion } from '#lib/typebox.ts';
 import {
   DEFAULT_KNOWLEDGE_RESULT_VIEW,
   KNOWLEDGE_RESULT_VIEWS,
@@ -6,29 +7,20 @@ import {
   KNOWLEDGE_SORT_ORDERS,
 } from '#repositories/knowledge.repository.ts';
 
-const KnowledgeSortFieldSchema = t.Union(
-  KNOWLEDGE_SORT_FIELDS.map((field) => t.Literal(field)),
-  {
-    description:
-      'Field used to order knowledge. Defaults to relevance when q is present, otherwise created_at.',
-  },
-);
+const KnowledgeSortFieldSchema = literalUnion(KNOWLEDGE_SORT_FIELDS, {
+  description:
+    'Field used to order knowledge. Defaults to relevance when q is present, otherwise created_at.',
+});
 
-const KnowledgeSortOrderSchema = t.Union(
-  KNOWLEDGE_SORT_ORDERS.map((order) => t.Literal(order)),
-  {
-    description: 'Direction used for the selected sort field.',
-  },
-);
+const KnowledgeSortOrderSchema = literalUnion(KNOWLEDGE_SORT_ORDERS, {
+  description: 'Direction used for the selected sort field.',
+});
 
-const KnowledgeResultViewSchema = t.Union(
-  KNOWLEDGE_RESULT_VIEWS.map((view) => t.Literal(view)),
-  {
-    default: DEFAULT_KNOWLEDGE_RESULT_VIEW,
-    description:
-      'Response shape for results. preview returns only id and title; full returns complete knowledge items with search metadata.',
-  },
-);
+const KnowledgeResultViewSchema = literalUnion(KNOWLEDGE_RESULT_VIEWS, {
+  default: DEFAULT_KNOWLEDGE_RESULT_VIEW,
+  description:
+    'Response shape for results. preview returns only id and title; full returns complete knowledge items with search metadata.',
+});
 
 export const KnowledgeQuerySchema = t.Object({
   q: t.Optional(

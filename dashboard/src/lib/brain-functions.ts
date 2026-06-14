@@ -1,136 +1,41 @@
-import { z } from 'zod';
-import { redirectToSignIn } from '#/lib/auth.ts';
-import {
-  API_MAX_LIMIT,
-  DEFAULT_LIMIT,
-  EMPTY_COUNT,
-  EMPTY_OFFSET,
-  FIRST_PAGE,
-  HTTP_UNAUTHORIZED,
-  NEXT_DAY_OFFSET,
-  type PEOPLE_SORT_FIELDS,
-  type PEOPLE_SORT_ORDERS,
-  RECORD_SORT_FIELDS,
-  RECORD_SORT_ORDERS,
-} from '#/lib/constants.ts';
+import { brain, unwrap } from '#/lib/brain-client.ts';
+import { NEXT_DAY_OFFSET } from '#/lib/constants.ts';
 
-const PersonSchema = z.object({
-  id: z.uuid(),
-  name: z.string().nullable(),
-  email: z.string().nullable(),
-  is_external: z.boolean(),
-});
+type ResponseData<T> = Awaited<T> extends { data: infer D } ? NonNullable<D> : never;
+type RecordsQuery = NonNullable<NonNullable<Parameters<typeof brain.api.records.get>[0]>['query']>;
+type PeopleQuery = NonNullable<NonNullable<Parameters<typeof brain.api.people.get>[0]>['query']>;
 
-const ParticipantSchema = PersonSchema.extend({
-  handle: z.string().nullable(),
-});
+export type ListRecordsResponse = ResponseData<ReturnType<typeof brain.api.records.get>>;
+export type RecordHit = ListRecordsResponse['results'][number];
+export type ListDataSourcesResponse = ResponseData<
+  ReturnType<(typeof brain.api)['data-sources']['get']>
+>;
+export type Source = ListDataSourcesResponse['sources'][number];
+export type ListPeopleResponse = ResponseData<ReturnType<typeof brain.api.people.get>>;
+export type Person = ListPeopleResponse['people'][number];
+export type UpdatePersonInput = Partial<Pick<Person, 'name' | 'email' | 'is_external'>>;
+export type ListKnowledgeResponse = ResponseData<ReturnType<typeof brain.api.knowledge.get>>;
+export type KnowledgePreview = ListKnowledgeResponse['results'][number];
+export type ListKnowledgeTypesResponse = ResponseData<
+  ReturnType<(typeof brain.api)['knowledge-types']['get']>
+>;
+export type KnowledgeType = ListKnowledgeTypesResponse['knowledge_types'][number];
 
-const RecordHitSchema = z
-  .object({
-    id: z.uuid(),
-    data_source_id: z.uuid(),
-    data_source_key: z.string().optional(),
-    created_at: z.iso.datetime(),
-    updated_at: z.iso.datetime(),
-    body: z.string(),
-    participants: z.array(ParticipantSchema).default([]),
-    score: z.number().nullable(),
-    snippet: z.string().nullable(),
-  })
-  .transform((record) => ({
-    ...record,
-    data_source_key: record.data_source_key ?? record.data_source_id,
-  }));
+export type PeopleSortField = NonNullable<PeopleQuery['sort_by']>;
+export type PeopleSortOrder = NonNullable<PeopleQuery['sort_order']>;
 
-const RecordsResponseSchema = z.object({
-  total: z.number().int().nullable(),
-  limit: z.number().int(),
-  offset: z.number().int(),
-  results: z.array(RecordHitSchema),
-});
+export type ListRecordsInput = {
+  q?: string;
+  dataSourceId?: string;
+  personId?: string;
+  createdAfter?: string;
+  createdBefore?: string;
+  sortBy?: NonNullable<RecordsQuery['sort_by']>;
+  sortOrder?: NonNullable<RecordsQuery['sort_order']>;
+  offset: number;
+  limit: number;
+};
 
-const SourceSchema = z.object({
-  data_source_id: z.uuid(),
-  data_source_key: z.string(),
-  count: z.number().int(),
-  oldest_created_at: z.iso.datetime(),
-  newest_created_at: z.iso.datetime(),
-  newest_updated_at: z.iso.datetime(),
-});
-
-const SourcesResponseSchema = z.object({
-  sources: z.array(SourceSchema),
-});
-
-const PersonDataSourceSchema = z.object({
-  data_source_key: z.string(),
-  data_source_user_id: z.string(),
-});
-
-const PersonDetailsSchema = PersonSchema.extend({
-  data_sources: z.array(PersonDataSourceSchema),
-  records_count: z.number().int(),
-});
-
-const PeopleResponseSchema = z.object({
-  total: z.number().int(),
-  people: z.array(PersonDetailsSchema),
-});
-
-const KnowledgePreviewSchema = z.object({
-  id: z.uuid(),
-  title: z.string(),
-});
-
-const KnowledgePreviewResponseSchema = z.object({
-  total: z.number().int().nullable(),
-  limit: z.number().int(),
-  offset: z.number().int(),
-  results: z.array(KnowledgePreviewSchema),
-});
-
-const KnowledgeTypeSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-});
-
-const KnowledgeTypesResponseSchema = z.object({
-  knowledge_types: z.array(KnowledgeTypeSchema),
-});
-
-export class BrainApiError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-  ) {
-    super(message);
-  }
-}
-
-export const RecordsQueryInputSchema = z.object({
-  q: z.string().optional(),
-  dataSourceId: z.uuid().optional(),
-  personId: z.uuid().optional(),
-  createdAfter: z.string().optional(),
-  createdBefore: z.string().optional(),
-  sortBy: z.enum(RECORD_SORT_FIELDS).optional(),
-  sortOrder: z.enum(RECORD_SORT_ORDERS).optional(),
-  offset: z.number().int().min(EMPTY_OFFSET).default(EMPTY_OFFSET),
-  limit: z.number().int().min(FIRST_PAGE).max(API_MAX_LIMIT).default(DEFAULT_LIMIT),
-});
-
-export type PeopleSortField = (typeof PEOPLE_SORT_FIELDS)[number];
-export type PeopleSortOrder = (typeof PEOPLE_SORT_ORDERS)[number];
-export type RecordHit = z.infer<typeof RecordHitSchema>;
-export type RecordsResponse = z.infer<typeof RecordsResponseSchema>;
-export type RecordsQueryInput = z.infer<typeof RecordsQueryInputSchema>;
-export type Source = z.infer<typeof SourceSchema>;
-export type Person = z.infer<typeof PersonDetailsSchema>;
-export type KnowledgePreview = z.infer<typeof KnowledgePreviewSchema>;
-export type KnowledgePreviewResponse = z.infer<typeof KnowledgePreviewResponseSchema>;
-export type KnowledgeType = z.infer<typeof KnowledgeTypeSchema>;
-export type KnowledgeTypesResponse = z.infer<typeof KnowledgeTypesResponseSchema>;
-export type PersonUpdateInput = Partial<Pick<Person, 'name' | 'email' | 'is_external'>>;
 export type ListPeopleInput = {
   isExternal?: boolean;
   sortBy?: PeopleSortField;
@@ -139,6 +44,7 @@ export type ListPeopleInput = {
   limit?: number;
   offset?: number;
 };
+
 export type ListKnowledgeInput = {
   q?: string;
   knowledgeTypeId?: string;
@@ -146,98 +52,74 @@ export type ListKnowledgeInput = {
   offset?: number;
 };
 
-export async function listRecords(input: RecordsQueryInput) {
-  const params = new URLSearchParams();
-  const query = input.q?.trim();
-  if (query) {
-    params.set('q', query);
-  }
-  if (input.dataSourceId) {
-    params.set('data_source_id', input.dataSourceId);
-  }
-  if (input.personId) {
-    params.append('person_id', input.personId);
-  }
-  if (input.createdAfter) {
-    params.set('created_after', startOfDayIso(input.createdAfter));
-  }
-  if (input.createdBefore) {
-    params.set('created_before', exclusiveEndOfDayIso(input.createdBefore));
-  }
-  if (input.sortBy) {
-    params.set('sort_by', input.sortBy);
-  }
-  if (input.sortOrder) {
-    params.set('sort_order', input.sortOrder);
-  }
-
-  params.set('limit', String(input.limit));
-  params.set('offset', String(input.offset));
-
-  return await fetchBrain(`/records?${params.toString()}`, RecordsResponseSchema);
+export async function listRecords(input: ListRecordsInput): Promise<ListRecordsResponse> {
+  return unwrap(
+    await brain.api.records.get({
+      query: {
+        q: cleanString(input.q),
+        data_source_id: input.dataSourceId,
+        person_id: input.personId ? [input.personId] : undefined,
+        created_after: input.createdAfter ? startOfDayIso(input.createdAfter) : undefined,
+        created_before: input.createdBefore ? exclusiveEndOfDayIso(input.createdBefore) : undefined,
+        sort_by: input.sortBy,
+        sort_order: input.sortOrder,
+        limit: input.limit,
+        offset: input.offset,
+      },
+    }),
+  );
 }
 
-export async function listDataSources() {
-  return await fetchBrain('/data-sources', SourcesResponseSchema);
+export async function listDataSources(): Promise<ListDataSourcesResponse> {
+  return unwrap(await brain.api['data-sources'].get());
 }
 
-export async function listPeople(input: ListPeopleInput = {}) {
-  const params = new URLSearchParams();
-  if (input.isExternal !== undefined) {
-    params.set('is_external', String(input.isExternal));
-  }
-  if (input.sortBy) {
-    params.set('sort_by', input.sortBy);
-  }
-  if (input.sortOrder) {
-    params.set('sort_order', input.sortOrder);
-  }
-  const search = input.query?.trim();
-  if (search) {
-    params.set('q', search);
-  }
-  if (input.limit !== undefined) {
-    params.set('limit', String(input.limit));
-  }
-  if (input.offset !== undefined) {
-    params.set('offset', String(input.offset));
-  }
-  const query = params.toString();
-  return await fetchBrain(`/people${query ? `?${query}` : ''}`, PeopleResponseSchema);
+export async function listPeople(input: ListPeopleInput = {}): Promise<ListPeopleResponse> {
+  return unwrap(
+    await brain.api.people.get({
+      query: {
+        is_external: input.isExternal,
+        sort_by: input.sortBy,
+        sort_order: input.sortOrder,
+        q: cleanString(input.query),
+        limit: input.limit,
+        offset: input.offset,
+      },
+    }),
+  );
 }
 
-export async function listKnowledge(input: ListKnowledgeInput = {}) {
-  const params = new URLSearchParams({ view: 'preview' });
-  const search = input.q?.trim();
-  if (search) {
-    params.set('q', search);
-  }
-  if (input.knowledgeTypeId) {
-    params.set('knowledge_type_id', input.knowledgeTypeId);
-  }
-  if (input.limit !== undefined) {
-    params.set('limit', String(input.limit));
-  }
-  if (input.offset !== undefined) {
-    params.set('offset', String(input.offset));
-  }
-  return await fetchBrain(`/knowledge?${params.toString()}`, KnowledgePreviewResponseSchema);
+export async function listKnowledge(
+  input: ListKnowledgeInput = {},
+): Promise<ListKnowledgeResponse> {
+  return unwrap(
+    await brain.api.knowledge.get({
+      query: {
+        view: 'preview',
+        q: cleanString(input.q),
+        knowledge_type_id: input.knowledgeTypeId,
+        limit: input.limit,
+        offset: input.offset,
+      },
+    }),
+  );
 }
 
-export async function listKnowledgeTypes() {
-  return await fetchBrain('/knowledge-types', KnowledgeTypesResponseSchema);
+export async function listKnowledgeTypes(): Promise<ListKnowledgeTypesResponse> {
+  return unwrap(await brain.api['knowledge-types'].get());
 }
 
-export async function getPerson(id: string) {
-  return await fetchBrain(`/people/${id}`, PersonDetailsSchema);
+export async function getPerson(id: string): Promise<Person> {
+  return unwrap(await brain.api.people({ id }).get());
 }
 
-export async function updatePerson(id: string, input: PersonUpdateInput) {
-  return await fetchBrain(`/people/${id}`, PersonDetailsSchema, {
-    method: 'PATCH',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(input),
-  });
+export async function updatePerson(id: string, input: UpdatePersonInput): Promise<Person> {
+  return unwrap(await brain.api.people({ id }).patch(input));
+}
+
+function cleanString(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
 }
 
 function startOfDayIso(date: string) {
@@ -248,40 +130,4 @@ function exclusiveEndOfDayIso(date: string) {
   const parsed = new Date(`${date}T00:00:00.000Z`);
   parsed.setUTCDate(parsed.getUTCDate() + NEXT_DAY_OFFSET);
   return parsed.toISOString();
-}
-
-const API_BASE = '/api';
-
-async function fetchBrain<T>(
-  path: string,
-  schema: z.ZodType<T>,
-  init: RequestInit = {},
-): Promise<T> {
-  const headers = new Headers(init.headers);
-  headers.set('accept', 'application/json');
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers,
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    if (response.status === HTTP_UNAUTHORIZED) {
-      redirectToSignIn();
-    }
-    const message = await response.text();
-    throw new BrainApiError(errorMessage(response.status, message), response.status);
-  }
-
-  return schema.parse(await response.json());
-}
-
-function errorMessage(status: number, message: string) {
-  if (status === HTTP_UNAUTHORIZED) {
-    return 'Your session has expired. Redirecting to sign in...';
-  }
-  if (message.length > EMPTY_COUNT) {
-    return `Brain API ${status}: ${message}`;
-  }
-  return `Brain API ${status}: request failed.`;
 }

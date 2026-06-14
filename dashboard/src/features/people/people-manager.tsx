@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '#/components/ui/table.tsx';
 import { participantLabel } from '#/features/records/record-format.ts';
-import { type Person, type PersonUpdateInput, updatePerson } from '#/lib/brain-functions.ts';
+import { type Person, type UpdatePersonInput, updatePerson } from '#/lib/brain-functions.ts';
 import { EMPTY_COUNT } from '#/lib/constants.ts';
 import { useInfiniteScroll } from '#/lib/use-infinite-scroll.ts';
 
@@ -62,7 +62,7 @@ export function PeopleManager({
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: PersonUpdateInput }) =>
+    mutationFn: ({ id, updates }: { id: string; updates: UpdatePersonInput }) =>
       updatePerson(id, updates),
     onSuccess: (person) => {
       setEditingId(undefined);
@@ -406,7 +406,7 @@ function draftFromPerson(person: Person): PersonDraft {
   };
 }
 
-function updateFromDraft(draft: PersonDraft): PersonUpdateInput {
+function updateFromDraft(draft: PersonDraft): UpdatePersonInput {
   return {
     name: nullableText(draft.name),
     email: nullableText(draft.email),

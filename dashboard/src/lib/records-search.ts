@@ -1,4 +1,4 @@
-import type { RecordsQueryInput } from '#/lib/brain-functions.ts';
+import type { ListRecordsInput } from '#/lib/brain-functions.ts';
 import {
   API_MAX_LIMIT,
   DATE_SLICE_END,
@@ -38,7 +38,7 @@ export function normalizeRouteSearch(search: Record<string, unknown>): RecordsRo
   };
 }
 
-export function toRecordsQueryInput(search: RecordsRouteSearch): Omit<RecordsQueryInput, 'offset'> {
+export function toListRecordsInput(search: RecordsRouteSearch): Omit<ListRecordsInput, 'offset'> {
   return {
     q: search.q,
     dataSourceId: search.dataSourceId,
