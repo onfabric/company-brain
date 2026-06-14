@@ -63,5 +63,5 @@ output "data_volume_id" {
 
 output "deploy_group_tag" {
   description = "SSM targeting tag used by the deploy workflow."
-  value       = "company-brain-${var.environment}"
+  value       = local.resource_name_prefix
 }

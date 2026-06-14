@@ -9,7 +9,7 @@ data "aws_iam_policy_document" "dlm_assume" {
 }
 
 resource "aws_iam_role" "dlm" {
-  name               = "company-brain-${var.environment}-dlm"
+  name               = "${local.resource_name_prefix}-dlm"
   assume_role_policy = data.aws_iam_policy_document.dlm_assume.json
 }
 
@@ -26,7 +26,7 @@ resource "aws_dlm_lifecycle_policy" "data" {
   policy_details {
     resource_types = ["VOLUME"]
     target_tags = {
-      Backup = "company-brain-${var.environment}"
+      Backup = local.resource_name_prefix
     }
 
     schedule {

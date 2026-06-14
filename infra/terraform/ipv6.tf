@@ -17,6 +17,14 @@ resource "aws_default_subnet" "app" {
   availability_zone               = data.aws_subnet.app.availability_zone
   ipv6_cidr_block                 = cidrsubnet(aws_vpc_ipv6_cidr_block_association.default.ipv6_cidr_block, 8, 0)
   assign_ipv6_address_on_creation = true
+
+  lifecycle {
+    ignore_changes = [
+      ipv6_cidr_block,
+      tags,
+      tags_all,
+    ]
+  }
 }
 
 data "aws_internet_gateway" "default" {

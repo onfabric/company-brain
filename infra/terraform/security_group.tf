@@ -1,5 +1,5 @@
 resource "aws_security_group" "instance" {
-  name        = "company-brain-${var.environment}"
+  name        = local.resource_name_prefix
   description = "company-brain ${var.environment} instance"
   vpc_id      = data.aws_vpc.default.id
 

@@ -43,6 +43,14 @@ export async function applyAwsTerraform(
   );
 
   terraformConfig = await withFreshAwsCredentials(config, context);
+  await runVisible([terraform, 'untaint', '-allow-missing', 'aws_default_subnet.app'], context, {
+    cwd: terraformPath,
+    env: terraformEnv(terraformConfig),
+    approve: true,
+    purpose: 'Clear stale Terraform taint on the adopted default subnet.',
+  });
+
+  terraformConfig = await withFreshAwsCredentials(config, context);
   await runVisible([terraform, 'plan', '-input=false', `-out=${TF_PLAN}`, ...vars], context, {
     cwd: terraformPath,
     env: terraformEnv(terraformConfig),

@@ -20,5 +20,6 @@ data "aws_subnets" "default" {
 }
 
 locals {
+  resource_name_prefix = "company-brain-${var.environment}"
   ssm_param_arn_prefix = "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter${var.ssm_secret_prefix}"
 }

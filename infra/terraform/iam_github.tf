@@ -34,7 +34,7 @@ data "aws_iam_policy_document" "github_assume" {
 resource "aws_iam_role" "github_deploy" {
   count = var.enable_github_deploy ? 1 : 0
 
-  name               = "company-brain-${var.environment}-github-deploy"
+  name               = "${local.resource_name_prefix}-github-deploy"
   assume_role_policy = data.aws_iam_policy_document.github_assume[0].json
 }
 
@@ -112,7 +112,7 @@ data "aws_iam_policy_document" "github_deploy" {
 resource "aws_iam_role_policy" "github_deploy" {
   count = var.enable_github_deploy ? 1 : 0
 
-  name   = "company-brain-${var.environment}-github-deploy"
+  name   = "${local.resource_name_prefix}-github-deploy"
   role   = aws_iam_role.github_deploy[0].id
   policy = data.aws_iam_policy_document.github_deploy[0].json
 }

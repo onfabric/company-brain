@@ -45,9 +45,9 @@ function config(): AwsConfig {
     outputs: {
       publicIp: '203.0.113.10',
       publicIpv6: '2001:db8::10',
-      nangoEcrRepositoryUrl: '123.dkr.ecr.eu-west-2.amazonaws.com/company-brain/nango',
-      brainEcrRepositoryUrl: '123.dkr.ecr.eu-west-2.amazonaws.com/company-brain/brain',
-      pgBackupEcrRepositoryUrl: '123.dkr.ecr.eu-west-2.amazonaws.com/company-brain/pg-backup',
+      nangoEcrRepositoryUrl: '123.dkr.ecr.eu-west-2.amazonaws.com/company-brain-dev/nango',
+      brainEcrRepositoryUrl: '123.dkr.ecr.eu-west-2.amazonaws.com/company-brain-dev/brain',
+      pgBackupEcrRepositoryUrl: '123.dkr.ecr.eu-west-2.amazonaws.com/company-brain-dev/pg-backup',
       artifactsBucket: 'company-brain-deploy-123-dev',
       instanceId: 'i-123',
       dataVolumeId: 'vol-123',

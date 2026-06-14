@@ -9,7 +9,7 @@ data "aws_iam_policy_document" "instance_assume" {
 }
 
 resource "aws_iam_role" "instance" {
-  name               = "company-brain-${var.environment}-instance"
+  name               = "${local.resource_name_prefix}-instance"
   assume_role_policy = data.aws_iam_policy_document.instance_assume.json
 }
 
@@ -75,12 +75,12 @@ data "aws_iam_policy_document" "instance" {
 }
 
 resource "aws_iam_role_policy" "instance" {
-  name   = "company-brain-${var.environment}-instance"
+  name   = "${local.resource_name_prefix}-instance"
   role   = aws_iam_role.instance.id
   policy = data.aws_iam_policy_document.instance.json
 }
 
 resource "aws_iam_instance_profile" "instance" {
-  name = "company-brain-${var.environment}-instance"
+  name = "${local.resource_name_prefix}-instance"
   role = aws_iam_role.instance.name
 }

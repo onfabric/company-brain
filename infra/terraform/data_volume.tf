@@ -9,9 +9,9 @@ resource "aws_ebs_volume" "data" {
   encrypted         = true
 
   tags = {
-    Name = "company-brain-${var.environment}-data"
+    Name = "${local.resource_name_prefix}-data"
     # The DLM snapshot policy targets volumes by this tag.
-    Backup = "company-brain-${var.environment}"
+    Backup = local.resource_name_prefix
   }
 
   lifecycle {

@@ -41,9 +41,9 @@ resource "aws_instance" "app" {
   }
 
   tags = {
-    Name = "company-brain-${var.environment}"
+    Name = local.resource_name_prefix
     # The deploy workflow targets the instance by these tags.
-    DeployGroup = "company-brain-${var.environment}"
+    DeployGroup = local.resource_name_prefix
   }
 }
 
@@ -51,4 +51,8 @@ resource "aws_instance" "app" {
 resource "aws_eip" "app" {
   instance = aws_instance.app.id
   domain   = "vpc"
+
+  tags = {
+    Name = "${local.resource_name_prefix}-public-ip"
+  }
 }

@@ -1,5 +1,5 @@
 resource "aws_ecr_repository" "nango" {
-  name                 = "company-brain/nango"
+  name                 = "${local.resource_name_prefix}/nango"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -8,7 +8,7 @@ resource "aws_ecr_repository" "nango" {
 }
 
 resource "aws_ecr_repository" "brain" {
-  name                 = "company-brain/brain"
+  name                 = "${local.resource_name_prefix}/brain"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -17,7 +17,7 @@ resource "aws_ecr_repository" "brain" {
 }
 
 resource "aws_ecr_repository" "pg_backup" {
-  name                 = "company-brain/pg-backup"
+  name                 = "${local.resource_name_prefix}/pg-backup"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
