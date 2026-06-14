@@ -36,6 +36,7 @@ const AwsConfigSchema = z.object({
   terraformCommand: z.string().optional(),
   region: z.string(),
   environment: z.string(),
+  baseDomain: z.string().optional(),
   instanceType: z.string(),
   rootVolumeSize: z.number(),
   dataVolumeSize: z.number(),

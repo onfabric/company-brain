@@ -1,5 +1,12 @@
 import { confirm, isCancel, multiselect, note, password, select, text } from '@clack/prompts';
 import type { AwsConfig } from './aws-config.ts';
+import {
+  type AwsHostnames,
+  deriveAwsHostnames,
+  inferBaseDomain,
+  pickAwsHostnames,
+  sameAwsHostnames,
+} from './aws-hostnames.ts';
 import { nangoIntegrationSpecs } from './nango.ts';
 import { randomToken } from './secrets.ts';
 
@@ -35,37 +42,25 @@ export async function collectAwsConfig({
     force,
     nonInteractive,
   );
-  const nangoHostname = await promptHostname(
-    'Nango hostname',
-    existing?.nangoHostname ?? `nango-${environment}.example.com`,
+  const baseDomain = await promptHostname(
+    'Base domain for service hostnames',
+    existing?.baseDomain ?? inferBaseDomain(existing) ?? 'example.com',
     force,
     nonInteractive,
   );
-  const nangoConnectHostname = await promptHostname(
-    'Nango Connect hostname',
-    existing?.nangoConnectHostname ?? `nango-auth-${environment}.example.com`,
-    force,
-    nonInteractive,
-  );
-  const brainHostname = await promptHostname(
-    'Brain hostname',
-    existing?.brainHostname ?? `brain-${environment}.example.com`,
-    force,
-    nonInteractive,
-  );
-  const dozzleHostname = await promptHostname(
-    'Dozzle logs hostname',
-    existing?.dozzleHostname ?? `dozzle-${environment}.example.com`,
-    force,
-    nonInteractive,
-  );
+  const hostnames = await promptHostnames(existing, environment, baseDomain, force, nonInteractive);
 
   note(
     [
-      `Brain Google OAuth redirect URI: https://${brainHostname}/api/auth/callback/google`,
-      `Nango provider OAuth callback URL: https://${nangoHostname}/oauth/callback`,
+      `Nango: https://${hostnames.nangoHostname}`,
+      `Nango Connect: https://${hostnames.nangoConnectHostname}`,
+      `Brain: https://${hostnames.brainHostname}`,
+      `Dozzle logs: https://${hostnames.dozzleHostname}`,
+      '',
+      `Brain Google OAuth redirect URI: https://${hostnames.brainHostname}/api/auth/callback/google`,
+      `Nango provider OAuth callback URL: https://${hostnames.nangoHostname}/oauth/callback`,
     ].join('\n'),
-    'OAuth callback URLs',
+    'Service URLs',
   );
 
   const selected = await promptIntegrations(existing, force, nonInteractive);
@@ -76,6 +71,7 @@ export async function collectAwsConfig({
     terraformCommand: existing?.terraformCommand,
     region,
     environment,
+    baseDomain,
     instanceType: await promptText(
       'EC2 instance type',
       existing?.instanceType ?? 't3.large',
@@ -95,10 +91,10 @@ export async function collectAwsConfig({
       nonInteractive,
     ),
     ssmSecretPrefix: existing?.ssmSecretPrefix ?? `/company-brain/${environment}`,
-    nangoHostname,
-    nangoConnectHostname,
-    brainHostname,
-    dozzleHostname,
+    nangoHostname: hostnames.nangoHostname,
+    nangoConnectHostname: hostnames.nangoConnectHostname,
+    brainHostname: hostnames.brainHostname,
+    dozzleHostname: hostnames.dozzleHostname,
     acmeEmail: await promptText(
       'ACME certificate email',
       existing?.acmeEmail ?? '',
@@ -204,6 +200,61 @@ export async function confirmManualDnsReady(nonInteractive: boolean): Promise<bo
   }
 
   return Boolean(answer);
+}
+
+async function promptHostnames(
+  existing: AwsConfig | undefined,
+  environment: string,
+  baseDomain: string,
+  force: boolean | undefined,
+  nonInteractive: boolean | undefined,
+): Promise<AwsHostnames> {
+  const derived = deriveAwsHostnames(environment, baseDomain);
+  const existingHostnames = existing && pickAwsHostnames(existing);
+
+  if (nonInteractive) {
+    return existingHostnames && !force ? existingHostnames : derived;
+  }
+
+  const customize = await confirm({
+    message: 'Customize service hostnames?',
+    initialValue: existingHostnames ? !sameAwsHostnames(existingHostnames, derived) : false,
+  });
+
+  if (isCancel(customize)) {
+    throw new Error('Setup cancelled.');
+  }
+
+  if (!customize) {
+    return derived;
+  }
+
+  return {
+    nangoHostname: await promptHostname(
+      'Nango hostname',
+      existing?.nangoHostname ?? derived.nangoHostname,
+      force,
+      nonInteractive,
+    ),
+    nangoConnectHostname: await promptHostname(
+      'Nango Connect hostname',
+      existing?.nangoConnectHostname ?? derived.nangoConnectHostname,
+      force,
+      nonInteractive,
+    ),
+    brainHostname: await promptHostname(
+      'Brain hostname',
+      existing?.brainHostname ?? derived.brainHostname,
+      force,
+      nonInteractive,
+    ),
+    dozzleHostname: await promptHostname(
+      'Dozzle logs hostname',
+      existing?.dozzleHostname ?? derived.dozzleHostname,
+      force,
+      nonInteractive,
+    ),
+  };
 }
 
 async function promptDns(
@@ -412,5 +463,8 @@ function validateSecret(
 }
 
 function stripProtocol(value: string): string {
-  return value.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  return value
+    .trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/+$/, '');
 }
