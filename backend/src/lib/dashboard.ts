@@ -9,7 +9,7 @@ import { StatusMap } from 'elysia';
 const dashboardDir = join(dirname(process.execPath), 'public');
 const indexPath = join(dashboardDir, 'index.html');
 
-const ONE_YEAR_SECONDS = 31_536_000;
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 // The single place the dashboard is served from: a built file when the path maps
 // to one — Vite's content-hashed assets, cached immutably — otherwise the SPA
