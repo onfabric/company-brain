@@ -1,4 +1,5 @@
 import type { AwsConfig } from './aws-config.ts';
+import { awsCommandEnv } from './aws-credentials.ts';
 import { normalizeAwsEnvironment } from './aws-environment.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
@@ -29,22 +30,25 @@ export async function ensureTerraformStateBackend(
   config: AwsConfig,
   context: VisibleCommandContext,
 ): Promise<TerraformBackend> {
-  const accountId = await resolveAwsAccountId(context);
+  const env = awsCommandEnv(config);
+  const accountId = await resolveAwsAccountId(context, env);
   const backend = {
     bucket: terraformStateBucketName(accountId, config.region, config.environment),
     key: terraformStateKey(config.environment),
     region: config.region,
   };
 
-  if (!(await stateBucketExists(backend.bucket, context))) {
+  if (!(await stateBucketExists(backend.bucket, context, env))) {
     await runVisible(createStateBucketCommand(backend.bucket, backend.region), context, {
       approve: true,
+      env,
       purpose: 'Create the Terraform state bucket.',
     });
     await runVisible(
       ['aws', 's3api', 'wait', 'bucket-exists', '--bucket', backend.bucket],
       context,
       {
+        env,
         purpose: 'Wait for the Terraform state bucket to exist.',
       },
     );
@@ -62,6 +66,7 @@ export async function ensureTerraformStateBackend(
     context,
     {
       approve: true,
+      env,
       purpose: 'Block public access on the Terraform state bucket.',
     },
   );
@@ -78,6 +83,7 @@ export async function ensureTerraformStateBackend(
     context,
     {
       approve: true,
+      env,
       purpose: 'Enable versioning on the Terraform state bucket.',
     },
   );
@@ -94,6 +100,7 @@ export async function ensureTerraformStateBackend(
     context,
     {
       approve: true,
+      env,
       purpose: 'Enable encryption on the Terraform state bucket.',
     },
   );
@@ -113,14 +120,22 @@ export function terraformStateKey(environment: string): string {
   return `company-brain/${normalizeAwsEnvironment(environment)}/terraform.tfstate`;
 }
 
-export function terraformBackendConfigArgs(backend: TerraformBackend): string[] {
-  return [
+export function terraformBackendConfigArgs(
+  backend: TerraformBackend,
+  awsProfile?: string,
+): string[] {
+  const args = [
     `-backend-config=bucket=${backend.bucket}`,
     `-backend-config=key=${backend.key}`,
     `-backend-config=region=${backend.region}`,
     '-backend-config=encrypt=true',
     '-backend-config=use_lockfile=true',
   ];
+  if (awsProfile) {
+    args.push(`-backend-config=profile=${awsProfile}`);
+  }
+
+  return args;
 }
 
 export function createStateBucketCommand(bucket: string, region: string): string[] {
@@ -132,12 +147,15 @@ export function createStateBucketCommand(bucket: string, region: string): string
   return cmd;
 }
 
-async function resolveAwsAccountId(context: VisibleCommandContext): Promise<string> {
+async function resolveAwsAccountId(
+  context: VisibleCommandContext,
+  env: Record<string, string>,
+): Promise<string> {
   const accountId = (
     await runVisible(
       ['aws', 'sts', 'get-caller-identity', '--query', 'Account', '--output', 'text'],
       context,
-      { capture: true },
+      { capture: true, env },
     )
   ).trim();
   if (!/^\d{12}$/.test(accountId)) {
@@ -147,10 +165,15 @@ async function resolveAwsAccountId(context: VisibleCommandContext): Promise<stri
   return accountId;
 }
 
-async function stateBucketExists(bucket: string, context: VisibleCommandContext): Promise<boolean> {
+async function stateBucketExists(
+  bucket: string,
+  context: VisibleCommandContext,
+  env: Record<string, string>,
+): Promise<boolean> {
   try {
     await runVisible(['aws', 's3api', 'head-bucket', '--bucket', bucket], context, {
       capture: true,
+      env,
     });
     return true;
   } catch {

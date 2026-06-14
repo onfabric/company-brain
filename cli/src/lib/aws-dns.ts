@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AwsConfig, PublicDnsRecord } from './aws-config.ts';
 import { publicDnsRecords } from './aws-config.ts';
+import { awsCommandEnv } from './aws-credentials.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
 const SECONDS_PER_MINUTE = 60;
@@ -37,6 +38,7 @@ export async function upsertRoute53Records(
 
   const records = publicDnsRecords(config);
   const changeBatchPath = join(tmpdir(), `company-brain-dns-${config.environment}.json`);
+  const env = awsCommandEnv(config);
   await writeFile(changeBatchPath, JSON.stringify(route53ChangeBatch(records), null, 2));
 
   const changeId = await runVisible(
@@ -56,6 +58,7 @@ export async function upsertRoute53Records(
     context,
     {
       approve: true,
+      env,
       purpose: 'Create or update public DNS records in Route53.',
     },
   );
@@ -63,7 +66,7 @@ export async function upsertRoute53Records(
   await runVisible(
     ['aws', 'route53', 'wait', 'resource-record-sets-changed', '--id', changeId.trim()],
     context,
-    { purpose: 'Wait for Route53 to publish the DNS change.' },
+    { env, purpose: 'Wait for Route53 to publish the DNS change.' },
   );
 }
 

@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import type { AwsConfig, AwsOutputs } from './aws-config.ts';
+import { awsCommandEnv } from './aws-credentials.ts';
 import { ensureTerraformStateBackend, terraformBackendConfigArgs } from './aws-terraform-state.ts';
 import { terraformPath } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
@@ -16,10 +17,17 @@ export async function applyAwsTerraform(
   const backend = await ensureTerraformStateBackend(config, context);
 
   await runVisible(
-    [terraform, 'init', '-reconfigure', '-input=false', ...terraformBackendConfigArgs(backend)],
+    [
+      terraform,
+      'init',
+      '-reconfigure',
+      '-input=false',
+      ...terraformBackendConfigArgs(backend, config.awsProfile),
+    ],
     context,
     {
       cwd: terraformPath,
+      env,
       approve: true,
       purpose: 'Initialize Terraform S3 state backend.',
     },
@@ -76,6 +84,7 @@ export async function readTerraformOutputs(
 
 function terraformEnv(config: AwsConfig): Record<string, string> {
   return {
+    ...awsCommandEnv(config),
     TF_VAR_google_client_id: config.googleClientId,
     TF_VAR_google_client_secret: config.secrets.googleClientSecret ?? '',
   };

@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { chmod, readFile, writeFile } from 'node:fs/promises';
 import { z } from 'zod';
+import { normalizeAwsProfile } from './aws-credentials.ts';
 import { normalizeAwsEnvironment, validateAwsEnvironment } from './aws-environment.ts';
 import { awsConfigPath } from './paths.ts';
 
@@ -32,6 +33,8 @@ const AwsEnvironmentSchema = z
     message: 'Environment must use 18 or fewer lowercase letters, numbers, and hyphens.',
   });
 
+const AwsProfileSchema = z.string().transform(normalizeAwsProfile).optional();
+
 const AwsSecretsSchema = z.object({
   googleClientSecret: z.string().optional(),
   dozzlePassword: z.string().optional(),
@@ -42,6 +45,7 @@ const AwsSecretsSchema = z.object({
 const AwsConfigSchema = z.object({
   version: z.literal(AWS_CONFIG_VERSION).default(AWS_CONFIG_VERSION),
   terraformCommand: z.string().optional(),
+  awsProfile: AwsProfileSchema,
   region: z.string(),
   environment: AwsEnvironmentSchema,
   baseDomain: z.string().optional(),

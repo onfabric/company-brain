@@ -1,4 +1,5 @@
 import type { AwsConfig } from './aws-config.ts';
+import { awsCommandEnv } from './aws-credentials.ts';
 import { deployPath, repoRoot } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
@@ -18,11 +19,12 @@ export async function buildAndPushImages(
   if (!registry) {
     throw new Error('Could not derive ECR registry from Terraform outputs.');
   }
+  const env = awsCommandEnv(config);
 
   const loginPassword = await runVisible(
     ['aws', 'ecr', 'get-login-password', '--region', config.region],
     context,
-    { capture: true },
+    { capture: true, env },
   );
   await runVisible(
     ['docker', 'login', '--username', 'AWS', '--password-stdin', registry],

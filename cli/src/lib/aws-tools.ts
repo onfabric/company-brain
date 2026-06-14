@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { awsCommandEnv, detectAwsProfile } from './aws-credentials.ts';
 import { nangoSubmodulePath } from './paths.ts';
 import { commandSucceeds } from './shell.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
@@ -7,6 +8,7 @@ export type AwsPrerequisites = {
   terraformCommand: string;
   accountId: string;
   arn: string;
+  awsProfile?: string;
 };
 
 export async function verifyAwsPrerequisites(
@@ -29,10 +31,12 @@ export async function verifyAwsPrerequisites(
   }
 
   await runVisible(['aws', '--version'], context, { capture: true });
+  const awsProfile = detectAwsProfile();
+  const env = awsCommandEnv({ awsProfile });
   const identity = await runVisible(
     ['aws', 'sts', 'get-caller-identity', '--output', 'json'],
     context,
-    { capture: true },
+    { capture: true, env },
   );
   await runVisible(['docker', 'info'], context, { capture: true });
   await runVisible(['docker', 'buildx', 'version'], context, { capture: true });
@@ -47,6 +51,7 @@ export async function verifyAwsPrerequisites(
     terraformCommand: terraformCommand ?? 'terraform',
     accountId: parsed.Account,
     arn: parsed.Arn,
+    awsProfile,
   };
 }
 

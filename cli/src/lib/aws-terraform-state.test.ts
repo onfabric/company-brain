@@ -30,6 +30,19 @@ describe('Terraform S3 state backend', () => {
     ]);
   });
 
+  it('passes an explicit AWS profile to terraform init when configured', () => {
+    expect(
+      terraformBackendConfigArgs(
+        {
+          bucket: 'company-brain-mez-tfstate-904233092606-eu-west-2',
+          key: 'company-brain/mez/terraform.tfstate',
+          region: 'eu-west-2',
+        },
+        'onfabric',
+      ),
+    ).toContain('-backend-config=profile=onfabric');
+  });
+
   it('omits create-bucket LocationConstraint for us-east-1', () => {
     expect(createStateBucketCommand('company-brain-tfstate-123-us-east-1', 'us-east-1')).toEqual([
       'aws',

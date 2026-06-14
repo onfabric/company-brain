@@ -27,12 +27,17 @@ export const command = defineCommand('aws setup', {
     const existing = await readAwsConfig();
     const prerequisites = await verifyAwsPrerequisites(context);
     note(
-      [`AWS account: ${prerequisites.accountId}`, `AWS identity: ${prerequisites.arn}`].join('\n'),
+      [
+        `AWS account: ${prerequisites.accountId}`,
+        `AWS identity: ${prerequisites.arn}`,
+        `AWS profile: ${prerequisites.awsProfile ?? 'default credential chain'}`,
+      ].join('\n'),
       'AWS login',
     );
 
     let config = await collectAwsConfig({
       existing,
+      detectedAwsProfile: prerequisites.awsProfile,
       force: options.force,
       nonInteractive,
     });

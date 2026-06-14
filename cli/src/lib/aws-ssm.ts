@@ -1,4 +1,5 @@
 import type { AwsConfig } from './aws-config.ts';
+import { awsCommandEnv } from './aws-credentials.ts';
 import type { ImageUris } from './aws-images.ts';
 import { buildDozzleUsersYaml } from './dozzle.ts';
 import { deployPath } from './paths.ts';
@@ -19,6 +20,7 @@ export async function putDozzleUsers(
     email: config.dozzleEmail,
     name: config.dozzleName,
   });
+  const env = awsCommandEnv(config);
 
   await runVisible(
     [
@@ -36,6 +38,7 @@ export async function putDozzleUsers(
     context,
     {
       approve: true,
+      env,
       redactions: [users],
       purpose: 'Store Dozzle users.yml in SSM.',
     },
@@ -60,6 +63,7 @@ export async function deployOverSsm({
     approve: true,
     purpose: 'Deploy the current bundle and images on the EC2 host via SSM.',
     env: {
+      ...awsCommandEnv(config),
       BUNDLE_URL: bundleUrl,
       DEPLOY_GROUP: outputs.deployGroupTag,
       DATA_VOLUME_ID: outputs.dataVolumeId,
@@ -84,6 +88,7 @@ export async function runRemoteHealthCommand(
   context: VisibleCommandContext,
 ): Promise<string> {
   const outputs = requiredOutputs(config);
+  const env = awsCommandEnv(config);
   const script = [
     'cd /opt/company-brain',
     'docker compose -f docker-compose.yml -f docker-compose.prod.yml ps -a --format "{{.Name}}|{{.State}}|{{.Health}}|{{.ExitCode}}|{{.Status}}"',
@@ -106,7 +111,12 @@ export async function runRemoteHealthCommand(
       'text',
     ],
     context,
-    { capture: true, approve: true, purpose: 'Ask the EC2 host for Docker service status.' },
+    {
+      capture: true,
+      approve: true,
+      env,
+      purpose: 'Ask the EC2 host for Docker service status.',
+    },
   );
 
   await runVisible(
@@ -121,6 +131,7 @@ export async function runRemoteHealthCommand(
       outputs.instanceId,
     ],
     context,
+    { env },
   );
 
   return await runVisible(
@@ -138,7 +149,7 @@ export async function runRemoteHealthCommand(
       'text',
     ],
     context,
-    { capture: true },
+    { capture: true, env },
   );
 }
 

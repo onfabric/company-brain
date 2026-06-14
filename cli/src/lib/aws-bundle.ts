@@ -1,6 +1,7 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AwsConfig } from './aws-config.ts';
+import { awsCommandEnv } from './aws-credentials.ts';
 import { deployPath, repoRoot } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
@@ -20,6 +21,7 @@ export async function uploadRuntimeBundle(
   });
   await runVisible(['aws', 's3', 'cp', bundlePath, bundleUrl], context, {
     approve: true,
+    env: awsCommandEnv(config),
     purpose: 'Upload the runtime bundle to S3.',
   });
 
