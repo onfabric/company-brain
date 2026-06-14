@@ -6,6 +6,8 @@ import { resolveSignInTarget, startGoogleSignIn } from '#/features/auth/oauth.ts
 export function SignInView() {
   const signIn = useMutation({
     mutationFn: async () => {
+      // Read the verbatim query (see consent route): the router's parser would
+      // mangle better-auth's signed authorize params before we forward them.
       const url = await startGoogleSignIn(resolveSignInTarget(window.location.search));
       if (!url) {
         throw new Error('No sign-in URL returned.');
