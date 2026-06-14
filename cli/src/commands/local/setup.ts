@@ -13,14 +13,12 @@ export const command = defineCommand('local setup', {
       schema: z.boolean().optional(),
       description: 'Regenerate local env files even when they already exist.',
     },
-    skipStart: {
+    'skip-start': {
       schema: z.boolean().optional(),
-      aliases: ['skip-start'],
       description: 'Only write local configuration without starting Docker Compose.',
     },
-    workspaceDomain: {
+    'workspace-domain': {
       schema: z.string().optional(),
-      aliases: ['workspace-domain'],
       description: 'Google Workspace domain allowed to sign in to the brain.',
     },
   },
@@ -28,8 +26,8 @@ export const command = defineCommand('local setup', {
     intro('Company Brain local setup');
 
     const workspaceDomain =
-      options.workspaceDomain ??
-      (await promptWorkspaceDomainIfMissing(isNonInteractive(rootOptions.nonInteractive)));
+      options['workspace-domain'] ??
+      (await promptWorkspaceDomainIfMissing(isNonInteractive(rootOptions['non-interactive'])));
     await ensureRootEnv({ force: options.force, workspaceDomain });
     await ensureNangoEnvBase(options.force);
 
@@ -44,7 +42,7 @@ export const command = defineCommand('local setup', {
       return;
     }
 
-    if (!options.skipStart) {
+    if (!options['skip-start']) {
       await startLocalStack(Boolean(rootOptions.verbose));
       print.success('Local Docker stack is healthy.');
     }
@@ -55,7 +53,7 @@ export const command = defineCommand('local setup', {
         'Nango dashboard/login and API keys: http://localhost:3003',
         '',
         'Next: create/sign in to the local Nango dashboard, copy the dev API key, then run:',
-        'bun run company-brain nango integrations',
+        'bun run company-brain local add integrations',
       ].join('\n'),
       'Local URLs',
     );

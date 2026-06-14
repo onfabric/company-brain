@@ -36,7 +36,7 @@ export const command = defineCommand('local destroy', {
     await confirmDestructiveAction({
       expected: phrase,
       label: 'local Company Brain',
-      nonInteractive: isNonInteractive(rootOptions.nonInteractive),
+      nonInteractive: isNonInteractive(rootOptions['non-interactive']),
     });
 
     await verifyDockerDaemon();

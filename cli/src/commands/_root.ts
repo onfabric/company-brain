@@ -8,9 +8,8 @@ export const command = defineRootCommand({
       forwardToChildren: true,
       description: 'Print command details while running setup steps.',
     },
-    nonInteractive: {
+    'non-interactive': {
       schema: z.boolean().optional(),
-      aliases: ['no-interactive'],
       forwardToChildren: true,
       description: 'Fail instead of prompting for missing required values.',
     },

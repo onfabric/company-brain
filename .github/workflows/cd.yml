@@ -233,9 +233,6 @@ jobs:
   deploy-nango-integrations:
     needs: [terraform-apply, deploy]
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: nango-integrations
     env:
       NOTION_CLIENT_ID: ${{ secrets.NOTION_CLIENT_ID }}
       NOTION_CLIENT_SECRET: ${{ secrets.NOTION_CLIENT_SECRET }}
@@ -279,14 +276,8 @@ jobs:
 
       - uses: ./.github/actions/prepare
 
-      - name: Bootstrap Nango integrations
-        run: NANGO_HOSTPORT="https://${NANGO_HOSTNAME}" bun run bootstrap:integrations dev --update-existing
+      - name: Add Nango integrations
+        run: bun run company-brain --non-interactive deploy add integrations --all
 
-      - name: Bootstrap Nango connections
-        run: NANGO_HOSTPORT="https://${NANGO_HOSTNAME}" bun run bootstrap:connections dev
-
-      - name: Check Nango connections
-        run: NANGO_HOSTPORT="https://${NANGO_HOSTNAME}" bun run check:connections dev
-
-      - name: Deploy Nango syncs
-        run: NANGO_HOSTPORT="https://${NANGO_HOSTNAME}" bun run deploy dev --no-interactive --no-dependency-update
+      - name: Add Nango syncs
+        run: bun run company-brain --non-interactive deploy add syncs --all

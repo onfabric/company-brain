@@ -1,5 +1,4 @@
-import { styleText } from 'node:util';
-import { intro, note, outro } from '@clack/prompts';
+import { intro, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
 import { requireAwsConfig, writeAwsConfig } from '../../lib/aws-config.ts';
@@ -8,16 +7,11 @@ import { dnsIssues, httpsIssues } from '../../lib/aws-dns.ts';
 import { verifyHostedNangoApi } from '../../lib/aws-nango.ts';
 import { runRemoteHealthCommand } from '../../lib/aws-ssm.ts';
 import { verifyAwsPrerequisites } from '../../lib/aws-tools.ts';
+import { type DoctorCheck, formatError, renderDoctorChecks } from '../../lib/doctor.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 
-type Check = {
-  label: string;
-  ok: boolean;
-  detail?: string;
-};
-
-export const command = defineCommand('aws doctor', {
-  description: 'Check AWS deployment health.',
+export const command = defineCommand('deploy doctor', {
+  description: 'Check hosted deployment health.',
   options: {
     yes: {
       schema: z.boolean().optional(),
@@ -25,11 +19,11 @@ export const command = defineCommand('aws doctor', {
     },
   },
   handler: async ({ options, rootOptions, print }) => {
-    intro('Company Brain AWS doctor');
+    intro('Company Brain deployment check');
 
     const context = {
       yes: Boolean(options.yes),
-      nonInteractive: isNonInteractive(rootOptions.nonInteractive),
+      nonInteractive: isNonInteractive(rootOptions['non-interactive']),
     };
     const prerequisites = await verifyAwsPrerequisites(context);
     const config = {
@@ -40,14 +34,14 @@ export const command = defineCommand('aws doctor', {
     await writeAwsConfig(config);
     const runtimeConfig = withAwsCredentials(config, prerequisites);
 
-    const checks: Check[] = [
+    const checks: DoctorCheck[] = [
       { label: 'AWS login', ok: true, detail: `${prerequisites.accountId} (${prerequisites.arn})` },
       {
         label: 'Terraform outputs',
         ok: Boolean(config.outputs),
         detail: config.outputs
           ? config.outputs.instanceId
-          : 'Run `bun run company-brain aws setup`.',
+          : 'Run `bun run company-brain deploy setup`.',
       },
     ];
 
@@ -62,23 +56,23 @@ export const command = defineCommand('aws doctor', {
     }
 
     checks.push(await nangoApiCheck(runtimeConfig));
-    renderChecks(checks);
+    renderDoctorChecks(checks);
 
     const failed = checks.filter((check) => !check.ok);
     if (failed.length > 0) {
-      print.warn(`${failed.length} AWS check(s) need attention.`);
+      print.warn(`${failed.length} deployment check(s) need attention.`);
     } else {
-      print.success('AWS deployment looks healthy.');
+      print.success('Hosted deployment looks healthy.');
     }
 
-    outro('AWS doctor finished.');
+    outro('Deployment doctor finished.');
   },
 });
 
 async function remoteComposeCheck(
   config: Awaited<ReturnType<typeof requireAwsConfig>>,
   context: { yes?: boolean; nonInteractive?: boolean },
-): Promise<Check> {
+): Promise<DoctorCheck> {
   try {
     const output = await runRemoteHealthCommand(config, context);
     const unhealthy = output
@@ -97,13 +91,15 @@ async function remoteComposeCheck(
   }
 }
 
-async function nangoApiCheck(config: Awaited<ReturnType<typeof requireAwsConfig>>): Promise<Check> {
+async function nangoApiCheck(
+  config: Awaited<ReturnType<typeof requireAwsConfig>>,
+): Promise<DoctorCheck> {
   if (!config.secrets.nangoSecretKey) {
     return {
       label: 'Hosted Nango API key',
       ok: false,
       detail:
-        'Open the hosted Nango dashboard, copy the dev API key, then run `bun run company-brain nango integrations --hosted`.',
+        'Open the hosted Nango dashboard, copy the dev API key, then run `bun run company-brain deploy add integrations`.',
     };
   }
 
@@ -112,16 +108,6 @@ async function nangoApiCheck(config: Awaited<ReturnType<typeof requireAwsConfig>
     return { label: 'Hosted Nango API key', ok: true };
   } catch (error) {
     return { label: 'Hosted Nango API key', ok: false, detail: formatError(error) };
-  }
-}
-
-function renderChecks(checks: Check[]): void {
-  for (const check of checks) {
-    const icon = check.ok ? styleText('green', '✓') : styleText('red', '✗');
-    console.log(`${icon} ${check.label}`);
-    if (check.detail) {
-      note(check.detail, check.label);
-    }
   }
 }
 
@@ -135,8 +121,4 @@ function composeLineHealthy(line: string): boolean {
   }
 
   return state === 'running';
-}
-
-function formatError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

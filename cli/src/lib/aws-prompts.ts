@@ -35,7 +35,7 @@ export async function collectAwsConfig({
 }): Promise<AwsConfig> {
   if (nonInteractive && !existing) {
     throw new Error(
-      'AWS setup needs prompts. Run interactively once, or keep .company-brain.aws.json.',
+      'Deployment setup needs prompts. Run interactively once, or keep .company-brain.aws.json.',
     );
   }
 
