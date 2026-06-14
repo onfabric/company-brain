@@ -66,7 +66,23 @@ describe('root controller (mcp mount)', () => {
     }
   });
 
-  it('falls through unknown paths to the dashboard SPA instead of the mcp mount', async () => {
+  it('forwards OAuth discovery to mcp-use, not the SPA fallback', async () => {
+    const res = await fetch(new URL('/.well-known/oauth-protected-resource', mcpUrl.origin));
+    expect(res.status).toBe(StatusMap.OK);
+    expect(res.headers.get('content-type')).toContain('application/json');
+    expect(await res.json()).toHaveProperty('resource');
+  });
+
+  it('forwards /api/auth/* to better-auth, not the SPA fallback', async () => {
+    const res = await fetch(new URL('/api/auth/get-session', mcpUrl.origin), {
+      headers: { accept: 'application/json' },
+    });
+    // better-auth answers (200 with a null/empty session) rather than the SPA
+    // shell's "not built" 404 — proving the path reached the mounted auth app.
+    expect(res.status).toBe(StatusMap.OK);
+  });
+
+  it('falls through unknown paths to the dashboard SPA instead of mcp-use', async () => {
     const res = await fetch(new URL('/some/client-route', mcpUrl.origin));
     // No bundle is built in the backend test run, so the SPA handler reports it
     // is missing — proving the request reached the SPA fallback, not mcp-use.
