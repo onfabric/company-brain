@@ -64,7 +64,7 @@ export async function installLaunchAgent(
   const missing = REQUIRED_CONFIG_KEYS.filter((key) => !fileConfig[key]);
   if (missing.length > 0) {
     throw new Error(
-      `agent-sync setup needed before installing LaunchAgent. Run: company-brain ${target} install agent-sync (${missing.join(', ')})`,
+      `agent-sync setup needed before installing LaunchAgent. Run: company-brain ${target} agent-sync install (${missing.join(', ')})`,
     );
   }
 
@@ -106,15 +106,15 @@ function launchTarget(): string {
 function daemonProgramArguments(target: AgentSyncTarget): string[] {
   const scriptPath = process.argv[1];
   if (scriptPath && scriptPath !== process.execPath && scriptPath.endsWith('.ts')) {
-    return [process.execPath, path.resolve(scriptPath), target, 'daemon', 'agent-sync'];
+    return [process.execPath, path.resolve(scriptPath), target, 'agent-sync', 'daemon'];
   }
 
   const cliPath = fileURLToPath(new URL('../../main.ts', import.meta.url));
   if (fs.existsSync(cliPath)) {
-    return [process.execPath, cliPath, target, 'daemon', 'agent-sync'];
+    return [process.execPath, cliPath, target, 'agent-sync', 'daemon'];
   }
 
-  return [process.execPath, target, 'daemon', 'agent-sync'];
+  return [process.execPath, target, 'agent-sync', 'daemon'];
 }
 
 function escapeXml(value: string): string {

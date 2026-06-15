@@ -3,7 +3,7 @@ import { defineCommand } from '@parshjs/core';
 import { installAgentSyncForTarget } from '../../../lib/agent-sync/operations.ts';
 import { isNonInteractive } from '../../../lib/interaction.ts';
 
-export const command = defineCommand('cloud install agent-sync', {
+export const command = defineCommand('cloud agent-sync install', {
   description: 'Install the cloud agent conversation sync daemon.',
   options: {},
   handler: async ({ rootOptions, print }) => {

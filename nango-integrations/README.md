@@ -34,7 +34,7 @@ The Nango server is not started from this folder. The CLI compiles these functio
 
 `bun run bootstrap:connections dev --only agent-conversations` creates the
 non-OAuth connection used by the local agent conversation daemon. The Company
-Brain CLI runs this as part of `company-brain <target> install agent-sync`; it
+Brain CLI runs this as part of `company-brain <target> agent-sync install`; it
 is not part of the default source integration bootstrap.
 
 Circleback MCP is intentionally not created by bootstrap or included in default connection checks/deploys. Create and manage the Nango integration manually; the sync and MCP client remain in this package so they can run against that manual integration with `--only circleback-mcp`.

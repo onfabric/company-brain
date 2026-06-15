@@ -2,7 +2,7 @@ import { intro, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import { uninstallAgentSyncForTarget } from '../../../lib/agent-sync/operations.ts';
 
-export const command = defineCommand('local uninstall agent-sync', {
+export const command = defineCommand('local agent-sync uninstall', {
   description: 'Uninstall the local agent sync LaunchAgent.',
   options: {},
   handler: async ({ print }) => {

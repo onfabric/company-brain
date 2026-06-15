@@ -83,7 +83,7 @@ export async function continueAwsDeployment({
       '',
       'Next: add integrations or install the cloud agent sync daemon:',
       'bun run company-brain cloud add integrations',
-      'bun run company-brain cloud install agent-sync',
+      'bun run company-brain cloud agent-sync install',
     ].join('\n'),
     'Cloud URLs',
   );

@@ -56,7 +56,7 @@ export const command = defineCommand('local setup', {
         '',
         'Next: add integrations or install the local agent sync daemon:',
         'bun run company-brain local add integrations',
-        'bun run company-brain local install agent-sync',
+        'bun run company-brain local agent-sync install',
       ].join('\n'),
       'Local URLs',
     );

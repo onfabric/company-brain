@@ -127,8 +127,8 @@ Agent conversations are not installed with the default source integrations. Add
 them after the target Company Brain stack is running:
 
 ```bash
-bun run company-brain local install agent-sync
-bun run company-brain cloud install agent-sync
+bun run company-brain local agent-sync install
+bun run company-brain cloud agent-sync install
 ```
 
 The install command checks that the selected target is healthy, makes sure the
@@ -139,9 +139,9 @@ daemon config, then installs and starts the macOS LaunchAgent.
 Manage the daemon with:
 
 ```bash
-bun run company-brain local status agent-sync
-bun run company-brain local sync-now agent-sync
-bun run company-brain local uninstall agent-sync
+bun run company-brain local agent-sync status
+bun run company-brain local agent-sync sync-now
+bun run company-brain local agent-sync uninstall
 ```
 
 Use the same verbs under `cloud` when the daemon should point at the hosted
@@ -166,7 +166,7 @@ bun run company-brain --help
 bun run company-brain local setup
 bun run company-brain local add integrations
 bun run company-brain local add syncs
-bun run company-brain local install agent-sync
+bun run company-brain local agent-sync install
 bun run company-brain cloud setup
 ```
 

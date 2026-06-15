@@ -4,27 +4,27 @@ import type { InferForwardedOptions, InferParams, RuntimeNode } from '@parshjs/c
 import type { command as rootCmd } from './commands/_root.ts';
 import type { command as cloudAddIntegrationsCmd } from './commands/cloud/add/integrations.ts';
 import type { command as cloudAddSyncsCmd } from './commands/cloud/add/syncs.ts';
-import type { command as cloudDaemonAgentsyncCmd } from './commands/cloud/daemon/agent-sync.ts';
+import type { command as cloudAgentsyncDaemonCmd } from './commands/cloud/agent-sync/daemon.ts';
+import type { command as cloudAgentsyncInstallCmd } from './commands/cloud/agent-sync/install.ts';
+import type { command as cloudAgentsyncStatusCmd } from './commands/cloud/agent-sync/status.ts';
+import type { command as cloudAgentsyncSyncnowCmd } from './commands/cloud/agent-sync/sync-now.ts';
+import type { command as cloudAgentsyncUninstallCmd } from './commands/cloud/agent-sync/uninstall.ts';
 import type { command as cloudDestroyCmd } from './commands/cloud/destroy.ts';
 import type { command as cloudDoctorCmd } from './commands/cloud/doctor.ts';
-import type { command as cloudInstallAgentsyncCmd } from './commands/cloud/install/agent-sync.ts';
 import type { command as cloudResumeCmd } from './commands/cloud/resume.ts';
 import type { command as cloudSetupCmd } from './commands/cloud/setup.ts';
-import type { command as cloudStatusAgentsyncCmd } from './commands/cloud/status/agent-sync.ts';
-import type { command as cloudSyncnowAgentsyncCmd } from './commands/cloud/sync-now/agent-sync.ts';
-import type { command as cloudUninstallAgentsyncCmd } from './commands/cloud/uninstall/agent-sync.ts';
 import type { command as cloudUpdateCmd } from './commands/cloud/update.ts';
 import type { command as localAddIntegrationsCmd } from './commands/local/add/integrations.ts';
 import type { command as localAddSyncsCmd } from './commands/local/add/syncs.ts';
-import type { command as localDaemonAgentsyncCmd } from './commands/local/daemon/agent-sync.ts';
+import type { command as localAgentsyncDaemonCmd } from './commands/local/agent-sync/daemon.ts';
+import type { command as localAgentsyncInstallCmd } from './commands/local/agent-sync/install.ts';
+import type { command as localAgentsyncStatusCmd } from './commands/local/agent-sync/status.ts';
+import type { command as localAgentsyncSyncnowCmd } from './commands/local/agent-sync/sync-now.ts';
+import type { command as localAgentsyncUninstallCmd } from './commands/local/agent-sync/uninstall.ts';
 import type { command as localDestroyCmd } from './commands/local/destroy.ts';
 import type { command as localDoctorCmd } from './commands/local/doctor.ts';
-import type { command as localInstallAgentsyncCmd } from './commands/local/install/agent-sync.ts';
 import type { command as localResumeCmd } from './commands/local/resume.ts';
 import type { command as localSetupCmd } from './commands/local/setup.ts';
-import type { command as localStatusAgentsyncCmd } from './commands/local/status/agent-sync.ts';
-import type { command as localSyncnowAgentsyncCmd } from './commands/local/sync-now/agent-sync.ts';
-import type { command as localUninstallAgentsyncCmd } from './commands/local/uninstall/agent-sync.ts';
 
 declare module '@parshjs/core' {
   interface CommandRegistry {
@@ -36,7 +36,23 @@ declare module '@parshjs/core' {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
-    'cloud daemon agent-sync': {
+    'cloud agent-sync daemon': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'cloud agent-sync install': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'cloud agent-sync status': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'cloud agent-sync sync-now': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'cloud agent-sync uninstall': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -48,27 +64,11 @@ declare module '@parshjs/core' {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
-    'cloud install agent-sync': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
     'cloud resume': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
     'cloud setup': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'cloud status agent-sync': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'cloud sync-now agent-sync': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'cloud uninstall agent-sync': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -84,7 +84,23 @@ declare module '@parshjs/core' {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
-    'local daemon agent-sync': {
+    'local agent-sync daemon': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'local agent-sync install': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'local agent-sync status': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'local agent-sync sync-now': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'local agent-sync uninstall': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -96,27 +112,11 @@ declare module '@parshjs/core' {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
-    'local install agent-sync': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
     'local resume': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
     'local setup': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'local status agent-sync': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'local sync-now agent-sync': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'local uninstall agent-sync': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -156,15 +156,53 @@ export const commandTree: RuntimeNode = {
           },
           paramChild: null,
         },
-        daemon: {
-          segment: { kind: 'literal', value: 'daemon' },
+        'agent-sync': {
+          segment: { kind: 'literal', value: 'agent-sync' },
           command: null,
           literalChildren: {
-            'agent-sync': {
-              segment: { kind: 'literal', value: 'agent-sync' },
+            daemon: {
+              segment: { kind: 'literal', value: 'daemon' },
               command: {
-                path: 'cloud daemon agent-sync',
-                load: () => import('./commands/cloud/daemon/agent-sync.ts').then((m) => m.command),
+                path: 'cloud agent-sync daemon',
+                load: () => import('./commands/cloud/agent-sync/daemon.ts').then((m) => m.command),
+              },
+              literalChildren: {},
+              paramChild: null,
+            },
+            install: {
+              segment: { kind: 'literal', value: 'install' },
+              command: {
+                path: 'cloud agent-sync install',
+                load: () => import('./commands/cloud/agent-sync/install.ts').then((m) => m.command),
+              },
+              literalChildren: {},
+              paramChild: null,
+            },
+            status: {
+              segment: { kind: 'literal', value: 'status' },
+              command: {
+                path: 'cloud agent-sync status',
+                load: () => import('./commands/cloud/agent-sync/status.ts').then((m) => m.command),
+              },
+              literalChildren: {},
+              paramChild: null,
+            },
+            'sync-now': {
+              segment: { kind: 'literal', value: 'sync-now' },
+              command: {
+                path: 'cloud agent-sync sync-now',
+                load: () =>
+                  import('./commands/cloud/agent-sync/sync-now.ts').then((m) => m.command),
+              },
+              literalChildren: {},
+              paramChild: null,
+            },
+            uninstall: {
+              segment: { kind: 'literal', value: 'uninstall' },
+              command: {
+                path: 'cloud agent-sync uninstall',
+                load: () =>
+                  import('./commands/cloud/agent-sync/uninstall.ts').then((m) => m.command),
               },
               literalChildren: {},
               paramChild: null,
@@ -190,22 +228,6 @@ export const commandTree: RuntimeNode = {
           literalChildren: {},
           paramChild: null,
         },
-        install: {
-          segment: { kind: 'literal', value: 'install' },
-          command: null,
-          literalChildren: {
-            'agent-sync': {
-              segment: { kind: 'literal', value: 'agent-sync' },
-              command: {
-                path: 'cloud install agent-sync',
-                load: () => import('./commands/cloud/install/agent-sync.ts').then((m) => m.command),
-              },
-              literalChildren: {},
-              paramChild: null,
-            },
-          },
-          paramChild: null,
-        },
         resume: {
           segment: { kind: 'literal', value: 'resume' },
           command: {
@@ -222,56 +244,6 @@ export const commandTree: RuntimeNode = {
             load: () => import('./commands/cloud/setup.ts').then((m) => m.command),
           },
           literalChildren: {},
-          paramChild: null,
-        },
-        status: {
-          segment: { kind: 'literal', value: 'status' },
-          command: null,
-          literalChildren: {
-            'agent-sync': {
-              segment: { kind: 'literal', value: 'agent-sync' },
-              command: {
-                path: 'cloud status agent-sync',
-                load: () => import('./commands/cloud/status/agent-sync.ts').then((m) => m.command),
-              },
-              literalChildren: {},
-              paramChild: null,
-            },
-          },
-          paramChild: null,
-        },
-        'sync-now': {
-          segment: { kind: 'literal', value: 'sync-now' },
-          command: null,
-          literalChildren: {
-            'agent-sync': {
-              segment: { kind: 'literal', value: 'agent-sync' },
-              command: {
-                path: 'cloud sync-now agent-sync',
-                load: () =>
-                  import('./commands/cloud/sync-now/agent-sync.ts').then((m) => m.command),
-              },
-              literalChildren: {},
-              paramChild: null,
-            },
-          },
-          paramChild: null,
-        },
-        uninstall: {
-          segment: { kind: 'literal', value: 'uninstall' },
-          command: null,
-          literalChildren: {
-            'agent-sync': {
-              segment: { kind: 'literal', value: 'agent-sync' },
-              command: {
-                path: 'cloud uninstall agent-sync',
-                load: () =>
-                  import('./commands/cloud/uninstall/agent-sync.ts').then((m) => m.command),
-              },
-              literalChildren: {},
-              paramChild: null,
-            },
-          },
           paramChild: null,
         },
         update: {
@@ -315,15 +287,53 @@ export const commandTree: RuntimeNode = {
           },
           paramChild: null,
         },
-        daemon: {
-          segment: { kind: 'literal', value: 'daemon' },
+        'agent-sync': {
+          segment: { kind: 'literal', value: 'agent-sync' },
           command: null,
           literalChildren: {
-            'agent-sync': {
-              segment: { kind: 'literal', value: 'agent-sync' },
+            daemon: {
+              segment: { kind: 'literal', value: 'daemon' },
               command: {
-                path: 'local daemon agent-sync',
-                load: () => import('./commands/local/daemon/agent-sync.ts').then((m) => m.command),
+                path: 'local agent-sync daemon',
+                load: () => import('./commands/local/agent-sync/daemon.ts').then((m) => m.command),
+              },
+              literalChildren: {},
+              paramChild: null,
+            },
+            install: {
+              segment: { kind: 'literal', value: 'install' },
+              command: {
+                path: 'local agent-sync install',
+                load: () => import('./commands/local/agent-sync/install.ts').then((m) => m.command),
+              },
+              literalChildren: {},
+              paramChild: null,
+            },
+            status: {
+              segment: { kind: 'literal', value: 'status' },
+              command: {
+                path: 'local agent-sync status',
+                load: () => import('./commands/local/agent-sync/status.ts').then((m) => m.command),
+              },
+              literalChildren: {},
+              paramChild: null,
+            },
+            'sync-now': {
+              segment: { kind: 'literal', value: 'sync-now' },
+              command: {
+                path: 'local agent-sync sync-now',
+                load: () =>
+                  import('./commands/local/agent-sync/sync-now.ts').then((m) => m.command),
+              },
+              literalChildren: {},
+              paramChild: null,
+            },
+            uninstall: {
+              segment: { kind: 'literal', value: 'uninstall' },
+              command: {
+                path: 'local agent-sync uninstall',
+                load: () =>
+                  import('./commands/local/agent-sync/uninstall.ts').then((m) => m.command),
               },
               literalChildren: {},
               paramChild: null,
@@ -349,22 +359,6 @@ export const commandTree: RuntimeNode = {
           literalChildren: {},
           paramChild: null,
         },
-        install: {
-          segment: { kind: 'literal', value: 'install' },
-          command: null,
-          literalChildren: {
-            'agent-sync': {
-              segment: { kind: 'literal', value: 'agent-sync' },
-              command: {
-                path: 'local install agent-sync',
-                load: () => import('./commands/local/install/agent-sync.ts').then((m) => m.command),
-              },
-              literalChildren: {},
-              paramChild: null,
-            },
-          },
-          paramChild: null,
-        },
         resume: {
           segment: { kind: 'literal', value: 'resume' },
           command: {
@@ -381,56 +375,6 @@ export const commandTree: RuntimeNode = {
             load: () => import('./commands/local/setup.ts').then((m) => m.command),
           },
           literalChildren: {},
-          paramChild: null,
-        },
-        status: {
-          segment: { kind: 'literal', value: 'status' },
-          command: null,
-          literalChildren: {
-            'agent-sync': {
-              segment: { kind: 'literal', value: 'agent-sync' },
-              command: {
-                path: 'local status agent-sync',
-                load: () => import('./commands/local/status/agent-sync.ts').then((m) => m.command),
-              },
-              literalChildren: {},
-              paramChild: null,
-            },
-          },
-          paramChild: null,
-        },
-        'sync-now': {
-          segment: { kind: 'literal', value: 'sync-now' },
-          command: null,
-          literalChildren: {
-            'agent-sync': {
-              segment: { kind: 'literal', value: 'agent-sync' },
-              command: {
-                path: 'local sync-now agent-sync',
-                load: () =>
-                  import('./commands/local/sync-now/agent-sync.ts').then((m) => m.command),
-              },
-              literalChildren: {},
-              paramChild: null,
-            },
-          },
-          paramChild: null,
-        },
-        uninstall: {
-          segment: { kind: 'literal', value: 'uninstall' },
-          command: null,
-          literalChildren: {
-            'agent-sync': {
-              segment: { kind: 'literal', value: 'agent-sync' },
-              command: {
-                path: 'local uninstall agent-sync',
-                load: () =>
-                  import('./commands/local/uninstall/agent-sync.ts').then((m) => m.command),
-              },
-              literalChildren: {},
-              paramChild: null,
-            },
-          },
           paramChild: null,
         },
       },

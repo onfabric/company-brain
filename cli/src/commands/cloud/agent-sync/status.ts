@@ -2,8 +2,8 @@ import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
 import { agentSyncStatus, formatAgentSyncStatus } from '../../../lib/agent-sync/operations.ts';
 
-export const command = defineCommand('local status agent-sync', {
-  description: 'Print local agent sync daemon status.',
+export const command = defineCommand('cloud agent-sync status', {
+  description: 'Print cloud agent sync daemon status.',
   options: {
     json: {
       schema: z.boolean().optional(),
@@ -11,7 +11,7 @@ export const command = defineCommand('local status agent-sync', {
     },
   },
   handler: async ({ options, print }) => {
-    const status = await agentSyncStatus('local');
+    const status = await agentSyncStatus('cloud');
     print.info(options.json ? JSON.stringify(status, null, 2) : formatAgentSyncStatus(status));
   },
 });
