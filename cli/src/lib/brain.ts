@@ -12,7 +12,7 @@ export function brainClient(baseUrl: string = DEFAULT_BRAIN_URL) {
 export async function isBrainApiHealthy(baseUrl: string = DEFAULT_BRAIN_URL): Promise<boolean> {
   try {
     const { error } = await brainClient(baseUrl).brain.api.health.get();
-    return error == null;
+    return error === null;
   } catch {
     return false;
   }
