@@ -90,6 +90,7 @@ describe('deployment contract', () => {
         dozzleHostname: 'dozzle-dev.onfabric.io',
         acmeEmail: 'ops@example.com',
         awsRegion: 'eu-west-2',
+        brainAllowedEmailsRegex: '.*@onfabric\\.io$',
       }),
     ).toEqual({
       BUNDLE_URL: 's3://bucket/dev/abc123.tar.gz',
@@ -103,6 +104,7 @@ describe('deployment contract', () => {
       DOZZLE_HOSTNAME: 'dozzle-dev.onfabric.io',
       ACME_EMAIL: 'ops@example.com',
       AWS_REGION: 'eu-west-2',
+      BRAIN_ALLOWED_EMAILS_REGEX: '.*@onfabric\\.io$',
       NANGO_IMAGE_URI: 'repo/nango:abc123',
       BRAIN_IMAGE_URI: 'repo/brain:abc123',
       PG_BACKUP_IMAGE_URI: 'repo/pg-backup:abc123',

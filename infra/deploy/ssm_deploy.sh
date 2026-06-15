@@ -41,8 +41,8 @@ fi
 exports=$(jq -rn \
   --arg image "$NANGO_IMAGE_URI" --arg brain_image "$BRAIN_IMAGE_URI" --arg prefix "$SSM_SECRET_PREFIX" --arg host "$NANGO_HOSTNAME" \
   --arg connect_host "$NANGO_CONNECT_HOSTNAME" --arg brain_host "$BRAIN_HOSTNAME" --arg dozzle_host "$DOZZLE_HOSTNAME" --arg acme "$ACME_EMAIL" --arg region "$AWS_REGION" \
-  --arg data_volume "$DATA_VOLUME_ID" --arg artifacts "$ARTIFACTS_BUCKET" --arg pg_backup_image "$PG_BACKUP_IMAGE_URI" \
-  '"export NANGO_IMAGE_URI=\($image|@sh) BRAIN_IMAGE_URI=\($brain_image|@sh) PG_BACKUP_IMAGE_URI=\($pg_backup_image|@sh) SSM_SECRET_PREFIX=\($prefix|@sh) NANGO_HOSTNAME=\($host|@sh) NANGO_CONNECT_HOSTNAME=\($connect_host|@sh) BRAIN_HOSTNAME=\($brain_host|@sh) DOZZLE_HOSTNAME=\($dozzle_host|@sh) ACME_EMAIL=\($acme|@sh) AWS_DEFAULT_REGION=\($region|@sh) DATA_VOLUME_ID=\($data_volume|@sh) ARTIFACTS_BUCKET=\($artifacts|@sh)"')
+  --arg data_volume "$DATA_VOLUME_ID" --arg artifacts "$ARTIFACTS_BUCKET" --arg pg_backup_image "$PG_BACKUP_IMAGE_URI" --arg allowed_emails "${BRAIN_ALLOWED_EMAILS_REGEX:-}" \
+  '"export NANGO_IMAGE_URI=\($image|@sh) BRAIN_IMAGE_URI=\($brain_image|@sh) PG_BACKUP_IMAGE_URI=\($pg_backup_image|@sh) SSM_SECRET_PREFIX=\($prefix|@sh) NANGO_HOSTNAME=\($host|@sh) NANGO_CONNECT_HOSTNAME=\($connect_host|@sh) BRAIN_HOSTNAME=\($brain_host|@sh) DOZZLE_HOSTNAME=\($dozzle_host|@sh) ACME_EMAIL=\($acme|@sh) AWS_DEFAULT_REGION=\($region|@sh) DATA_VOLUME_ID=\($data_volume|@sh) ARTIFACTS_BUCKET=\($artifacts|@sh) BRAIN_ALLOWED_EMAILS_REGEX=\($allowed_emails|@sh)"')
 
 remote_script=$(cat <<REMOTE
 set -euo pipefail

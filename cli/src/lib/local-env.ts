@@ -7,7 +7,7 @@ const SECRET_BYTES = 32;
 
 export type EnsureRootEnvOptions = {
   force?: boolean;
-  workspaceDomain?: string;
+  allowedEmailsRegex?: string;
 };
 
 export async function readRootEnv(): Promise<Record<string, string>> {
@@ -16,7 +16,7 @@ export async function readRootEnv(): Promise<Record<string, string>> {
 
 export async function ensureRootEnv(options: EnsureRootEnvOptions = {}): Promise<void> {
   const existing = await readRootEnv();
-  const values = rootEnvValues(existing, options.workspaceDomain, Boolean(options.force));
+  const values = rootEnvValues(existing, options.allowedEmailsRegex, Boolean(options.force));
 
   if (!existsSync(rootEnvPath) || options.force) {
     await writeEnvFromTemplate({
@@ -32,7 +32,7 @@ export async function ensureRootEnv(options: EnsureRootEnvOptions = {}): Promise
 
 function rootEnvValues(
   existing: Record<string, string>,
-  workspaceDomain?: string,
+  allowedEmailsRegex?: string,
   reset = false,
 ): Record<string, string> {
   return {
@@ -56,7 +56,8 @@ function rootEnvValues(
       'http://localhost:3009',
       reset,
     ),
-    WORKSPACE_DOMAIN: workspaceDomain || existing.WORKSPACE_DOMAIN || 'example.com',
+    BRAIN_ALLOWED_EMAILS_REGEX:
+      allowedEmailsRegex || existing.BRAIN_ALLOWED_EMAILS_REGEX || '.*@example\\.com$',
   };
 }
 

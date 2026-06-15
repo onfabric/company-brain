@@ -95,6 +95,7 @@ function writeSsmEnv(environmentName: string): void {
       dozzleHostname: environment.dozzleHostname,
       acmeEmail: requiredEnv('ACME_EMAIL'),
       awsRegion: environment.awsRegion,
+      brainAllowedEmailsRegex: environment.brainAllowedEmailsRegex,
     }),
   );
 }

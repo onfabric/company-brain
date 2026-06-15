@@ -17,18 +17,18 @@ export const command = defineCommand('local setup', {
       schema: z.boolean().optional(),
       description: 'Only write local configuration without starting Docker Compose.',
     },
-    'workspace-domain': {
+    'allowed-emails-regex': {
       schema: z.string().optional(),
-      description: 'Google Workspace domain allowed to sign in to the brain.',
+      description: 'Regex matched against emails allowed to sign in to the brain.',
     },
   },
   handler: async ({ options, rootOptions, print }) => {
     intro('Company Brain local setup');
 
-    const workspaceDomain =
-      options['workspace-domain'] ??
-      (await promptWorkspaceDomainIfMissing(isNonInteractive(rootOptions['non-interactive'])));
-    await ensureRootEnv({ force: options.force, workspaceDomain });
+    const allowedEmailsRegex =
+      options['allowed-emails-regex'] ??
+      (await promptAllowedEmailsRegexIfMissing(isNonInteractive(rootOptions['non-interactive'])));
+    await ensureRootEnv({ force: options.force, allowedEmailsRegex });
     await ensureNangoEnvBase(options.force);
 
     print.success('Local env files are ready.');
@@ -62,18 +62,18 @@ export const command = defineCommand('local setup', {
   },
 });
 
-async function promptWorkspaceDomainIfMissing(
+async function promptAllowedEmailsRegexIfMissing(
   nonInteractive: boolean,
 ): Promise<string | undefined> {
   const existing = await readRootEnv();
-  if (existing.WORKSPACE_DOMAIN) {
+  if (existing.BRAIN_ALLOWED_EMAILS_REGEX) {
     return undefined;
   }
 
-  return await promptWorkspaceDomain('example.com', nonInteractive);
+  return await promptAllowedEmailsRegex('.*@example\\.com$', nonInteractive);
 }
 
-async function promptWorkspaceDomain(
+async function promptAllowedEmailsRegex(
   defaultValue: string,
   nonInteractive: boolean,
 ): Promise<string> {
@@ -82,7 +82,7 @@ async function promptWorkspaceDomain(
   }
 
   const answer = await text({
-    message: 'Workspace domain for local Google sign-in checks',
+    message: 'Regex for emails allowed to sign in (wildcard domain or fixed set)',
     placeholder: defaultValue,
     defaultValue,
     validate: validateRequired,

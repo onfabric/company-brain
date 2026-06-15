@@ -123,10 +123,10 @@ export async function collectAwsConfig({
   const dns = await promptDns(existing, force, nonInteractive);
 
   note('Configure who can sign in to the Brain web app.', 'Brain sign-in');
-  const workspaceDomain = await promptText(
-    'Google Workspace domain allowed to sign in',
-    'Only Google accounts from this domain can sign in to the Brain web app.',
-    existing?.workspaceDomain ?? 'example.com',
+  const allowedEmailsRegex = await promptOptionalText(
+    'Regex for emails allowed to sign in (leave empty to allow any)',
+    'Matched against the account email. Wildcard a workspace (.*@onfabric\\.io$) or list a fixed set across domains (^(alice@gmail\\.com|bob@outlook\\.com)$).',
+    existing?.allowedEmailsRegex ?? '',
     force,
     nonInteractive,
   );
@@ -190,7 +190,7 @@ export async function collectAwsConfig({
     brainHostname: hostnames.brainHostname,
     dozzleHostname: hostnames.dozzleHostname,
     acmeEmail,
-    workspaceDomain,
+    allowedEmailsRegex: allowedEmailsRegex || undefined,
     googleClientId,
     dozzleUsername,
     dozzleEmail,
@@ -383,6 +383,30 @@ async function promptText(
   }
 
   return value;
+}
+
+async function promptOptionalText(
+  message: string,
+  description: string,
+  defaultValue: string,
+  _force: boolean | undefined,
+  nonInteractive: boolean | undefined,
+): Promise<string> {
+  if (nonInteractive) {
+    return defaultValue.trim();
+  }
+
+  const answer = await text({
+    message: promptMessage(message, description),
+    defaultValue,
+    placeholder: defaultValue,
+  });
+
+  if (isCancel(answer)) {
+    throw new Error('Setup cancelled.');
+  }
+
+  return (answer || defaultValue).trim();
 }
 
 async function promptHostname(

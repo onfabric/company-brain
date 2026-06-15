@@ -54,6 +54,7 @@ export type CiDeploymentEnvironment = {
   nangoConnectHostname: string;
   brainHostname: string;
   dozzleHostname: string;
+  brainAllowedEmailsRegex: string;
 };
 
 export const CI_DEPLOYMENT_ENVIRONMENTS = {
@@ -73,6 +74,7 @@ export const CI_DEPLOYMENT_ENVIRONMENTS = {
     nangoConnectHostname: 'nango-auth-dev.onfabric.io',
     brainHostname: 'brain-dev.onfabric.io',
     dozzleHostname: 'dozzle-dev.onfabric.io',
+    brainAllowedEmailsRegex: '.*@onfabric\\.io$',
   },
 } as const satisfies Record<string, CiDeploymentEnvironment>;
 
@@ -97,6 +99,7 @@ export type SsmDeploymentEnvInput = {
   dozzleHostname: string;
   acmeEmail: string;
   awsRegion: string;
+  brainAllowedEmailsRegex: string;
 };
 
 export function resolveCiDeploymentEnvironment(name: string): CiDeploymentEnvironment {
@@ -182,6 +185,7 @@ export function buildSsmDeploymentEnv(input: SsmDeploymentEnvInput): Record<stri
     DOZZLE_HOSTNAME: input.dozzleHostname,
     ACME_EMAIL: input.acmeEmail,
     AWS_REGION: input.awsRegion,
+    BRAIN_ALLOWED_EMAILS_REGEX: input.brainAllowedEmailsRegex,
   };
 
   for (const image of DEPLOYMENT_IMAGES) {

@@ -21,8 +21,8 @@ export const OAUTH_SCOPES = ['openid', 'profile', 'email', 'offline_access', MCP
 
 const logger = createLogger('better-auth');
 
-function isWorkspaceEmail(email: string): boolean {
-  return email.toLowerCase().endsWith(`@${env.workspaceDomain}`);
+function isAllowedEmail(email: string): boolean {
+  return env.allowedEmailsRegex === null || env.allowedEmailsRegex.test(email.toLowerCase());
 }
 
 export const auth = betterAuth({
@@ -55,9 +55,9 @@ export const auth = betterAuth({
     user: {
       create: {
         before: (user) => {
-          if (!isWorkspaceEmail(user.email)) {
+          if (!isAllowedEmail(user.email)) {
             throw new APIError('FORBIDDEN', {
-              message: `Sign-in is restricted to @${env.workspaceDomain} accounts.`,
+              message: 'Sign-in is restricted to allowed accounts.',
             });
           }
           return Promise.resolve();
