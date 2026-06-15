@@ -1,6 +1,11 @@
 import { intro, isCancel, note, outro, text } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
+import {
+  ALLOWED_EMAILS_PLACEHOLDER,
+  allowedEmailsToRegex,
+  validateAllowedEmailsInput,
+} from '../../lib/allowed-emails.ts';
 import { startLocalStack, verifyLocalPrerequisites } from '../../lib/docker.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 import { ensureRootEnv, readRootEnv } from '../../lib/local-env.ts';
@@ -17,18 +22,23 @@ export const command = defineCommand('local setup', {
       schema: z.boolean().optional(),
       description: 'Only write local configuration without starting Docker Compose.',
     },
-    'allowed-emails-regex': {
+    'allowed-emails': {
       schema: z.string().optional(),
-      description: 'Regex matched against emails allowed to sign in to the brain.',
+      description:
+        'Comma-separated emails allowed to sign in; use *@domain for a whole workspace. Empty allows any.',
     },
   },
   handler: async ({ options, rootOptions, print }) => {
     intro('Company Brain local setup');
 
-    const allowedEmailsRegex =
-      options['allowed-emails-regex'] ??
-      (await promptAllowedEmailsRegexIfMissing(isNonInteractive(rootOptions['non-interactive'])));
-    await ensureRootEnv({ force: options.force, allowedEmailsRegex });
+    const allowedEmails =
+      options['allowed-emails'] ??
+      (await promptAllowedEmailsIfMissing(isNonInteractive(rootOptions['non-interactive'])));
+    await ensureRootEnv({
+      force: options.force,
+      allowedEmailsRegex:
+        allowedEmails === undefined ? undefined : allowedEmailsToRegex(allowedEmails),
+    });
     await ensureNangoEnvBase(options.force);
 
     print.success('Local env files are ready.');
@@ -62,43 +72,25 @@ export const command = defineCommand('local setup', {
   },
 });
 
-async function promptAllowedEmailsRegexIfMissing(
-  nonInteractive: boolean,
-): Promise<string | undefined> {
+async function promptAllowedEmailsIfMissing(nonInteractive: boolean): Promise<string | undefined> {
   const existing = await readRootEnv();
   if (existing.BRAIN_ALLOWED_EMAILS_REGEX) {
     return undefined;
   }
 
-  return await promptAllowedEmailsRegex('.*@example\\.com$', nonInteractive);
-}
-
-async function promptAllowedEmailsRegex(
-  defaultValue: string,
-  nonInteractive: boolean,
-): Promise<string> {
   if (nonInteractive) {
-    return defaultValue;
+    return '';
   }
 
   const answer = await text({
-    message: 'Regex for emails allowed to sign in (wildcard domain or fixed set)',
-    placeholder: defaultValue,
-    defaultValue,
-    validate: validateRequired,
+    message: 'Emails allowed to sign in (comma-separated, *@domain for a whole workspace)',
+    placeholder: `${ALLOWED_EMAILS_PLACEHOLDER} — leave empty to allow any`,
+    validate: validateAllowedEmailsInput,
   });
 
   if (isCancel(answer)) {
     throw new Error('Setup cancelled.');
   }
 
-  return answer;
-}
-
-function validateRequired(value: string | undefined): string | undefined {
-  if (!value || value.trim().length === 0) {
-    return 'Required';
-  }
-
-  return undefined;
+  return answer ?? '';
 }

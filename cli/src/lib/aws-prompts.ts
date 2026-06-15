@@ -1,4 +1,9 @@
 import { confirm, isCancel, note, password, select, text } from '@clack/prompts';
+import {
+  ALLOWED_EMAILS_PLACEHOLDER,
+  allowedEmailsToRegex,
+  validateAllowedEmailsInput,
+} from './allowed-emails.ts';
 import type { AwsConfig } from './aws-config.ts';
 import { normalizeAwsEnvironment, validateAwsEnvironment } from './aws-environment.ts';
 import {
@@ -123,13 +128,17 @@ export async function collectAwsConfig({
   const dns = await promptDns(existing, force, nonInteractive);
 
   note('Configure who can sign in to the Brain web app.', 'Brain sign-in');
-  const allowedEmailsRegex = await promptOptionalText(
-    'Regex for emails allowed to sign in (leave empty for the default workspace)',
-    'Matched against the account email. Wildcard a workspace (.*@onfabric\\.io$) or list a fixed set across domains (^(alice@gmail\\.com|bob@outlook\\.com)$). Empty keeps the deployment default (.*@onfabric\\.io$).',
-    existing?.allowedEmailsRegex ?? '',
+  const allowedEmailsInput = await promptOptionalText(
+    'Emails allowed to sign in (comma-separated, *@domain for a whole workspace)',
+    `${ALLOWED_EMAILS_PLACEHOLDER} — empty keeps the deployment default (.*@onfabric\\.io$).`,
+    '',
     force,
     nonInteractive,
+    validateAllowedEmailsInput,
   );
+  const allowedEmailsRegex = allowedEmailsInput
+    ? allowedEmailsToRegex(allowedEmailsInput)
+    : existing?.allowedEmailsRegex;
   const googleClientId = await promptText(
     'Brain Google OAuth client ID',
     'OAuth client ID from Google Cloud for Brain sign-in. Use the Brain redirect URI shown above.',
@@ -190,7 +199,7 @@ export async function collectAwsConfig({
     brainHostname: hostnames.brainHostname,
     dozzleHostname: hostnames.dozzleHostname,
     acmeEmail,
-    allowedEmailsRegex: allowedEmailsRegex || undefined,
+    allowedEmailsRegex,
     googleClientId,
     dozzleUsername,
     dozzleEmail,
@@ -391,6 +400,7 @@ async function promptOptionalText(
   defaultValue: string,
   _force: boolean | undefined,
   nonInteractive: boolean | undefined,
+  validate?: (value: string | undefined) => string | undefined,
 ): Promise<string> {
   if (nonInteractive) {
     return defaultValue.trim();
@@ -400,6 +410,7 @@ async function promptOptionalText(
     message: promptMessage(message, description),
     defaultValue,
     placeholder: defaultValue,
+    validate,
   });
 
   if (isCancel(answer)) {

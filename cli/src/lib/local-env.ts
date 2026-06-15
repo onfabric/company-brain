@@ -35,6 +35,7 @@ function rootEnvValues(
   allowedEmailsRegex?: string,
   reset = false,
 ): Record<string, string> {
+  const regex = allowedEmailsRegex || existing.BRAIN_ALLOWED_EMAILS_REGEX;
   return {
     BRAIN_API_KEY: existing.BRAIN_API_KEY || randomUuid(),
     BETTER_AUTH_SECRET: replaceLocalDefault(
@@ -56,8 +57,7 @@ function rootEnvValues(
       'http://localhost:3009',
       reset,
     ),
-    BRAIN_ALLOWED_EMAILS_REGEX:
-      allowedEmailsRegex || existing.BRAIN_ALLOWED_EMAILS_REGEX || '.*@example\\.com$',
+    ...(regex ? { BRAIN_ALLOWED_EMAILS_REGEX: regex } : {}),
   };
 }
 
