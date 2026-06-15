@@ -3,17 +3,42 @@ import {
   buildSsmDeploymentEnv,
   ciTerraformVars,
   deploymentImageUrisFromManifest,
+  githubDeploymentImageTags,
+  githubDeploymentImageUris,
   githubImageMatrix,
   resolveCiDeploymentEnvironment,
   runtimeBundleUrl,
 } from './deployment-contract.ts';
 
 describe('deployment contract', () => {
+  const githubImageInput = {
+    gitSha: 'abc123',
+    nangoSubmoduleSha: 'def456',
+  };
+
+  it('uses the Nango submodule SHA for the Nango image tag', () => {
+    expect(githubDeploymentImageTags(githubImageInput)).toEqual({
+      nango: 'nango-v1-def456',
+      brain: 'sha-abc123',
+      'pg-backup': 'sha-abc123',
+    });
+  });
+
+  it('builds GitHub deployment image URIs from per-image tags', () => {
+    expect(githubDeploymentImageUris(githubImageInput)).toEqual({
+      nangoImageUri: 'ghcr.io/onfabric/company-brain-nango:nango-v1-def456',
+      brainImageUri: 'ghcr.io/onfabric/company-brain-brain:sha-abc123',
+      pgBackupImageUri: 'ghcr.io/onfabric/company-brain-pg-backup:sha-abc123',
+    });
+  });
+
   it('exposes the GitHub image matrix from the shared image specs', () => {
-    expect(githubImageMatrix()).toEqual([
+    expect(githubImageMatrix(githubImageInput)).toEqual([
       {
         key: 'nango',
         repository: 'ghcr.io/onfabric/company-brain-nango',
+        image_tag: 'nango-v1-def456',
+        image_uri: 'ghcr.io/onfabric/company-brain-nango:nango-v1-def456',
         context: './nango',
         dockerfile: './nango/Dockerfile',
         cache_scope: 'nango',
@@ -21,6 +46,8 @@ describe('deployment contract', () => {
       {
         key: 'brain',
         repository: 'ghcr.io/onfabric/company-brain-brain',
+        image_tag: 'sha-abc123',
+        image_uri: 'ghcr.io/onfabric/company-brain-brain:sha-abc123',
         context: '.',
         dockerfile: 'backend/Dockerfile',
         cache_scope: 'brain',
@@ -28,6 +55,8 @@ describe('deployment contract', () => {
       {
         key: 'pg-backup',
         repository: 'ghcr.io/onfabric/company-brain-pg-backup',
+        image_tag: 'sha-abc123',
+        image_uri: 'ghcr.io/onfabric/company-brain-pg-backup:sha-abc123',
         context: 'infra/pg-backup',
         dockerfile: 'infra/pg-backup/Dockerfile',
         cache_scope: 'pg-backup',

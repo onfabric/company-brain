@@ -22,6 +22,9 @@ jobs:
     outputs:
       version: ${{ steps.meta.outputs.version }}
       image_matrix: ${{ steps.meta.outputs.image_matrix }}
+      nango_image_uri: ${{ steps.meta.outputs.nango_image_uri }}
+      brain_image_uri: ${{ steps.meta.outputs.brain_image_uri }}
+      pg_backup_image_uri: ${{ steps.meta.outputs.pg_backup_image_uri }}
     steps:
       - uses: actions/checkout@v6
 
@@ -31,8 +34,7 @@ jobs:
         run: |
           version="${{ inputs.version || github.ref_name }}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          bun cli/src/scripts/github-deploy-plan.ts github-outputs dev \
-            | awk -F= '$1 == "image_matrix" { print "image_matrix=" $2 }' >> "$GITHUB_OUTPUT"
+          bun cli/src/scripts/github-deploy-plan.ts github-outputs dev >> "$GITHUB_OUTPUT"
 
   images:
     needs: config
@@ -58,7 +60,7 @@ jobs:
         uses: ./.github/actions/build-and-push-docker
         with:
           image-repository: ${{ matrix.image.repository }}
-          image-tag: ${{ needs.config.outputs.version }}
+          image-tag: ${{ matrix.image.image_tag }}
           context: ${{ matrix.image.context }}
           dockerfile: ${{ matrix.image.dockerfile }}
           cache-scope: ${{ matrix.image.cache_scope }}
@@ -75,9 +77,9 @@ jobs:
       - name: Verify images are public
         run: |
           infra/deploy/verify_public_images.sh \
-            ghcr.io/onfabric/company-brain-nango:${{ needs.config.outputs.version }} \
-            ghcr.io/onfabric/company-brain-brain:${{ needs.config.outputs.version }} \
-            ghcr.io/onfabric/company-brain-pg-backup:${{ needs.config.outputs.version }}
+            ${{ needs.config.outputs.nango_image_uri }} \
+            ${{ needs.config.outputs.brain_image_uri }} \
+            ${{ needs.config.outputs.pg_backup_image_uri }}
 
       - uses: ./.github/actions/prepare
 
@@ -98,6 +100,9 @@ jobs:
       - name: Build release manifest and checksums
         env:
           VERSION: ${{ needs.config.outputs.version }}
+          NANGO_IMAGE_URI: ${{ needs.config.outputs.nango_image_uri }}
+          BRAIN_IMAGE_URI: ${{ needs.config.outputs.brain_image_uri }}
+          PG_BACKUP_IMAGE_URI: ${{ needs.config.outputs.pg_backup_image_uri }}
         run: |
           runtime_sha=$(shasum -a 256 dist/company-brain-runtime.tar.gz | awk '{print $1}')
           integrations_sha=$(shasum -a 256 dist/company-brain-integrations.tar.gz | awk '{print $1}')
@@ -109,9 +114,9 @@ jobs:
             "gitSha": "${git_sha}",
             "nangoSubmoduleSha": "${nango_sha}",
             "images": {
-              "nango": "ghcr.io/onfabric/company-brain-nango:${VERSION}",
-              "brain": "ghcr.io/onfabric/company-brain-brain:${VERSION}",
-              "pgBackup": "ghcr.io/onfabric/company-brain-pg-backup:${VERSION}"
+              "nango": "${NANGO_IMAGE_URI}",
+              "brain": "${BRAIN_IMAGE_URI}",
+              "pgBackup": "${PG_BACKUP_IMAGE_URI}"
             },
             "assets": {
               "runtime": {

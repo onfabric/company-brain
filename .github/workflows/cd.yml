@@ -21,7 +21,6 @@ permissions:
 
 env:
   NO_COLOR: "1"
-  IMAGE_TAG: sha-${{ github.sha }}
 
 jobs:
   deploy-config:
@@ -37,6 +36,9 @@ jobs:
       nango_connect_hostname: ${{ steps.config.outputs.nango_connect_hostname }}
       brain_hostname: ${{ steps.config.outputs.brain_hostname }}
       dozzle_hostname: ${{ steps.config.outputs.dozzle_hostname }}
+      nango_image_uri: ${{ steps.config.outputs.nango_image_uri }}
+      brain_image_uri: ${{ steps.config.outputs.brain_image_uri }}
+      pg_backup_image_uri: ${{ steps.config.outputs.pg_backup_image_uri }}
       image_matrix: ${{ steps.config.outputs.image_matrix }}
     steps:
       - uses: actions/checkout@v6
@@ -71,7 +73,7 @@ jobs:
         uses: ./.github/actions/build-and-push-docker
         with:
           image-repository: ${{ matrix.image.repository }}
-          image-tag: ${{ env.IMAGE_TAG }}
+          image-tag: ${{ matrix.image.image_tag }}
           context: ${{ matrix.image.context }}
           dockerfile: ${{ matrix.image.dockerfile }}
           cache-scope: ${{ matrix.image.cache_scope }}
@@ -174,9 +176,9 @@ jobs:
       - name: Verify images are public
         run: |
           infra/deploy/verify_public_images.sh \
-            ghcr.io/onfabric/company-brain-nango:${{ env.IMAGE_TAG }} \
-            ghcr.io/onfabric/company-brain-brain:${{ env.IMAGE_TAG }} \
-            ghcr.io/onfabric/company-brain-pg-backup:${{ env.IMAGE_TAG }}
+            ${{ needs.deploy-config.outputs.nango_image_uri }} \
+            ${{ needs.deploy-config.outputs.brain_image_uri }} \
+            ${{ needs.deploy-config.outputs.pg_backup_image_uri }}
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6
@@ -192,9 +194,9 @@ jobs:
           DEPLOY_GROUP: ${{ needs.terraform-apply.outputs.deploy_group_tag }}
           DATA_VOLUME_ID: ${{ needs.terraform-apply.outputs.data_volume_id }}
           ARTIFACTS_BUCKET: ${{ needs.terraform-apply.outputs.artifacts_bucket }}
-          NANGO_IMAGE_URI: ghcr.io/onfabric/company-brain-nango:${{ env.IMAGE_TAG }}
-          BRAIN_IMAGE_URI: ghcr.io/onfabric/company-brain-brain:${{ env.IMAGE_TAG }}
-          PG_BACKUP_IMAGE_URI: ghcr.io/onfabric/company-brain-pg-backup:${{ env.IMAGE_TAG }}
+          NANGO_IMAGE_URI: ${{ needs.deploy-config.outputs.nango_image_uri }}
+          BRAIN_IMAGE_URI: ${{ needs.deploy-config.outputs.brain_image_uri }}
+          PG_BACKUP_IMAGE_URI: ${{ needs.deploy-config.outputs.pg_backup_image_uri }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
 
       - name: Deploy on instance via SSM
