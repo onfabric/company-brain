@@ -124,8 +124,8 @@ export async function collectAwsConfig({
 
   note('Configure who can sign in to the Brain web app.', 'Brain sign-in');
   const allowedEmailsRegex = await promptOptionalText(
-    'Regex for emails allowed to sign in (leave empty to allow any)',
-    'Matched against the account email. Wildcard a workspace (.*@onfabric\\.io$) or list a fixed set across domains (^(alice@gmail\\.com|bob@outlook\\.com)$).',
+    'Regex for emails allowed to sign in (leave empty for the default workspace)',
+    'Matched against the account email. Wildcard a workspace (.*@onfabric\\.io$) or list a fixed set across domains (^(alice@gmail\\.com|bob@outlook\\.com)$). Empty keeps the deployment default (.*@onfabric\\.io$).',
     existing?.allowedEmailsRegex ?? '',
     force,
     nonInteractive,

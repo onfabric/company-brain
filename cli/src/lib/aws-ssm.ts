@@ -78,7 +78,6 @@ export async function deployOverSsm({
         dozzleHostname: config.dozzleHostname,
         acmeEmail: config.acmeEmail,
         awsRegion: config.region,
-        brainAllowedEmailsRegex: config.allowedEmailsRegex ?? '',
       }),
       GITHUB_SHA: config.lastDeployId,
     },
