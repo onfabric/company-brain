@@ -1,5 +1,4 @@
 import { parseSelection } from '../../../nango-integrations/_scripts/lib/selection.ts';
-import type { LocalConfig } from './local-config.ts';
 import {
   checkNangoConnections,
   deployNangoSyncs,
@@ -8,12 +7,16 @@ import {
 } from './nango.ts';
 
 export type SyncSpec = (typeof nangoSyncSpecs)[number];
+export type SyncSelectionConfig = {
+  installedIntegrationIds: string[];
+  selectedIntegrationIds: string[];
+};
 
 export function resolveSyncSelection(
   only: string | undefined,
   all: boolean,
   nonInteractive: boolean,
-  config: LocalConfig,
+  config: SyncSelectionConfig,
 ): SyncSpec[] {
   if (all) {
     return nangoDefaultSyncSpecs;

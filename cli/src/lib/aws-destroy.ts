@@ -133,7 +133,7 @@ export function summarizeAwsDestroy(config: AwsConfig, accountId: string, phrase
   const outputs = config.outputs;
   return [
     'This permanently deletes the AWS Company Brain cloud and its data.',
-    'It is intended only when you want a clean rerun of `company-brain setup --target cloud`.',
+    'It is intended only when you want a clean rerun of `company-brain setup`.',
     '',
     `AWS account: ${accountId}`,
     `AWS region: ${config.region}`,

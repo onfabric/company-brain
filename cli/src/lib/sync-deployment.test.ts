@@ -29,7 +29,7 @@ describe('resolveSyncSelection', () => {
     expect(selected.map((sync) => sync.integrationId)).toEqual(['slack']);
   });
 
-  it('lets --only override local config', () => {
+  it('lets --only override saved selection', () => {
     const selected = resolveSyncSelection('github', false, false, {
       installedIntegrationIds: ['notion'],
       selectedIntegrationIds: [],

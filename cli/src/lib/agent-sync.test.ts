@@ -18,7 +18,7 @@ import { AgentSyncStore } from './agent-sync/store.ts';
 import { parseTranscriptFile } from './agent-sync/transcript-parser.ts';
 
 const TEMP_PREFIX = 'company-brain-cli-agent-sync-';
-const SYNC_NOW_COMMAND_SUFFIX_LENGTH = 4;
+const SYNC_NOW_COMMAND_SUFFIX_LENGTH = 2;
 const AGENT_SYNC_DIR_ENV = 'COMPANY_BRAIN_AGENT_SYNC_DIR';
 const CODEX_SESSION_DIR_ENV = 'COMPANY_BRAIN_CODEX_SESSION_DIR';
 const CLAUDE_CODE_PROJECTS_DIR_ENV = 'COMPANY_BRAIN_CLAUDE_CODE_PROJECTS_DIR';
@@ -348,12 +348,9 @@ describe('agent sync', () => {
     expect(config.programArguments.slice(-SYNC_NOW_COMMAND_SUFFIX_LENGTH)).toEqual([
       'agent-sync',
       'sync-now',
-      '--target',
-      'local',
     ]);
     expect(plist).toContain('<key>RunAtLoad</key>');
     expect(plist).toContain('<key>StartInterval</key>');
-    expect(plist).toContain('<string>local</string>');
     expect(plist).toContain('<string>agent-sync</string>');
     expect(plist).toContain('<string>sync-now</string>');
     expect(plist).toContain('sync-now.out.log');
@@ -365,7 +362,7 @@ describe('agent sync', () => {
     process.env[NANGO_CONNECTION_ID_ENV] = 'local-agent-sync';
     process.env[NANGO_WEBHOOK_SECRET_ENV] = 'shared-secret';
 
-    await expect(installLaunchAgent(tempDir, 'local')).rejects.toThrow('agent-sync setup needed');
+    await expect(installLaunchAgent(tempDir)).rejects.toThrow('agent-sync setup needed');
   });
 });
 

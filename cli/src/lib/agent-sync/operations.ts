@@ -3,18 +3,10 @@ import os from 'node:os';
 import { log, note } from '@clack/prompts';
 import { requireAwsConfig } from '../aws-config.ts';
 import { httpsIssues } from '../aws-dns.ts';
-import { DEFAULT_BRAIN_URL, isBrainApiHealthy } from '../brain.ts';
-import { verifyLocalPrerequisites, waitForComposeHealth } from '../docker.ts';
-import { ensureCloudNangoApiKey, ensureLocalNangoApiKey } from '../nango-api-key.ts';
-import { ensureNangoEnvBase, readNangoEnv } from '../nango-env.ts';
+import { ensureCloudNangoApiKey } from '../nango-api-key.ts';
 import { loadConfig, readConfigFile, writeConfigFile } from './config.ts';
 import { ensureIdentity, readIdentity } from './identity.ts';
-import {
-  type AgentSyncTarget,
-  installLaunchAgent,
-  launchAgentConfig,
-  uninstallLaunchAgent,
-} from './launchd.ts';
+import { installLaunchAgent, launchAgentConfig, uninstallLaunchAgent } from './launchd.ts';
 import { ensureAgentConversationsNango } from './nango.ts';
 import { type ScanResult, scanLocalSessions } from './session-scanner.ts';
 import { readStatus, writeStatus } from './status.ts';
@@ -34,7 +26,6 @@ export type AgentSyncInstallResult = {
 };
 
 export type AgentSyncStatusResult = {
-  target: AgentSyncTarget;
   dataDir: string;
   configPath: string;
   user_identifier?: string | undefined;
@@ -48,12 +39,13 @@ export type AgentSyncStatusResult = {
   status: Awaited<ReturnType<typeof readStatus>>;
 };
 
-export async function installAgentSyncForTarget(
-  target: AgentSyncTarget,
-  options: { nonInteractive: boolean; verbose: boolean; print: Printer },
-): Promise<AgentSyncInstallResult> {
-  log.step(`Checking ${target} Company Brain readiness...`);
-  const resolved = await resolveTarget(target, options);
+export async function installAgentSync(options: {
+  nonInteractive: boolean;
+  verbose: boolean;
+  print: Printer;
+}): Promise<AgentSyncInstallResult> {
+  log.step('Checking hosted Company Brain readiness...');
+  const resolved = await resolveCloudTarget(options.nonInteractive, options.print);
 
   log.step('Installing agent conversation integration and sync in Nango...');
   const nango = await ensureAgentConversationsNango({
@@ -68,7 +60,6 @@ export async function installAgentSyncForTarget(
   const config = await loadConfig();
   await writeConfigFile({
     ...existing,
-    target,
     nangoWebhookUrl: nango.webhookUrl,
     nangoConnectionId: nango.connectionId,
     nangoWebhookSecret: resolved.webhookSecret,
@@ -76,7 +67,7 @@ export async function installAgentSyncForTarget(
   await ensureIdentity(config.dataDir);
 
   log.step('Installing the macOS LaunchAgent schedule...');
-  const launchAgent = await installLaunchAgent(config.dataDir, target);
+  const launchAgent = await installLaunchAgent(config.dataDir);
   options.print.success('Agent sync LaunchAgent is installed.');
 
   return {
@@ -87,15 +78,13 @@ export async function installAgentSyncForTarget(
   };
 }
 
-export async function uninstallAgentSyncForTarget(
-  _target: AgentSyncTarget,
-): Promise<{ plistPath: string }> {
+export async function uninstallAgentSync(): Promise<{ plistPath: string }> {
   const config = await loadConfig();
   const launchAgent = await uninstallLaunchAgent(config.dataDir);
   return { plistPath: launchAgent.plistPath };
 }
 
-export async function syncAgentSyncNow(_target: AgentSyncTarget): Promise<ScanResult> {
+export async function syncAgentSyncNow(): Promise<ScanResult> {
   const config = await loadConfig();
   const result = await scanLocalSessions(new AgentSyncStore(config.dataDir), config);
   const updatedAt = nowIso();
@@ -109,11 +98,10 @@ export async function syncAgentSyncNow(_target: AgentSyncTarget): Promise<ScanRe
   return result;
 }
 
-export async function agentSyncStatus(target: AgentSyncTarget): Promise<AgentSyncStatusResult> {
+export async function agentSyncStatus(): Promise<AgentSyncStatusResult> {
   const config = await loadConfig();
-  const launchAgent = launchAgentConfig(config.dataDir, target);
+  const launchAgent = launchAgentConfig(config.dataDir);
   return {
-    target,
     dataDir: config.dataDir,
     configPath: config.configPath,
     user_identifier: await readIdentity(config.dataDir),
@@ -134,7 +122,6 @@ export async function agentSyncStatus(target: AgentSyncTarget): Promise<AgentSyn
 
 export function formatAgentSyncStatus(status: AgentSyncStatusResult): string {
   return [
-    `Target: ${status.target}`,
     `Config: ${status.configPath}`,
     `LaunchAgent: ${status.launchAgent.installed ? 'installed' : 'not installed'}, ${status.launchAgent.loaded ? 'loaded' : 'not loaded'}`,
     `State: ${status.status?.state ?? 'unknown'}`,
@@ -143,63 +130,19 @@ export function formatAgentSyncStatus(status: AgentSyncStatusResult): string {
   ].join('\n');
 }
 
-async function resolveTarget(
-  target: AgentSyncTarget,
-  options: { nonInteractive: boolean; verbose: boolean; print: Printer },
-): Promise<{ nangoUrl: string; nangoSecretKey: string; webhookSecret: string }> {
-  return target === 'local'
-    ? await resolveLocalTarget(options)
-    : await resolveCloudTarget(options.nonInteractive, options.print);
-}
-
-async function resolveLocalTarget(options: {
-  nonInteractive: boolean;
-  verbose: boolean;
-  print: Printer;
-}): Promise<{ nangoUrl: string; nangoSecretKey: string; webhookSecret: string }> {
-  await ensureNangoEnvBase();
-  const prerequisites = await verifyLocalPrerequisites();
-  if (prerequisites.length > 0) {
-    throw new Error(
-      [
-        'Local Company Brain is not ready.',
-        ...prerequisites,
-        'Run: company-brain setup --target local',
-      ].join('\n'),
-    );
-  }
-
-  await waitForComposeHealth(options.verbose);
-  if (!(await isBrainApiHealthy(DEFAULT_BRAIN_URL))) {
-    throw new Error('Local Brain is not healthy. Run: company-brain resume --target local');
-  }
-
-  await ensureLocalNangoApiKey(options.nonInteractive, options.print);
-  const env = await readNangoEnv();
-  const nangoSecretKey = requireValue(env.NANGO_SECRET_KEY_DEV, 'Local Nango dev API key');
-  const webhookSecret = requireValue(env.AGENT_SYNC_WEBHOOK_SECRET, 'agent sync webhook secret');
-  return {
-    nangoUrl: env.NANGO_HOSTPORT || 'http://localhost:3003',
-    nangoSecretKey,
-    webhookSecret,
-  };
-}
-
 async function resolveCloudTarget(
   nonInteractive: boolean,
   print: Printer,
 ): Promise<{ nangoUrl: string; nangoSecretKey: string; webhookSecret: string }> {
   let config = await requireAwsConfig();
   if (!config.outputs || !config.appDeployedAt) {
-    throw new Error('Cloud Company Brain is not deployed. Run: company-brain setup --target cloud');
+    throw new Error('Cloud Company Brain is not deployed. Run: company-brain setup');
   }
 
   const issues = await httpsIssues(config);
   if (issues.length > 0) {
     note(issues.join('\n'), 'Cloud HTTPS check');
-    throw new Error(
-      'Cloud Company Brain is not reachable. Run: company-brain resume --target cloud',
-    );
+    throw new Error('Cloud Company Brain is not reachable. Run: company-brain resume');
   }
 
   config = await ensureCloudNangoApiKey(config, nonInteractive, print);

@@ -17,11 +17,6 @@ inputs:
   cache-scope:
     description: GitHub Actions cache scope; keep distinct per image to avoid collisions.
     required: true
-  platforms:
-    description: Comma-separated target platforms.
-    required: false
-    default: linux/amd64,linux/arm64
-
 outputs:
   image-uri:
     description: The immutable image reference to deploy.
@@ -53,10 +48,6 @@ runs:
           echo "exists=false" >> "$GITHUB_OUTPUT"
         fi
 
-    - name: Set up QEMU
-      if: steps.existing-image.outputs.exists != 'true'
-      uses: docker/setup-qemu-action@v3
-
     - name: Set up Docker Buildx
       if: steps.existing-image.outputs.exists != 'true'
       uses: docker/setup-buildx-action@v3
@@ -67,7 +58,6 @@ runs:
       env:
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         IMAGE_TAG: ${{ inputs.image-tag }}
-        PLATFORM: ${{ inputs.platforms }}
         BUILD_CONTEXT: ${{ inputs.context }}
         DOCKERFILE: ${{ inputs.dockerfile }}
         CACHE_SCOPE: ${{ inputs.cache-scope }}

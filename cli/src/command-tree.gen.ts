@@ -12,8 +12,6 @@ import type { command as destroyCmd } from './commands/destroy.ts';
 import type { command as doctorCmd } from './commands/doctor.ts';
 import type { command as resumeCmd } from './commands/resume.ts';
 import type { command as setupCmd } from './commands/setup.ts';
-import type { command as targetTargetCmd } from './commands/target/[target].ts';
-import type { command as targetCmd } from './commands/target.ts';
 import type { command as updateCmd } from './commands/update.ts';
 
 declare module '@parshjs/core' {
@@ -56,19 +54,6 @@ declare module '@parshjs/core' {
     };
     setup: {
       parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    target: {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'target [target]': {
-      parents: {
-        target: {
-          options: InferForwardedOptions<typeof targetCmd.options>;
-          params: InferParams<typeof targetCmd.params>;
-        };
-      };
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
     update: {
@@ -182,23 +167,6 @@ export const commandTree: RuntimeNode = {
       command: { path: 'setup', load: () => import('./commands/setup.ts').then((m) => m.command) },
       literalChildren: {},
       paramChild: null,
-    },
-    target: {
-      segment: { kind: 'literal', value: 'target' },
-      command: {
-        path: 'target',
-        load: () => import('./commands/target.ts').then((m) => m.command),
-      },
-      literalChildren: {},
-      paramChild: {
-        segment: { kind: 'param', name: 'target' },
-        command: {
-          path: 'target [target]',
-          load: () => import('./commands/target/[target].ts').then((m) => m.command),
-        },
-        literalChildren: {},
-        paramChild: null,
-      },
     },
     update: {
       segment: { kind: 'literal', value: 'update' },

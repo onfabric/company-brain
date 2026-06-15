@@ -1,12 +1,7 @@
 import { loadConfig, missingRequiredConfig, type RequiredConfigKey } from './config.ts';
 import { configureAgentSync } from './configure.ts';
 import { ensureIdentity } from './identity.ts';
-import {
-  type AgentSyncTarget,
-  installLaunchAgent,
-  type LaunchAgentConfig,
-  launchAgentConfig,
-} from './launchd.ts';
+import { installLaunchAgent, type LaunchAgentConfig, launchAgentConfig } from './launchd.ts';
 
 export interface InitializeAgentSyncResult {
   dataDir: string;
@@ -21,7 +16,6 @@ export async function initializeAgentSync(options: {
   dataDir?: string;
   missingOnly?: boolean;
   skipLaunchAgent?: boolean;
-  target?: AgentSyncTarget;
 }): Promise<InitializeAgentSyncResult> {
   const configureOptions: {
     dataDir?: string;
@@ -40,8 +34,7 @@ export async function initializeAgentSync(options: {
   const configured = await configureAgentSync(configureOptions);
   const config = await loadConfig(options.dataDir ? { dataDir: options.dataDir } : {});
   const missing = missingRequiredConfig(config);
-  const target = options.target ?? 'local';
-  const launchAgent = launchAgentConfig(config.dataDir, target);
+  const launchAgent = launchAgentConfig(config.dataDir);
 
   if (missing.length > 0 || options.skipLaunchAgent) {
     return {
@@ -55,7 +48,7 @@ export async function initializeAgentSync(options: {
   }
 
   await ensureIdentity(config.dataDir);
-  const installed = await installLaunchAgent(config.dataDir, target);
+  const installed = await installLaunchAgent(config.dataDir);
   return {
     dataDir: config.dataDir,
     configPath: configured.configPath,

@@ -1,19 +1,14 @@
 import { intro, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
-import { uninstallAgentSyncForTarget } from '../../lib/agent-sync/operations.ts';
-import { isNonInteractive } from '../../lib/interaction.ts';
-import { resolveCommandTarget, targetOptions } from '../../lib/target.ts';
+import { uninstallAgentSync } from '../../lib/agent-sync/operations.ts';
 
 export const command = defineCommand('agent-sync uninstall', {
-  description: 'Uninstall the selected target agent sync LaunchAgent.',
-  options: targetOptions,
-  handler: async ({ options, rootOptions, print }) => {
-    const nonInteractive = isNonInteractive(rootOptions['non-interactive']);
-    const target = await resolveCommandTarget(options.target, nonInteractive);
-
-    intro(`Company Brain ${target} agent sync uninstall`);
-    const result = await uninstallAgentSyncForTarget(target);
+  description: 'Uninstall the hosted Company Brain agent sync LaunchAgent.',
+  options: {},
+  handler: async ({ print }) => {
+    intro('Company Brain cloud agent sync uninstall');
+    const result = await uninstallAgentSync();
     print.success(`Removed LaunchAgent: ${result.plistPath}`);
-    outro(`${target === 'local' ? 'Local' : 'Cloud'} agent sync is uninstalled.`);
+    outro('Cloud agent sync is uninstalled.');
   },
 });
