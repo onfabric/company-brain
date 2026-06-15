@@ -162,7 +162,7 @@ async function setupCloud(options: {
 
 async function promptAllowedEmailsIfMissing(nonInteractive: boolean): Promise<string | undefined> {
   const existing = await readRootEnv();
-  if (existing.BRAIN_ALLOWED_EMAILS_REGEX) {
+  if (existing.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX) {
     return undefined;
   }
 

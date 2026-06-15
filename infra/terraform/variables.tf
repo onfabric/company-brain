@@ -101,7 +101,7 @@ variable "google_client_secret" {
 # Regex the brain matches (case-insensitively) against an email before allowing
 # sign-in. Defaults to the workspace so prod can never silently fall open; the
 # interactive CLI overrides it via TF_VAR when a value is configured.
-variable "brain_allowed_emails_regex" {
+variable "allowed_dashboard_accounts_emails_regex" {
   type        = string
   description = "Regex of emails allowed to sign in to the brain."
   default     = ".*@onfabric\\.io$"

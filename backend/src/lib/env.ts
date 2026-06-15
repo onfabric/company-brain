@@ -8,7 +8,7 @@ declare global {
       readonly BETTER_AUTH_SECRET?: string;
       readonly GOOGLE_CLIENT_ID?: string;
       readonly GOOGLE_CLIENT_SECRET?: string;
-      readonly BRAIN_ALLOWED_EMAILS_REGEX?: string;
+      readonly ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX?: string;
     }
   }
 }
@@ -63,8 +63,8 @@ function loadEnv(): Env {
     betterAuthSecret: required('BETTER_AUTH_SECRET'),
     googleClientId: required('GOOGLE_CLIENT_ID'),
     googleClientSecret: required('GOOGLE_CLIENT_SECRET'),
-    allowedEmailsRegex: process.env.BRAIN_ALLOWED_EMAILS_REGEX
-      ? new RegExp(process.env.BRAIN_ALLOWED_EMAILS_REGEX)
+    allowedEmailsRegex: process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX
+      ? new RegExp(process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX)
       : null,
   };
 }
