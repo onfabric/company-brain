@@ -10,6 +10,15 @@ fi
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 mkdir -p "$(dirname "$output_path")"
 
+caddy_root="$repo_root/infra"
+if [ ! -f "$caddy_root/caddy/Caddyfile" ]; then
+  caddy_root="$repo_root"
+fi
+if [ ! -f "$caddy_root/caddy/Caddyfile" ]; then
+  echo "Could not find caddy/Caddyfile under $repo_root/infra or $repo_root" >&2
+  exit 1
+fi
+
 cmd=(
   tar czf "$output_path"
   --exclude=infra/terraform/.terraform
@@ -21,7 +30,7 @@ cmd=(
   nango-integrations/.env.example
   infra/terraform
   infra/deploy/on_box_deploy.sh infra/deploy/ensure_data_volume.sh infra/deploy/ssm_deploy.sh infra/deploy/package_runtime_bundle.sh
-  -C "$repo_root/infra" caddy/Caddyfile
+  -C "$caddy_root" caddy/Caddyfile
   -C "$repo_root/infra/deploy" on_box_deploy.sh ensure_data_volume.sh ssm_deploy.sh package_runtime_bundle.sh
 )
 
