@@ -11,7 +11,9 @@ WORKDIR /monorepo
 FROM base AS install
 WORKDIR /temp/deps
 COPY package.json bun.lock ./
-COPY --parents agent-sync/package.json backend/package.json backend-client/package.json cli/package.json dashboard/package.json nango-integrations/package.json ./
+# Every workspace is one level deep and nango/node_modules are dockerignored, so
+# this glob grabs exactly the workspace manifests and auto-covers new ones.
+COPY --parents */package.json ./
 RUN bun install --frozen-lockfile
 
 FROM base AS build
