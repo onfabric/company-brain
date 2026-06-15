@@ -109,14 +109,6 @@ jobs:
 
       - name: Block unexpected destructive plans
         if: inputs.allow_destroy != true
-        env:
-          ALLOWED_TERRAFORM_DESTROY_ADDRESSES: |
-            aws_ecr_lifecycle_policy.brain
-            aws_ecr_lifecycle_policy.nango
-            aws_ecr_lifecycle_policy.pg_backup
-            aws_ecr_repository.brain
-            aws_ecr_repository.nango
-            aws_ecr_repository.pg_backup
         run: |
           ../deploy/check_terraform_destroy_plan.sh tfplan
 
