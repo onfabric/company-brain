@@ -14,11 +14,11 @@ describe('allowedEmailsToRegex', () => {
   });
 
   it('expands a wildcard local part to any user at the domain', () => {
-    expect(allowedEmailsToRegex('*@example.com')).toBe('^([^@]+@example\\.com)$');
+    expect(allowedEmailsToRegex('*@example.com')).toBe('^.*@example\\.com$');
   });
 
   it('lowercases and escapes regex metacharacters', () => {
-    expect(allowedEmailsToRegex('Alice+Tag@Example.com')).toBe('^(alice\\+tag@example\\.com)$');
+    expect(allowedEmailsToRegex('Alice+Tag@Example.com')).toBe('^alice\\+tag@example\\.com$');
   });
 
   it('matches the emails it was built from and rejects look-alikes', () => {

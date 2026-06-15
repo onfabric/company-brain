@@ -1,12 +1,13 @@
 export const ALLOWED_EMAILS_PLACEHOLDER = 'alice@example.com, *@example.com';
 
 export function allowedEmailsToRegex(input: string): string | undefined {
-  const entries = splitEntries(input);
-  if (entries.length === 0) {
+  const fragments = splitEntries(input).map(entryToFragment);
+  if (fragments.length === 0) {
     return undefined;
   }
 
-  return `^(${entries.map(entryToFragment).join('|')})$`;
+  const body = fragments.length === 1 ? fragments[0] : `(${fragments.join('|')})`;
+  return `^${body}$`;
 }
 
 export function validateAllowedEmailsInput(value: string | undefined): string | undefined {
@@ -38,7 +39,7 @@ function entryToFragment(entry: string): string {
 
   const local = entry.slice(0, at);
   const domain = entry.slice(at + 1);
-  const localPattern = local === '*' ? '[^@]+' : escapeRegex(local);
+  const localPattern = local === '*' ? '.*' : escapeRegex(local);
   return `${localPattern}@${escapeRegex(domain)}`;
 }
 
