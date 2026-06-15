@@ -18,7 +18,7 @@ import { AgentSyncStore } from './agent-sync/store.ts';
 import { parseTranscriptFile } from './agent-sync/transcript-parser.ts';
 
 const TEMP_PREFIX = 'company-brain-cli-agent-sync-';
-const SYNC_NOW_COMMAND_SUFFIX_LENGTH = 3;
+const SYNC_NOW_COMMAND_SUFFIX_LENGTH = 4;
 const AGENT_SYNC_DIR_ENV = 'COMPANY_BRAIN_AGENT_SYNC_DIR';
 const CODEX_SESSION_DIR_ENV = 'COMPANY_BRAIN_CODEX_SESSION_DIR';
 const CLAUDE_CODE_PROJECTS_DIR_ENV = 'COMPANY_BRAIN_CLAUDE_CODE_PROJECTS_DIR';
@@ -346,9 +346,10 @@ describe('agent sync', () => {
 
     expect(config.label).toBe('dev.company-brain.agent-sync');
     expect(config.programArguments.slice(-SYNC_NOW_COMMAND_SUFFIX_LENGTH)).toEqual([
-      'local',
       'agent-sync',
       'sync-now',
+      '--target',
+      'local',
     ]);
     expect(plist).toContain('<key>RunAtLoad</key>');
     expect(plist).toContain('<key>StartInterval</key>');

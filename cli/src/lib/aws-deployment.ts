@@ -82,8 +82,8 @@ export async function continueAwsDeployment({
       `Dozzle logs: https://${current.dozzleHostname}`,
       '',
       'Next: add integrations or install the cloud agent sync schedule:',
-      'bun run company-brain cloud add integrations',
-      'bun run company-brain cloud agent-sync install',
+      'company-brain add integrations --target cloud',
+      'company-brain agent-sync install --target cloud',
     ].join('\n'),
     'Cloud URLs',
   );
@@ -126,7 +126,7 @@ async function ensureDns(
       [
         'Create the DNS records above in your DNS provider.',
         'Use DNS-only records if your provider has a proxy mode.',
-        'Then run: bun run company-brain cloud resume',
+        'Then run: company-brain resume --target cloud',
       ].join('\n'),
       'Manual DNS required',
     );
@@ -140,7 +140,7 @@ async function ensureDns(
   if (issues.length > 0) {
     print.warn('DNS records are not ready yet.');
     note(issues.join('\n'), 'DNS check');
-    note('Fix DNS, wait for propagation, then run: bun run company-brain cloud resume', 'Next');
+    note('Fix DNS, wait for propagation, then run: company-brain resume --target cloud', 'Next');
     return false;
   }
 
@@ -160,7 +160,7 @@ async function ensureHttps(config: AwsConfig, print: Printer): Promise<boolean> 
         ...issues,
         '',
         'Common causes: DNS records are wrong, a DNS proxy is enabled, or ports 80/443 are blocked.',
-        'After fixing it, run: bun run company-brain cloud resume',
+        'After fixing it, run: company-brain resume --target cloud',
       ].join('\n'),
       'Certificate/service check',
     );

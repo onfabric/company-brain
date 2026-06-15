@@ -39,7 +39,7 @@ describe('hostedNangoEnvDefaults', () => {
   });
 
   it('points missing API keys at cloud resume', () => {
-    expect(() => hostedNangoEnv(config())).toThrow('bun run company-brain cloud resume');
+    expect(() => hostedNangoEnv(config())).toThrow('company-brain resume --target cloud');
   });
 });
 

@@ -96,7 +96,7 @@ export async function requireAwsConfig(): Promise<AwsConfig> {
   const config = await readAwsConfig();
   if (!config) {
     throw new Error(
-      'Missing .company-brain.aws.json. Run `bun run company-brain cloud setup` first.',
+      'Missing .company-brain.aws.json. Run `company-brain setup --target cloud` first.',
     );
   }
 
@@ -161,7 +161,7 @@ export function hostedNangoEnvDefaults(config: AwsConfig): Record<string, string
 
 function requiredSecret(value: string | undefined, label: string): string {
   if (!value) {
-    throw new Error(`Missing ${label}. Run \`bun run company-brain cloud resume\`.`);
+    throw new Error(`Missing ${label}. Run \`company-brain resume --target cloud\`.`);
   }
 
   return value;
