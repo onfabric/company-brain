@@ -84,7 +84,7 @@ async function setupLocal(options: {
     options.allowedEmails ?? (await promptAllowedEmailsIfMissing(options.nonInteractive));
   await ensureRootEnv({
     force: options.force,
-    allowedEmailsRegex:
+    allowedDashboardAccountsEmailsRegex:
       allowedEmails === undefined ? undefined : allowedEmailsToRegex(allowedEmails),
   });
   await ensureNangoEnvBase(options.force);

@@ -35,7 +35,7 @@ type Env = {
   betterAuthSecret: string;
   googleClientId: string;
   googleClientSecret: string;
-  allowedEmailsRegex: RegExp | null;
+  allowedDashboardAccountsEmailsRegex: RegExp | null;
 };
 
 function required(name: keyof NodeJS.ProcessEnv): string {
@@ -63,7 +63,7 @@ function loadEnv(): Env {
     betterAuthSecret: required('BETTER_AUTH_SECRET'),
     googleClientId: required('GOOGLE_CLIENT_ID'),
     googleClientSecret: required('GOOGLE_CLIENT_SECRET'),
-    allowedEmailsRegex: process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX
+    allowedDashboardAccountsEmailsRegex: process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX
       ? new RegExp(process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX)
       : null,
   };

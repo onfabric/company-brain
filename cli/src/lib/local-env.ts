@@ -7,7 +7,7 @@ const SECRET_BYTES = 32;
 
 export type EnsureRootEnvOptions = {
   force?: boolean;
-  allowedEmailsRegex?: string;
+  allowedDashboardAccountsEmailsRegex?: string;
 };
 
 export async function readRootEnv(): Promise<Record<string, string>> {
@@ -16,7 +16,11 @@ export async function readRootEnv(): Promise<Record<string, string>> {
 
 export async function ensureRootEnv(options: EnsureRootEnvOptions = {}): Promise<void> {
   const existing = await readRootEnv();
-  const values = rootEnvValues(existing, options.allowedEmailsRegex, Boolean(options.force));
+  const values = rootEnvValues(
+    existing,
+    options.allowedDashboardAccountsEmailsRegex,
+    Boolean(options.force),
+  );
 
   if (!existsSync(rootEnvPath) || options.force) {
     await writeEnvFromTemplate({
@@ -32,10 +36,11 @@ export async function ensureRootEnv(options: EnsureRootEnvOptions = {}): Promise
 
 function rootEnvValues(
   existing: Record<string, string>,
-  allowedEmailsRegex?: string,
+  allowedDashboardAccountsEmailsRegex?: string,
   reset = false,
 ): Record<string, string> {
-  const regex = allowedEmailsRegex || existing.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX;
+  const regex =
+    allowedDashboardAccountsEmailsRegex || existing.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX;
   return {
     BRAIN_API_KEY: existing.BRAIN_API_KEY || randomUuid(),
     BETTER_AUTH_SECRET: replaceLocalDefault(

@@ -22,7 +22,10 @@ export const OAUTH_SCOPES = ['openid', 'profile', 'email', 'offline_access', MCP
 const logger = createLogger('better-auth');
 
 function isAllowedEmail(email: string): boolean {
-  return env.allowedEmailsRegex === null || env.allowedEmailsRegex.test(email.toLowerCase());
+  return (
+    env.allowedDashboardAccountsEmailsRegex === null ||
+    env.allowedDashboardAccountsEmailsRegex.test(email.toLowerCase())
+  );
 }
 
 export const auth = betterAuth({

@@ -136,9 +136,9 @@ export async function collectAwsConfig({
     nonInteractive,
     validateAllowedEmailsInput,
   );
-  const allowedEmailsRegex = allowedEmailsInput
+  const allowedDashboardAccountsEmailsRegex = allowedEmailsInput
     ? allowedEmailsToRegex(allowedEmailsInput)
-    : existing?.allowedEmailsRegex;
+    : existing?.allowedDashboardAccountsEmailsRegex;
   const googleClientId = await promptText(
     'Brain Google OAuth client ID',
     'OAuth client ID from Google Cloud for Brain sign-in. Use the Brain redirect URI shown above.',
@@ -199,7 +199,7 @@ export async function collectAwsConfig({
     brainHostname: hostnames.brainHostname,
     dozzleHostname: hostnames.dozzleHostname,
     acmeEmail,
-    allowedEmailsRegex,
+    allowedDashboardAccountsEmailsRegex,
     googleClientId,
     dozzleUsername,
     dozzleEmail,
