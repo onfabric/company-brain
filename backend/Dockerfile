@@ -6,23 +6,12 @@
 FROM oven/bun:1.3.14-slim AS base
 WORKDIR /monorepo
 
-# Assemble just the manifests + lockfile for the workspaces declared in the root
-# package.json, so the install layer below busts only when dependencies change.
-FROM base AS prune
-COPY . .
-RUN <<'EOF'
-set -e
-mkdir -p out
-cp package.json bun.lock out/
-for pkg in $(bun -e 'console.log((await Bun.file("package.json").json()).workspaces.packages.join(" "))'); do
-  mkdir -p "out/$pkg"
-  cp "$pkg/package.json" "out/$pkg/package.json"
-done
-EOF
-
+# Cache deps in a temp directory. Copy only the workspace manifests + lockfile
+# so this layer is reused whenever source changes but dependencies don't.
 FROM base AS install
 WORKDIR /temp/deps
-COPY --from=prune /monorepo/out/ ./
+COPY package.json bun.lock ./
+COPY --parents agent-sync/package.json backend/package.json backend-client/package.json cli/package.json dashboard/package.json nango-integrations/package.json ./
 RUN bun install --frozen-lockfile
 
 FROM base AS build
