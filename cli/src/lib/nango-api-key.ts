@@ -23,7 +23,7 @@ export async function ensureLocalNangoApiKey(
     note(
       [
         'Open http://localhost:3003/dev/environment-settings#api-keys and copy the dev API key.',
-        'Then run: bun run company-brain local resume',
+        'Then run: company-brain resume --target local',
       ].join('\n'),
       'Nango API key',
     );
@@ -51,7 +51,7 @@ export async function ensureCloudNangoApiKey(
     note(
       [
         `Open https://${config.nangoHostname}/dev/environment-settings#api-keys and copy the dev API key.`,
-        'Then run: bun run company-brain cloud resume',
+        'Then run: company-brain resume --target cloud',
       ].join('\n'),
       'Nango API key',
     );

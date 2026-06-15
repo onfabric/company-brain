@@ -1,12 +1,12 @@
 import { isCancel, multiselect, password, text } from '@clack/prompts';
 import { oauthConnectionHints } from '../../../nango-integrations/_scripts/lib/catalog.ts';
 import { parseSelection } from '../../../nango-integrations/_scripts/lib/selection.ts';
+import type { Target } from './deployment-target.ts';
 import {
   bootstrappedConnectionIntegrationIds,
   nangoDefaultIntegrationSpecs,
   nangoIntegrationSpecs,
 } from './nango.ts';
-import type { AddTarget } from './nango-add-targets.ts';
 
 export type IntegrationSpec = (typeof nangoIntegrationSpecs)[number];
 
@@ -16,7 +16,7 @@ export async function collectNangoEnv(
   selected: IntegrationSpec[],
   force: boolean,
   nonInteractive: boolean,
-  target: AddTarget,
+  target: Target,
 ): Promise<Record<string, string>> {
   const values: Record<string, string> = {
     ...existing,

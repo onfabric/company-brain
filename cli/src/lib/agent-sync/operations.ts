@@ -68,6 +68,7 @@ export async function installAgentSyncForTarget(
   const config = await loadConfig();
   await writeConfigFile({
     ...existing,
+    target,
     nangoWebhookUrl: nango.webhookUrl,
     nangoConnectionId: nango.connectionId,
     nangoWebhookSecret: resolved.webhookSecret,
@@ -163,14 +164,14 @@ async function resolveLocalTarget(options: {
       [
         'Local Company Brain is not ready.',
         ...prerequisites,
-        'Run: bun run company-brain local setup',
+        'Run: company-brain setup --target local',
       ].join('\n'),
     );
   }
 
   await waitForComposeHealth(options.verbose);
   if (!(await isBrainApiHealthy(DEFAULT_BRAIN_URL))) {
-    throw new Error('Local Brain is not healthy. Run: bun run company-brain local resume');
+    throw new Error('Local Brain is not healthy. Run: company-brain resume --target local');
   }
 
   await ensureLocalNangoApiKey(options.nonInteractive, options.print);
@@ -190,14 +191,14 @@ async function resolveCloudTarget(
 ): Promise<{ nangoUrl: string; nangoSecretKey: string; webhookSecret: string }> {
   let config = await requireAwsConfig();
   if (!config.outputs || !config.appDeployedAt) {
-    throw new Error('Cloud Company Brain is not deployed. Run: bun run company-brain cloud setup');
+    throw new Error('Cloud Company Brain is not deployed. Run: company-brain setup --target cloud');
   }
 
   const issues = await httpsIssues(config);
   if (issues.length > 0) {
     note(issues.join('\n'), 'Cloud HTTPS check');
     throw new Error(
-      'Cloud Company Brain is not reachable. Run: bun run company-brain cloud resume',
+      'Cloud Company Brain is not reachable. Run: company-brain resume --target cloud',
     );
   }
 

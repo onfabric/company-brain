@@ -156,7 +156,7 @@ export async function runRemoteHealthCommand(
 
 function requiredOutputs(config: AwsConfig): NonNullable<AwsConfig['outputs']> {
   if (!config.outputs) {
-    throw new Error('Missing Terraform outputs. Run `bun run company-brain cloud setup` first.');
+    throw new Error('Missing Terraform outputs. Run `company-brain setup --target cloud` first.');
   }
 
   return config.outputs;

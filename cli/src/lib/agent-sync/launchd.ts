@@ -3,11 +3,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import type { Target } from '../deployment-target.ts';
 import { DEFAULT_SCAN_INTERVAL_MS, REQUIRED_CONFIG_KEYS, readConfigFile } from './config.ts';
 
 const LABEL = 'dev.company-brain.agent-sync';
 const MILLISECONDS_PER_SECOND = 1000;
-export type AgentSyncTarget = 'local' | 'cloud';
+export type AgentSyncTarget = Target;
 
 export interface LaunchAgentConfig {
   label: string;
@@ -68,7 +69,7 @@ export async function installLaunchAgent(
   const missing = REQUIRED_CONFIG_KEYS.filter((key) => !fileConfig[key]);
   if (missing.length > 0) {
     throw new Error(
-      `agent-sync setup needed before installing LaunchAgent. Run: company-brain ${target} agent-sync install (${missing.join(', ')})`,
+      `agent-sync setup needed before installing LaunchAgent. Run: company-brain agent-sync install --target ${target} (${missing.join(', ')})`,
     );
   }
 
@@ -110,15 +111,22 @@ function launchTarget(): string {
 function syncNowProgramArguments(target: AgentSyncTarget): string[] {
   const scriptPath = process.argv[1];
   if (scriptPath && scriptPath !== process.execPath && scriptPath.endsWith('.ts')) {
-    return [process.execPath, path.resolve(scriptPath), target, 'agent-sync', 'sync-now'];
+    return [
+      process.execPath,
+      path.resolve(scriptPath),
+      'agent-sync',
+      'sync-now',
+      '--target',
+      target,
+    ];
   }
 
   const cliPath = fileURLToPath(new URL('../../main.ts', import.meta.url));
   if (fs.existsSync(cliPath)) {
-    return [process.execPath, cliPath, target, 'agent-sync', 'sync-now'];
+    return [process.execPath, cliPath, 'agent-sync', 'sync-now', '--target', target];
   }
 
-  return [process.execPath, target, 'agent-sync', 'sync-now'];
+  return [process.execPath, 'agent-sync', 'sync-now', '--target', target];
 }
 
 function intervalSeconds(scanIntervalMs: number): number {

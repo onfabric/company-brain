@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { isTarget, type Target } from '../deployment-target.ts';
 import { readJsonFile, writeJsonFile } from './utils.ts';
 
 const DEFAULT_DATA_DIR = '.company-brain/agent-sync';
@@ -9,6 +10,7 @@ export const DEFAULT_SCAN_INTERVAL_MS = 1_800_000;
 const DEFAULT_NANGO_PUSH_TIMEOUT_MS = 5_000;
 
 export interface AgentSyncConfigFile {
+  target?: Target | undefined;
   nangoWebhookUrl?: string | undefined;
   nangoConnectionId?: string | undefined;
   nangoWebhookSecret?: string | undefined;
@@ -21,6 +23,7 @@ export interface AgentSyncConfigFile {
 export interface AgentSyncConfig {
   dataDir: string;
   configPath: string;
+  target?: Target | undefined;
   nangoWebhookUrl?: string | undefined;
   nangoConnectionId?: string | undefined;
   nangoWebhookSecret?: string | undefined;
@@ -57,6 +60,7 @@ export async function loadConfig(options: { dataDir?: string } = {}): Promise<Ag
   return {
     dataDir,
     configPath: configPath(dataDir),
+    target: fileConfig.target,
     nangoWebhookUrl: firstNonEmpty(
       env('COMPANY_BRAIN_NANGO_WEBHOOK_URL'),
       fileConfig.nangoWebhookUrl,
@@ -104,6 +108,7 @@ export async function readConfigFile(dataDir = getDataDir()): Promise<AgentSyncC
 
   const record = value as Record<string, unknown>;
   return {
+    target: targetField(record, 'target'),
     nangoWebhookUrl: stringField(record, 'nangoWebhookUrl'),
     nangoConnectionId: stringField(record, 'nangoConnectionId'),
     nangoWebhookSecret: stringField(record, 'nangoWebhookSecret'),
@@ -155,6 +160,11 @@ function positiveNumber(value: unknown): number | undefined {
 function stringField(record: Record<string, unknown>, key: string): string | undefined {
   const value = field(record, key);
   return typeof value === 'string' ? nonEmpty(value) : undefined;
+}
+
+function targetField(record: Record<string, unknown>, key: string): Target | undefined {
+  const value = field(record, key);
+  return isTarget(value) ? value : undefined;
 }
 
 function field(record: Record<string, unknown>, key: string): unknown {
