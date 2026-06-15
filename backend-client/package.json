@@ -1,0 +1,21 @@
+{
+  "name": "@company-brain/backend-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check:types": "bun run --bun tsc",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@elysiajs/eden": "^1.4.9"
+  },
+  "devDependencies": {
+    "@company-brain/backend": "workspace:*",
+    "elysia": "^1.4.28",
+    "typescript": "catalog:"
+  }
+}
