@@ -113,7 +113,10 @@ describe('release compatibility', () => {
 
   it('rejects unsupported deployment contracts', () => {
     expect(() =>
-      assertReleaseCompatible(manifest({ deployment: { contractVersion: 2, infraVersion: 1 } })),
+      assertReleaseCompatible(
+        manifest({ deployment: { contractVersion: 2, infraVersion: 1 } }),
+        'v1.2.0',
+      ),
     ).toThrow('uses deployment contract 2');
   });
 });
