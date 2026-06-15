@@ -57,7 +57,7 @@ function config(): AwsConfig {
     brainHostname: 'brain.example.com',
     dozzleHostname: 'logs.example.com',
     acmeEmail: 'ops@example.com',
-    workspaceDomain: 'example.com',
+    allowedDashboardAccountsEmailsRegex: '.*@example\\.com$',
     googleClientId: 'client-id',
     dozzleUsername: 'admin',
     dozzleEmail: 'ops@example.com',

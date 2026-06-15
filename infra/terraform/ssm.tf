@@ -82,6 +82,18 @@ resource "aws_ssm_parameter" "google_client_secret" {
   }
 }
 
+# Brain sign-in allowlist. Not a credential, so a plain String; read on the box
+# alongside the other brain auth config and written into the compose .env.
+resource "aws_ssm_parameter" "allowed_dashboard_accounts_emails_regex" {
+  name  = "${var.ssm_secret_prefix}/allowed_dashboard_accounts_emails_regex"
+  type  = "String"
+  value = var.allowed_dashboard_accounts_emails_regex
+
+  tags = {
+    Name = "${local.resource_name_prefix}-allowed-dashboard-accounts-emails-regex"
+  }
+}
+
 # Dozzle simple-auth users.yml. Can't be generated here (it holds a bcrypt
 # password hash), so Terraform only creates the slot; set the real value with:
 #   aws ssm put-parameter --name <prefix>/dozzle_users --type SecureString \

@@ -8,14 +8,13 @@ declare global {
       readonly BETTER_AUTH_SECRET?: string;
       readonly GOOGLE_CLIENT_ID?: string;
       readonly GOOGLE_CLIENT_SECRET?: string;
-      readonly WORKSPACE_DOMAIN?: string;
+      readonly ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX?: string;
     }
   }
 }
 
 const DEFAULT_PORT = '3010';
 const DEFAULT_PUBLIC_URL = `http://localhost:${DEFAULT_PORT}`;
-const DEFAULT_WORKSPACE_DOMAIN = 'onfabric.io';
 
 type Env = {
   databaseUrl: string;
@@ -36,9 +35,7 @@ type Env = {
   betterAuthSecret: string;
   googleClientId: string;
   googleClientSecret: string;
-  // The workspace the brain restricts sign-in to: a Google hosted-domain hint
-  // and the hard check enforced in the auth database hook.
-  workspaceDomain: string;
+  allowedDashboardAccountsEmailsRegex: RegExp | null;
 };
 
 function required(name: keyof NodeJS.ProcessEnv): string {
@@ -66,7 +63,9 @@ function loadEnv(): Env {
     betterAuthSecret: required('BETTER_AUTH_SECRET'),
     googleClientId: required('GOOGLE_CLIENT_ID'),
     googleClientSecret: required('GOOGLE_CLIENT_SECRET'),
-    workspaceDomain: optional('WORKSPACE_DOMAIN', DEFAULT_WORKSPACE_DOMAIN),
+    allowedDashboardAccountsEmailsRegex: process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX
+      ? new RegExp(process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX)
+      : null,
   };
 }
 

@@ -1,6 +1,11 @@
 import { intro, isCancel, note, outro, text } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
 import { z } from 'zod';
+import {
+  ALLOWED_EMAILS_PLACEHOLDER,
+  allowedEmailsToRegex,
+  validateAllowedEmailsInput,
+} from '../lib/allowed-emails.ts';
 import { readAwsConfig, writeAwsConfig } from '../lib/aws-config.ts';
 import { withAwsCredentials } from '../lib/aws-credentials.ts';
 import { continueAwsDeployment, provisionAwsInfrastructure } from '../lib/aws-deployment.ts';
@@ -25,9 +30,10 @@ export const command = defineCommand('setup', {
       schema: z.boolean().optional(),
       description: 'Only write local configuration without starting Docker Compose.',
     },
-    'workspace-domain': {
+    'allowed-emails': {
       schema: z.string().optional(),
-      description: 'Google Workspace domain allowed to sign in to the brain.',
+      description:
+        'Comma-separated emails allowed to sign in; use *@domain for a whole workspace. Empty allows any.',
     },
     yes: {
       schema: z.boolean().optional(),
@@ -40,14 +46,14 @@ export const command = defineCommand('setup', {
     rejectOptionsForTarget(target, options, {
       yes: 'cloud',
       'skip-start': 'local',
-      'workspace-domain': 'local',
+      'allowed-emails': 'local',
     });
 
     if (target === 'local') {
       await setupLocal({
         force: options.force,
         skipStart: options['skip-start'],
-        workspaceDomain: options['workspace-domain'],
+        allowedEmails: options['allowed-emails'],
         nonInteractive,
         verbose: Boolean(rootOptions.verbose),
         print,
@@ -67,16 +73,20 @@ export const command = defineCommand('setup', {
 async function setupLocal(options: {
   force?: boolean;
   skipStart?: boolean;
-  workspaceDomain?: string;
+  allowedEmails?: string;
   nonInteractive: boolean;
   verbose: boolean;
   print: { success: (message: string) => void; warn: (message: string) => void };
 }): Promise<void> {
   intro('Company Brain local setup');
 
-  const workspaceDomain =
-    options.workspaceDomain ?? (await promptWorkspaceDomainIfMissing(options.nonInteractive));
-  await ensureRootEnv({ force: options.force, workspaceDomain });
+  const allowedEmails =
+    options.allowedEmails ?? (await promptAllowedEmailsIfMissing(options.nonInteractive));
+  await ensureRootEnv({
+    force: options.force,
+    allowedDashboardAccountsEmailsRegex:
+      allowedEmails === undefined ? undefined : allowedEmailsToRegex(allowedEmails),
+  });
   await ensureNangoEnvBase(options.force);
 
   options.print.success('Local env files are ready.');
@@ -150,45 +160,27 @@ async function setupCloud(options: {
   outro('Cloud setup flow finished.');
 }
 
-async function promptWorkspaceDomainIfMissing(
-  nonInteractive: boolean,
-): Promise<string | undefined> {
+async function promptAllowedEmailsIfMissing(nonInteractive: boolean): Promise<string | undefined> {
   const existing = await readRootEnv();
-  if (existing.WORKSPACE_DOMAIN) {
+  if (existing.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX) {
     return undefined;
   }
 
-  return await promptWorkspaceDomain('example.com', nonInteractive);
-}
-
-async function promptWorkspaceDomain(
-  defaultValue: string,
-  nonInteractive: boolean,
-): Promise<string> {
   if (nonInteractive) {
-    return defaultValue;
+    return '';
   }
 
   const answer = await text({
-    message: 'Workspace domain for local Google sign-in checks',
-    placeholder: defaultValue,
-    defaultValue,
-    validate: validateRequired,
+    message: 'Emails allowed to sign in (comma-separated, *@domain for a whole workspace)',
+    placeholder: `${ALLOWED_EMAILS_PLACEHOLDER} — leave empty to allow any`,
+    validate: validateAllowedEmailsInput,
   });
 
   if (isCancel(answer)) {
     throw new Error('Setup cancelled.');
   }
 
-  return answer;
-}
-
-function validateRequired(value: string | undefined): string | undefined {
-  if (!value || value.trim().length === 0) {
-    return 'Required';
-  }
-
-  return undefined;
+  return answer ?? '';
 }
 
 function formatCredentialSource(prerequisites: AwsPrerequisites): string {
