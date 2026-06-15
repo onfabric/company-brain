@@ -107,23 +107,18 @@ jobs:
           TF_VAR_google_client_id: ${{ vars.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_ID }}
           TF_VAR_google_client_secret: ${{ secrets.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_SECRET }}
 
-      - name: Block destructive plans
+      - name: Block unexpected destructive plans
         if: inputs.allow_destroy != true
+        env:
+          ALLOWED_TERRAFORM_DESTROY_ADDRESSES: |
+            aws_ecr_lifecycle_policy.brain
+            aws_ecr_lifecycle_policy.nango
+            aws_ecr_lifecycle_policy.pg_backup
+            aws_ecr_repository.brain
+            aws_ecr_repository.nango
+            aws_ecr_repository.pg_backup
         run: |
-          destroyed=$(terraform show -json tfplan \
-            | jq -r '.resource_changes[] | select(.change.actions | index("delete")) | .address')
-          if [ -n "$destroyed" ]; then
-            {
-              echo '## Destructive terraform plan blocked'
-              echo 'The plan would destroy or replace:'
-              echo '```'
-              echo "$destroyed"
-              echo '```'
-              echo 'If intentional, rerun the workflow via workflow_dispatch with `allow_destroy` enabled.'
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo "::error title=Destructive terraform plan blocked::Plan destroys/replaces: $(echo "$destroyed" | tr '\n' ' ')"
-            exit 1
-          fi
+          ../deploy/check_terraform_destroy_plan.sh tfplan
 
       - run: terraform apply -input=false tfplan
 
