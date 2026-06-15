@@ -13,6 +13,7 @@ import type { command as doctorCmd } from './commands/doctor.ts';
 import type { command as resumeCmd } from './commands/resume.ts';
 import type { command as setupCmd } from './commands/setup.ts';
 import type { command as updateCmd } from './commands/update.ts';
+import type { command as versionCmd } from './commands/version.ts';
 
 declare module '@parshjs/core' {
   interface CommandRegistry {
@@ -57,6 +58,10 @@ declare module '@parshjs/core' {
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
     update: {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    version: {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -173,6 +178,15 @@ export const commandTree: RuntimeNode = {
       command: {
         path: 'update',
         load: () => import('./commands/update.ts').then((m) => m.command),
+      },
+      literalChildren: {},
+      paramChild: null,
+    },
+    version: {
+      segment: { kind: 'literal', value: 'version' },
+      command: {
+        path: 'version',
+        load: () => import('./commands/version.ts').then((m) => m.command),
       },
       literalChildren: {},
       paramChild: null,

@@ -136,4 +136,4 @@ else
   say "Add $INSTALL_DIR to PATH, then run: $BIN_NAME --help"
   say "You can also run it directly: $INSTALL_DIR/$BIN_NAME --help"
 fi
-say "Next: $BIN_NAME target"
+say "Next: $BIN_NAME setup"

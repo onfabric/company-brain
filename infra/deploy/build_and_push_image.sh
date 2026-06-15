@@ -4,24 +4,26 @@ set -euo pipefail
 : "${IMAGE_REPOSITORY:?}" "${IMAGE_TAG:?}" "${BUILD_CONTEXT:?}" "${DOCKERFILE:?}"
 
 PLATFORM="${PLATFORM:-linux/amd64}"
-LATEST_TAG="${LATEST_TAG:-latest}"
 SOURCE_LABEL="${SOURCE_LABEL:-https://github.com/onfabric/company-brain}"
 CACHE_SCOPE="${CACHE_SCOPE:-}"
 CACHE_FROM="${CACHE_FROM:-}"
 CACHE_TO="${CACHE_TO:-}"
+EXTRA_IMAGE_TAGS="${EXTRA_IMAGE_TAGS:-}"
 
 image_uri="${IMAGE_REPOSITORY}:${IMAGE_TAG}"
-latest_uri="${IMAGE_REPOSITORY}:${LATEST_TAG}"
 
 cmd=(
   docker buildx build
   --platform "$PLATFORM"
   --push
   --tag "$image_uri"
-  --tag "$latest_uri"
   --label "org.opencontainers.image.source=$SOURCE_LABEL"
   --file "$DOCKERFILE"
 )
+
+for extra_tag in $EXTRA_IMAGE_TAGS; do
+  cmd+=(--tag "${IMAGE_REPOSITORY}:${extra_tag}")
+done
 
 if [ -n "$CACHE_SCOPE" ]; then
   cmd+=(--label "company-brain.cache-scope=$CACHE_SCOPE")

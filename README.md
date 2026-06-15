@@ -137,13 +137,35 @@ company-brain doctor
 The doctor checks AWS access, Terraform outputs, DNS, HTTPS, remote Docker
 services, and hosted Nango API key configuration.
 
+## Update A Hosted Deployment
+
+Update the existing hosted stack to the newest published Company Brain release:
+
+```bash
+company-brain update
+```
+
+To pin an exact release:
+
+```bash
+company-brain update --version v0.4.0
+```
+
+The update command keeps the same AWS infrastructure, DNS names, secrets, and
+persistent data volume. If a release declares a new infrastructure version, the
+CLI applies the release's Terraform bundle before redeploying containers. If
+the installed CLI is too old for the target release, re-run the installer to get
+the latest CLI binary, then run `company-brain update` again.
+
 ## CLI
 
 The primary entrypoint is the installed CLI:
 
 ```bash
 company-brain --help
+company-brain version
 company-brain setup
+company-brain update
 company-brain add integrations
 company-brain add syncs
 company-brain agent-sync install
@@ -164,6 +186,18 @@ Company Brain release images are published to GHCR for `linux/amd64`. The
 release and dev deploy workflows verify that the image tags are anonymously
 pullable before publishing deployable artifacts, because EC2 hosts pull them
 without registry credentials.
+
+`main` deploys continuously to the dev environment with commit-addressed image
+tags. Customer-installable CLI binaries, release manifests, runtime bundles, and
+versioned image tags are only published by `vX.Y.Z` GitHub release tags. Release
+manifests pin images by `tag@sha256` digest so a deployment of a given release is
+reproducible.
+
+To cut a customer release, run the `Create Release Tag` workflow with a version
+like `v0.4.0`. The workflow updates `cli/package.json`, refreshes `bun.lock`,
+commits `chore(release): v0.4.0` to `main`, tags that commit, and dispatches the
+release workflow for the tag. The release workflow refuses to build if the tag
+and `cli/package.json` disagree.
 
 ## Contributing
 

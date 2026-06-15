@@ -69,6 +69,7 @@ const AwsConfigSchema = z.object({
   outputs: AwsOutputsSchema.optional(),
   releaseVersion: z.string().optional(),
   releaseGitSha: z.string().optional(),
+  infraVersion: z.number().int().nonnegative().optional(),
   lastDeployId: z.string().optional(),
   appDeployedAt: z.string().optional(),
   nangoBootstrappedAt: z.string().optional(),

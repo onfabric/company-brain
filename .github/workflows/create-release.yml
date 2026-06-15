@@ -1,0 +1,75 @@
+name: Create Release Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example v0.4.0"
+        required: true
+
+concurrency:
+  group: create-release
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: write
+
+env:
+  NO_COLOR: "1"
+  VERSION: ${{ inputs.version }}
+
+jobs:
+  create-release-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: ./.github/actions/prepare
+
+      - name: Refuse to reuse release tag
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${VERSION}" >/dev/null 2>&1; then
+            echo "::error::Release tag ${VERSION} already exists."
+            exit 1
+          fi
+
+      - name: Set CLI release version
+        run: bun cli/src/scripts/set-release-version.ts "$VERSION"
+
+      - name: Update lockfile
+        run: bun install --lockfile-only
+
+      - name: Verify release version
+        run: bun cli/src/scripts/github-deploy-plan.ts verify-release-version "$VERSION"
+
+      - name: Validate release commit
+        run: |
+          bun check:all
+          bun run test
+
+      - name: Commit release version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- cli/package.json bun.lock; then
+            echo "cli/package.json already points at ${VERSION}; no release commit needed."
+          else
+            git add cli/package.json bun.lock
+            git commit -m "chore(release): ${VERSION}"
+            git push origin HEAD:main
+          fi
+
+      - name: Tag release commit
+        run: |
+          git tag "$VERSION"
+          git push origin "$VERSION"
+
+      - name: Dispatch release workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release.yml --ref "$VERSION" --field version="$VERSION"
