@@ -33,7 +33,7 @@ The Nango server is not started from this folder. The CLI compiles these functio
 `bun run bootstrap:integrations dev` creates the programmatically managed Nango integrations used by the Company Brain syncs if they do not already exist. Re-run with `--update-existing` to repair display names, webhook forwarding, client IDs, and scopes on existing integrations. Pass `--only notion,slack` to create or update only specific integrations.
 
 `bun run bootstrap:connections dev --only agent-conversations` creates the
-non-OAuth connection used by the local agent conversation daemon. The Company
+non-OAuth connection used by the local agent conversation sync. The Company
 Brain CLI runs this as part of `company-brain <target> agent-sync install`; it
 is not part of the default source integration bootstrap.
 

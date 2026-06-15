@@ -4,7 +4,7 @@ import { installAgentSyncForTarget } from '../../../lib/agent-sync/operations.ts
 import { isNonInteractive } from '../../../lib/interaction.ts';
 
 export const command = defineCommand('cloud agent-sync install', {
-  description: 'Install the cloud agent conversation sync daemon.',
+  description: 'Install the cloud agent conversation sync schedule.',
   options: {},
   handler: async ({ rootOptions, print }) => {
     intro('Company Brain cloud agent sync install');
@@ -22,6 +22,6 @@ export const command = defineCommand('cloud agent-sync install', {
       ].join('\n'),
       'Agent sync',
     );
-    outro('Cloud agent sync is installed.');
+    outro('Cloud agent sync is scheduled.');
   },
 });

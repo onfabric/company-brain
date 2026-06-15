@@ -81,7 +81,7 @@ export async function continueAwsDeployment({
       `Hosted Nango dashboard/login and API keys: https://${current.nangoHostname}`,
       `Dozzle logs: https://${current.dozzleHostname}`,
       '',
-      'Next: add integrations or install the cloud agent sync daemon:',
+      'Next: add integrations or install the cloud agent sync schedule:',
       'bun run company-brain cloud add integrations',
       'bun run company-brain cloud agent-sync install',
     ].join('\n'),

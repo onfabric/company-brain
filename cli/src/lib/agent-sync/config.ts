@@ -5,7 +5,7 @@ import path from 'node:path';
 import { readJsonFile, writeJsonFile } from './utils.ts';
 
 const DEFAULT_DATA_DIR = '.company-brain/agent-sync';
-const DEFAULT_SCAN_INTERVAL_MS = 1_800_000;
+export const DEFAULT_SCAN_INTERVAL_MS = 1_800_000;
 const DEFAULT_NANGO_PUSH_TIMEOUT_MS = 5_000;
 
 export interface AgentSyncConfigFile {

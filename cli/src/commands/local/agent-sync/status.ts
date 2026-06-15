@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { agentSyncStatus, formatAgentSyncStatus } from '../../../lib/agent-sync/operations.ts';
 
 export const command = defineCommand('local agent-sync status', {
-  description: 'Print local agent sync daemon status.',
+  description: 'Print local agent sync status.',
   options: {
     json: {
       schema: z.boolean().optional(),

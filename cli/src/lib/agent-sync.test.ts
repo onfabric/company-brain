@@ -18,7 +18,7 @@ import { AgentSyncStore } from './agent-sync/store.ts';
 import { parseTranscriptFile } from './agent-sync/transcript-parser.ts';
 
 const TEMP_PREFIX = 'company-brain-cli-agent-sync-';
-const DAEMON_COMMAND_SUFFIX_LENGTH = 3;
+const SYNC_NOW_COMMAND_SUFFIX_LENGTH = 3;
 const AGENT_SYNC_DIR_ENV = 'COMPANY_BRAIN_AGENT_SYNC_DIR';
 const CODEX_SESSION_DIR_ENV = 'COMPANY_BRAIN_CODEX_SESSION_DIR';
 const CLAUDE_CODE_PROJECTS_DIR_ENV = 'COMPANY_BRAIN_CLAUDE_CODE_PROJECTS_DIR';
@@ -91,7 +91,7 @@ describe('agent sync', () => {
     const result = await initializeAgentSync({
       dataDir: tempDir,
       missingOnly: true,
-      skipDaemon: true,
+      skipLaunchAgent: true,
     });
     const fileConfig = await readConfigFile(tempDir);
 
@@ -339,23 +339,23 @@ describe('agent sync', () => {
     expect(serialized).not.toContain('very private answer');
   });
 
-  it('renders a macOS LaunchAgent plist for the daemon', async () => {
+  it('renders a macOS LaunchAgent plist for scheduled syncs', async () => {
     const tempDir = await makeTempDir();
     const config = launchAgentConfig(tempDir);
     const plist = renderLaunchAgentPlist(config);
 
     expect(config.label).toBe('dev.company-brain.agent-sync');
-    expect(config.programArguments.slice(-DAEMON_COMMAND_SUFFIX_LENGTH)).toEqual([
+    expect(config.programArguments.slice(-SYNC_NOW_COMMAND_SUFFIX_LENGTH)).toEqual([
       'local',
       'agent-sync',
-      'daemon',
+      'sync-now',
     ]);
     expect(plist).toContain('<key>RunAtLoad</key>');
-    expect(plist).toContain('<key>KeepAlive</key>');
+    expect(plist).toContain('<key>StartInterval</key>');
     expect(plist).toContain('<string>local</string>');
     expect(plist).toContain('<string>agent-sync</string>');
-    expect(plist).toContain('<string>daemon</string>');
-    expect(plist).toContain('daemon.out.log');
+    expect(plist).toContain('<string>sync-now</string>');
+    expect(plist).toContain('sync-now.out.log');
   });
 
   it('does not install the LaunchAgent from environment-only config', async () => {

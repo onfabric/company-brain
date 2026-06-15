@@ -4,7 +4,6 @@ import type { InferForwardedOptions, InferParams, RuntimeNode } from '@parshjs/c
 import type { command as rootCmd } from './commands/_root.ts';
 import type { command as cloudAddIntegrationsCmd } from './commands/cloud/add/integrations.ts';
 import type { command as cloudAddSyncsCmd } from './commands/cloud/add/syncs.ts';
-import type { command as cloudAgentsyncDaemonCmd } from './commands/cloud/agent-sync/daemon.ts';
 import type { command as cloudAgentsyncInstallCmd } from './commands/cloud/agent-sync/install.ts';
 import type { command as cloudAgentsyncStatusCmd } from './commands/cloud/agent-sync/status.ts';
 import type { command as cloudAgentsyncSyncnowCmd } from './commands/cloud/agent-sync/sync-now.ts';
@@ -16,7 +15,6 @@ import type { command as cloudSetupCmd } from './commands/cloud/setup.ts';
 import type { command as cloudUpdateCmd } from './commands/cloud/update.ts';
 import type { command as localAddIntegrationsCmd } from './commands/local/add/integrations.ts';
 import type { command as localAddSyncsCmd } from './commands/local/add/syncs.ts';
-import type { command as localAgentsyncDaemonCmd } from './commands/local/agent-sync/daemon.ts';
 import type { command as localAgentsyncInstallCmd } from './commands/local/agent-sync/install.ts';
 import type { command as localAgentsyncStatusCmd } from './commands/local/agent-sync/status.ts';
 import type { command as localAgentsyncSyncnowCmd } from './commands/local/agent-sync/sync-now.ts';
@@ -33,10 +31,6 @@ declare module '@parshjs/core' {
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
     'cloud add syncs': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'cloud agent-sync daemon': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -81,10 +75,6 @@ declare module '@parshjs/core' {
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
     'local add syncs': {
-      parents: {};
-      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
-    };
-    'local agent-sync daemon': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -160,15 +150,6 @@ export const commandTree: RuntimeNode = {
           segment: { kind: 'literal', value: 'agent-sync' },
           command: null,
           literalChildren: {
-            daemon: {
-              segment: { kind: 'literal', value: 'daemon' },
-              command: {
-                path: 'cloud agent-sync daemon',
-                load: () => import('./commands/cloud/agent-sync/daemon.ts').then((m) => m.command),
-              },
-              literalChildren: {},
-              paramChild: null,
-            },
             install: {
               segment: { kind: 'literal', value: 'install' },
               command: {
@@ -291,15 +272,6 @@ export const commandTree: RuntimeNode = {
           segment: { kind: 'literal', value: 'agent-sync' },
           command: null,
           literalChildren: {
-            daemon: {
-              segment: { kind: 'literal', value: 'daemon' },
-              command: {
-                path: 'local agent-sync daemon',
-                load: () => import('./commands/local/agent-sync/daemon.ts').then((m) => m.command),
-              },
-              literalChildren: {},
-              paramChild: null,
-            },
             install: {
               segment: { kind: 'literal', value: 'install' },
               command: {

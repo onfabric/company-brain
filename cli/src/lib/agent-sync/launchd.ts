@@ -3,9 +3,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { REQUIRED_CONFIG_KEYS, readConfigFile } from './config.ts';
+import { DEFAULT_SCAN_INTERVAL_MS, REQUIRED_CONFIG_KEYS, readConfigFile } from './config.ts';
 
 const LABEL = 'dev.company-brain.agent-sync';
+const MILLISECONDS_PER_SECOND = 1000;
 export type AgentSyncTarget = 'local' | 'cloud';
 
 export interface LaunchAgentConfig {
@@ -13,18 +14,21 @@ export interface LaunchAgentConfig {
   plistPath: string;
   logDirectory: string;
   programArguments: string[];
+  startIntervalSeconds: number;
 }
 
 export function launchAgentConfig(
   dataDir: string,
   target: AgentSyncTarget = 'local',
+  scanIntervalMs = DEFAULT_SCAN_INTERVAL_MS,
 ): LaunchAgentConfig {
   const logDirectory = path.join(dataDir, 'logs');
   return {
     label: LABEL,
     plistPath: path.join(os.homedir(), 'Library/LaunchAgents', `${LABEL}.plist`),
     logDirectory,
-    programArguments: daemonProgramArguments(target),
+    programArguments: syncNowProgramArguments(target),
+    startIntervalSeconds: intervalSeconds(scanIntervalMs),
   };
 }
 
@@ -45,12 +49,12 @@ ${args}
   </array>
   <key>RunAtLoad</key>
   <true/>
-  <key>KeepAlive</key>
-  <true/>
+  <key>StartInterval</key>
+  <integer>${config.startIntervalSeconds}</integer>
   <key>StandardOutPath</key>
-  <string>${escapeXml(path.join(config.logDirectory, 'daemon.out.log'))}</string>
+  <string>${escapeXml(path.join(config.logDirectory, 'sync-now.out.log'))}</string>
   <key>StandardErrorPath</key>
-  <string>${escapeXml(path.join(config.logDirectory, 'daemon.err.log'))}</string>
+  <string>${escapeXml(path.join(config.logDirectory, 'sync-now.err.log'))}</string>
 </dict>
 </plist>
 `;
@@ -68,7 +72,7 @@ export async function installLaunchAgent(
     );
   }
 
-  const config = launchAgentConfig(dataDir, target);
+  const config = launchAgentConfig(dataDir, target, fileConfig.scanIntervalMs);
   await fs.promises.mkdir(path.dirname(config.plistPath), { recursive: true });
   await fs.promises.mkdir(config.logDirectory, { recursive: true });
   await fs.promises.writeFile(config.plistPath, renderLaunchAgentPlist(config));
@@ -103,18 +107,22 @@ function launchTarget(): string {
   return `gui/${process.getuid?.() ?? os.userInfo().uid}`;
 }
 
-function daemonProgramArguments(target: AgentSyncTarget): string[] {
+function syncNowProgramArguments(target: AgentSyncTarget): string[] {
   const scriptPath = process.argv[1];
   if (scriptPath && scriptPath !== process.execPath && scriptPath.endsWith('.ts')) {
-    return [process.execPath, path.resolve(scriptPath), target, 'agent-sync', 'daemon'];
+    return [process.execPath, path.resolve(scriptPath), target, 'agent-sync', 'sync-now'];
   }
 
   const cliPath = fileURLToPath(new URL('../../main.ts', import.meta.url));
   if (fs.existsSync(cliPath)) {
-    return [process.execPath, cliPath, target, 'agent-sync', 'daemon'];
+    return [process.execPath, cliPath, target, 'agent-sync', 'sync-now'];
   }
 
-  return [process.execPath, target, 'agent-sync', 'daemon'];
+  return [process.execPath, target, 'agent-sync', 'sync-now'];
+}
+
+function intervalSeconds(scanIntervalMs: number): number {
+  return Math.max(1, Math.round(scanIntervalMs / MILLISECONDS_PER_SECOND));
 }
 
 function escapeXml(value: string): string {

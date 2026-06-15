@@ -54,7 +54,7 @@ export const command = defineCommand('local setup', {
         'Brain dashboard: http://localhost:3010/',
         'Nango dashboard/login and API keys: http://localhost:3003',
         '',
-        'Next: add integrations or install the local agent sync daemon:',
+        'Next: add integrations or install the local agent sync schedule:',
         'bun run company-brain local add integrations',
         'bun run company-brain local agent-sync install',
       ].join('\n'),

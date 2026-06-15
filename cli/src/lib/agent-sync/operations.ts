@@ -39,11 +39,11 @@ export type AgentSyncStatusResult = {
   configPath: string;
   user_identifier?: string | undefined;
   missing_config: string[];
-  daemon: {
+  launchAgent: {
     label: string;
     plistPath: string;
     installed: boolean;
-    running: boolean;
+    loaded: boolean;
   };
   status: Awaited<ReturnType<typeof readStatus>>;
 };
@@ -74,9 +74,9 @@ export async function installAgentSyncForTarget(
   });
   await ensureIdentity(config.dataDir);
 
-  log.step('Installing and starting the macOS LaunchAgent...');
+  log.step('Installing the macOS LaunchAgent schedule...');
   const launchAgent = await installLaunchAgent(config.dataDir, target);
-  options.print.success('Agent sync daemon is installed and started.');
+  options.print.success('Agent sync LaunchAgent is installed.');
 
   return {
     configPath: config.configPath,
@@ -121,11 +121,11 @@ export async function agentSyncStatus(target: AgentSyncTarget): Promise<AgentSyn
       ...(!config.nangoConnectionId ? ['nangoConnectionId'] : []),
       ...(!config.nangoWebhookSecret ? ['nangoWebhookSecret'] : []),
     ],
-    daemon: {
+    launchAgent: {
       label: launchAgent.label,
       plistPath: launchAgent.plistPath,
       installed: fs.existsSync(launchAgent.plistPath),
-      running: await launchAgentIsRunning(launchAgent.label),
+      loaded: await launchAgentIsLoaded(launchAgent.label),
     },
     status: await readStatus(config.dataDir),
   };
@@ -135,7 +135,7 @@ export function formatAgentSyncStatus(status: AgentSyncStatusResult): string {
   return [
     `Target: ${status.target}`,
     `Config: ${status.configPath}`,
-    `Daemon: ${status.daemon.installed ? 'installed' : 'not installed'}, ${status.daemon.running ? 'running' : 'not running'}`,
+    `LaunchAgent: ${status.launchAgent.installed ? 'installed' : 'not installed'}, ${status.launchAgent.loaded ? 'loaded' : 'not loaded'}`,
     `State: ${status.status?.state ?? 'unknown'}`,
     `Last sync: ${status.status?.last_sync_at ?? 'never'}`,
     `Missing config: ${status.missing_config.length > 0 ? status.missing_config.join(', ') : 'none'}`,
@@ -210,7 +210,7 @@ async function resolveCloudTarget(
   };
 }
 
-async function launchAgentIsRunning(label: string): Promise<boolean> {
+async function launchAgentIsLoaded(label: string): Promise<boolean> {
   const child = Bun.spawn(['launchctl', 'print', `${launchTarget()}/${label}`], {
     stdout: 'ignore',
     stderr: 'ignore',

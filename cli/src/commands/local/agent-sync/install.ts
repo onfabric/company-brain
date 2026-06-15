@@ -4,7 +4,7 @@ import { installAgentSyncForTarget } from '../../../lib/agent-sync/operations.ts
 import { isNonInteractive } from '../../../lib/interaction.ts';
 
 export const command = defineCommand('local agent-sync install', {
-  description: 'Install the local agent conversation sync daemon.',
+  description: 'Install the local agent conversation sync schedule.',
   options: {},
   handler: async ({ rootOptions, print }) => {
     intro('Company Brain local agent sync install');
@@ -22,6 +22,6 @@ export const command = defineCommand('local agent-sync install', {
       ].join('\n'),
       'Agent sync',
     );
-    outro('Local agent sync is installed.');
+    outro('Local agent sync is scheduled.');
   },
 });

@@ -20,7 +20,7 @@ export interface InitializeAgentSyncResult {
 export async function initializeAgentSync(options: {
   dataDir?: string;
   missingOnly?: boolean;
-  skipDaemon?: boolean;
+  skipLaunchAgent?: boolean;
   target?: AgentSyncTarget;
 }): Promise<InitializeAgentSyncResult> {
   const configureOptions: {
@@ -43,7 +43,7 @@ export async function initializeAgentSync(options: {
   const target = options.target ?? 'local';
   const launchAgent = launchAgentConfig(config.dataDir, target);
 
-  if (missing.length > 0 || options.skipDaemon) {
+  if (missing.length > 0 || options.skipLaunchAgent) {
     return {
       dataDir: config.dataDir,
       configPath: configured.configPath,

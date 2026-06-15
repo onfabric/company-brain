@@ -134,9 +134,11 @@ bun run company-brain cloud agent-sync install
 The install command checks that the selected target is healthy, makes sure the
 Nango dev API key is saved, installs the hidden `agent-conversations`
 integration and `conversations` sync in that target Nango, writes the local
-daemon config, then installs and starts the macOS LaunchAgent.
+sync config, then installs a macOS LaunchAgent that runs
+`company-brain <target> agent-sync sync-now` on load and on the configured
+interval.
 
-Manage the daemon with:
+Manage the schedule with:
 
 ```bash
 bun run company-brain local agent-sync status
@@ -144,7 +146,7 @@ bun run company-brain local agent-sync sync-now
 bun run company-brain local agent-sync uninstall
 ```
 
-Use the same verbs under `cloud` when the daemon should point at the hosted
+Use the same verbs under `cloud` when agent sync should point at the hosted
 Company Brain.
 
 ## Check Setup

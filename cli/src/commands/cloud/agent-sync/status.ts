@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { agentSyncStatus, formatAgentSyncStatus } from '../../../lib/agent-sync/operations.ts';
 
 export const command = defineCommand('cloud agent-sync status', {
-  description: 'Print cloud agent sync daemon status.',
+  description: 'Print cloud agent sync status.',
   options: {
     json: {
       schema: z.boolean().optional(),

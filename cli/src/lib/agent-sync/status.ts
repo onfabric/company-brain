@@ -6,7 +6,6 @@ import { readJsonFile, writeJsonFile } from './utils.ts';
 export interface AgentSyncStatus {
   state: 'ok' | 'setup-needed' | 'sync-failed';
   updated_at: string;
-  daemon_heartbeat_at?: string | undefined;
   missing_config?: string[] | undefined;
   last_discovery_at?: string | undefined;
   last_sync_at?: string | undefined;
