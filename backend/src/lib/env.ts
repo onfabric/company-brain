@@ -35,11 +35,6 @@ type Env = {
   betterAuthSecret: string;
   googleClientId: string;
   googleClientSecret: string;
-  // The emails allowed to sign in to the brain, as a regular expression matched
-  // (case-insensitively) against the account email in the auth database hook. A
-  // wildcard pattern allows a whole workspace (`.*@onfabric\.io$`); an alternation
-  // allows a fixed set of emails, even across domains
-  // (`^(alice@gmail\.com|bob@outlook\.com)$`). When unset, any email may sign in.
   allowedEmailsRegex: RegExp | null;
 };
 
