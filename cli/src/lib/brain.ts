@@ -2,18 +2,13 @@ import { createBrainClient } from '@company-brain/backend-client';
 
 export const DEFAULT_BRAIN_URL = 'http://localhost:3010';
 
-const clients = new Map<string, ReturnType<typeof createBrainClient>>();
+let client: ReturnType<typeof createBrainClient> | undefined;
 
 export function brainClient(baseUrl: string = DEFAULT_BRAIN_URL) {
-  const cached = clients.get(baseUrl);
-  if (cached) {
-    return cached;
-  }
-  const client = createBrainClient({
+  client ??= createBrainClient({
     domain: baseUrl,
     treatyOptions: { headers: { accept: 'application/json' } },
   });
-  clients.set(baseUrl, client);
   return client;
 }
 
