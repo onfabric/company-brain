@@ -32,7 +32,7 @@ export async function bootstrapNangoIntegrations(
     ['bun', 'run', 'bootstrap:integrations', 'dev', '--update-existing', ...selectionArgs],
     {
       cwd: nangoIntegrationsPath,
-      env: packagedEnv(options.env),
+      env: nangoCommandEnv(options.env),
       verbose: options.verbose,
     },
   );
@@ -46,7 +46,7 @@ export async function bootstrapNangoIntegrations(
     ['bun', 'run', 'bootstrap:connections', 'dev', ...selectedArgs(connectionIntegrationIds)],
     {
       cwd: nangoIntegrationsPath,
-      env: packagedEnv(options.env),
+      env: nangoCommandEnv(options.env),
       verbose: options.verbose,
     },
   );
@@ -60,7 +60,7 @@ export async function checkNangoConnections(
   await ensureNangoIntegrationDependencies(options.verbose);
   await run(['bun', 'run', 'check:connections', 'dev', ...selectedArgs(integrationIds)], {
     cwd: nangoIntegrationsPath,
-    env: packagedEnv(options.env),
+    env: nangoCommandEnv(options.env),
     verbose: options.verbose,
   });
 }
@@ -84,7 +84,7 @@ export async function deployNangoSyncs(
     ],
     {
       cwd: nangoIntegrationsPath,
-      env: packagedEnv(options.env),
+      env: nangoCommandEnv(options.env),
       verbose: options.verbose,
     },
   );
@@ -103,10 +103,14 @@ function selectedArgs(integrationIds: string[]): string[] {
   return integrationIds.length > 0 ? ['--only', integrationIds.join(',')] : [];
 }
 
-function packagedEnv(env: Record<string, string | undefined> | undefined) {
+export function nangoCommandEnv(
+  env: Record<string, string | undefined> | undefined,
+): Record<string, string | undefined> {
   return {
     ...env,
-    COMPANY_BRAIN_PACKAGED_INTEGRATIONS: 'true',
+    COMPANY_BRAIN_PACKAGED_INTEGRATIONS: process.env.COMPANY_BRAIN_INTEGRATIONS_DIR
+      ? 'false'
+      : 'true',
   };
 }
 
