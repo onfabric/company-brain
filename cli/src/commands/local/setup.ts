@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { startLocalStack, verifyLocalPrerequisites } from '../../lib/docker.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
 import { ensureRootEnv, readRootEnv } from '../../lib/local-env.ts';
+import { ensureLocalNangoApiKey } from '../../lib/nango-api-key.ts';
 import { ensureNangoEnvBase } from '../../lib/nango-env.ts';
 
 export const command = defineCommand('local setup', {
@@ -45,6 +46,7 @@ export const command = defineCommand('local setup', {
     if (!options['skip-start']) {
       await startLocalStack(Boolean(rootOptions.verbose));
       print.success('Local Docker stack is healthy.');
+      await ensureLocalNangoApiKey(isNonInteractive(rootOptions['non-interactive']), print);
     }
 
     note(
@@ -52,8 +54,9 @@ export const command = defineCommand('local setup', {
         'Brain dashboard: http://localhost:3010/',
         'Nango dashboard/login and API keys: http://localhost:3003',
         '',
-        'Next: create/sign in to the local Nango dashboard, copy the dev API key, then run:',
+        'Next: add integrations or install the local agent sync daemon:',
         'bun run company-brain local add integrations',
+        'bun run company-brain local install agent-sync',
       ].join('\n'),
       'Local URLs',
     );

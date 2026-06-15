@@ -93,7 +93,7 @@ export const command = defineCommand('local doctor', {
         label: 'Nango dev API key',
         detail: nangoEnv.NANGO_SECRET_KEY_DEV
           ? 'Saved in nango-integrations/.env'
-          : 'Copy it from http://localhost:3003/dev/environment-settings#api-keys, then run `bun run company-brain local add integrations`.',
+          : 'Copy it from http://localhost:3003/dev/environment-settings#api-keys, then run `bun run company-brain local resume`.',
       },
       {
         ok: existsSync(localConfigPath),

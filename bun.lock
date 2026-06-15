@@ -10,21 +10,6 @@
         "typescript": "catalog:",
       },
     },
-    "agent-sync": {
-      "name": "agent-sync",
-      "version": "1.0.0",
-      "bin": {
-        "company-brain-agent-sync": "./src/cli.ts",
-      },
-      "dependencies": {
-        "@parshjs/core": "^0.0.10",
-        "zod": "^4.4.3",
-      },
-      "devDependencies": {
-        "@parshjs/codegen": "^0.0.5",
-        "typescript": "catalog:",
-      },
-    },
     "backend": {
       "name": "@company-brain/backend",
       "dependencies": {
@@ -857,8 +842,6 @@
     "acorn-walk": ["acorn-walk@8.3.5", "", { "dependencies": { "acorn": "^8.11.0" } }, "sha512-HEHNfbars9v4pgpW6SO1KSPkfoS0xVOM/9UzkJltjlsHZmJasxg8aXkuZa7SMf8vKGIBhpUsPluQSqhJFCqebw=="],
 
     "agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
-
-    "agent-sync": ["agent-sync@workspace:agent-sync"],
 
     "ajv": ["ajv@8.20.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="],
 

@@ -6,7 +6,7 @@ import { applyNangoEnvOverrides, ensureNangoEnvBase, readNangoEnv } from './nang
 
 type IntegrationSpec = (typeof nangoIntegrationSpecs)[number];
 
-export type AddTarget = 'local' | 'deploy';
+export type AddTarget = 'local' | 'cloud';
 
 export type TargetContext = {
   target: AddTarget;
@@ -113,7 +113,7 @@ export function syncSelectionConfig(context: TargetContext): LocalConfig {
 }
 
 export function targetLabel(target: AddTarget): string {
-  return target === 'local' ? 'local' : 'hosted deployment';
+  return target === 'local' ? 'local' : 'cloud';
 }
 
 export function defaultNangoUrl(target: AddTarget): string | undefined {

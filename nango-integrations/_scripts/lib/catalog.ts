@@ -57,6 +57,8 @@ export const GITHUB_SCOPES = [
 export const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'].join(',');
 
 export const MANUAL_INTEGRATION_IDS = ['circleback-mcp'];
+export const AGENT_CONVERSATIONS_INTEGRATION_ID = 'agent-conversations';
+export const HIDDEN_MANAGED_INTEGRATION_IDS = [AGENT_CONVERSATIONS_INTEGRATION_ID];
 
 export const INTEGRATIONS: IntegrationSpec[] = [
   {
@@ -184,10 +186,19 @@ export const SYNC_SPECS: SyncSpec[] = [
 ];
 
 export const DEFAULT_SYNC_SPECS: SyncSpec[] = SYNC_SPECS.filter(
-  (sync) => !MANUAL_INTEGRATION_IDS.includes(sync.integrationId),
+  (sync) =>
+    !MANUAL_INTEGRATION_IDS.includes(sync.integrationId) &&
+    !HIDDEN_MANAGED_INTEGRATION_IDS.includes(sync.integrationId),
 );
 export const DEFAULT_REQUIRED_CONNECTIONS: ConnectionSpec[] = REQUIRED_CONNECTIONS.filter(
-  (connection) => !MANUAL_INTEGRATION_IDS.includes(connection.integrationId),
+  (connection) =>
+    !MANUAL_INTEGRATION_IDS.includes(connection.integrationId) &&
+    !HIDDEN_MANAGED_INTEGRATION_IDS.includes(connection.integrationId),
+);
+export const DEFAULT_INTEGRATIONS: IntegrationSpec[] = INTEGRATIONS.filter(
+  (integration) =>
+    !MANUAL_INTEGRATION_IDS.includes(integration.id) &&
+    !HIDDEN_MANAGED_INTEGRATION_IDS.includes(integration.id),
 );
 export const BOOTSTRAPPED_CONNECTIONS: BootstrappedConnectionSpec[] =
   REQUIRED_CONNECTIONS.filter(isBootstrappedConnection);
@@ -215,7 +226,7 @@ export function resolveSelectedSyncs(selected: string[] | undefined): SyncSpec[]
 
 export function resolveSelectedIntegrations(selected: string[] | undefined): IntegrationSpec[] {
   if (!selected) {
-    return INTEGRATIONS;
+    return DEFAULT_INTEGRATIONS;
   }
 
   const selectedSet = new Set(selected);

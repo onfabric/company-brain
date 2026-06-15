@@ -265,7 +265,7 @@ jobs:
       - uses: ./.github/actions/prepare
 
       - name: Add Nango integrations
-        run: bun run company-brain --non-interactive deploy add integrations --all
+        run: bun run company-brain --non-interactive cloud add integrations --all
 
       - name: Add Nango syncs
-        run: bun run company-brain --non-interactive deploy add syncs --all
+        run: bun run company-brain --non-interactive cloud add syncs --all

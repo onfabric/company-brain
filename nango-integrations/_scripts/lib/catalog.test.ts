@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 import {
+  DEFAULT_REQUIRED_CONNECTIONS,
   oauthConnectionHints,
   resolveSelectedIntegrations,
   resolveSelectedSyncs,
@@ -17,6 +18,12 @@ describe('resolveSelectedSyncs', () => {
     );
   });
 
+  it('excludes agent conversations from the default sync selection', () => {
+    expect(resolveSelectedSyncs(undefined).map((sync) => sync.integrationId)).not.toContain(
+      'agent-conversations',
+    );
+  });
+
   it('returns only selected syncs', () => {
     expect(resolveSelectedSyncs(['notion']).map((sync) => sync.integrationId)).toEqual(['notion']);
   });
@@ -25,6 +32,12 @@ describe('resolveSelectedSyncs', () => {
     expect(resolveSelectedSyncs(['circleback-mcp']).map((sync) => sync.integrationId)).toEqual([
       'circleback-mcp',
     ]);
+  });
+
+  it('allows agent conversations when explicitly selected', () => {
+    expect(resolveSelectedSyncs(['agent-conversations']).map((sync) => sync.integrationId)).toEqual(
+      ['agent-conversations'],
+    );
   });
 
   it('rejects unknown integrations', () => {
@@ -47,6 +60,12 @@ describe('resolveSelectedIntegrations', () => {
     ).not.toContain('circleback-mcp');
   });
 
+  it('excludes agent conversations from the default bootstrap selection', () => {
+    expect(
+      resolveSelectedIntegrations(undefined).map((integration) => integration.id),
+    ).not.toContain('agent-conversations');
+  });
+
   it('returns only selected integrations', () => {
     expect(resolveSelectedIntegrations(['notion']).map((integration) => integration.id)).toEqual([
       'notion',
@@ -59,10 +78,24 @@ describe('resolveSelectedIntegrations', () => {
     );
   });
 
+  it('allows agent conversations when explicitly selected', () => {
+    expect(
+      resolveSelectedIntegrations(['agent-conversations']).map((integration) => integration.id),
+    ).toEqual(['agent-conversations']);
+  });
+
   it('rejects unknown integrations', () => {
     expect(() => resolveSelectedIntegrations(['unknown'])).toThrow(
       'Unknown integration selection: unknown',
     );
+  });
+});
+
+describe('DEFAULT_REQUIRED_CONNECTIONS', () => {
+  it('excludes agent conversations from the default connection gate', () => {
+    expect(
+      DEFAULT_REQUIRED_CONNECTIONS.map((connection) => connection.integrationId),
+    ).not.toContain('agent-conversations');
   });
 });
 

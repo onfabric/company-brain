@@ -15,7 +15,6 @@
   },
   "workspaces": {
     "packages": [
-      "agent-sync/",
       "backend-client/",
       "cli/",
       "nango-integrations/",
