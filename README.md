@@ -15,6 +15,13 @@ bun install
 bun run company-brain local setup
 ```
 
+Optionally install a repo-backed `company-brain` command:
+
+```bash
+scripts/install-company-brain-cli.sh
+company-brain local setup
+```
+
 Local URLs:
 
 - Brain dashboard: http://localhost:3010/
@@ -170,6 +177,13 @@ bun run company-brain local add integrations
 bun run company-brain local add syncs
 bun run company-brain local agent-sync install
 bun run company-brain cloud setup
+```
+
+For local use without typing `bun run`, install a wrapper from this checkout:
+
+```bash
+scripts/install-company-brain-cli.sh
+company-brain --help
 ```
 
 ## Contributing
