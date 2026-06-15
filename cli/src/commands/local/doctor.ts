@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { intro, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
+import { DEFAULT_BRAIN_URL, isBrainApiHealthy } from '../../lib/brain.ts';
 import {
   type ComposeService,
   composeServices,
@@ -11,6 +12,7 @@ import {
 import { type DoctorCheck, formatAttentionOutro, renderDoctorSection } from '../../lib/doctor.ts';
 import { endpointOk } from '../../lib/http.ts';
 import { readLocalConfig } from '../../lib/local-config.ts';
+import { readRootEnv } from '../../lib/local-env.ts';
 import { readNangoEnv } from '../../lib/nango-env.ts';
 import { localConfigPath, nangoEnvPath, rootEnvPath } from '../../lib/paths.ts';
 
@@ -62,6 +64,8 @@ export const command = defineCommand('local doctor', {
     }
     renderDoctorSection('Services', serviceChecks);
 
+    const rootEnv = await readRootEnv();
+    const brainBaseUrl = rootEnv.BRAIN_PUBLIC_URL || DEFAULT_BRAIN_URL;
     const endpointChecks: DoctorCheck[] = [
       {
         ok: await endpointOk('http://localhost:3003/health'),
@@ -74,9 +78,9 @@ export const command = defineCommand('local doctor', {
         detail: 'http://localhost:3003',
       },
       {
-        ok: await endpointOk('http://localhost:3010/api/health'),
+        ok: await isBrainApiHealthy(brainBaseUrl),
         label: 'Brain API',
-        detail: 'http://localhost:3010/api/health',
+        detail: `${brainBaseUrl}/api/health`,
       },
     ];
     renderDoctorSection('Endpoints', endpointChecks);

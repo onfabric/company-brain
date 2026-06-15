@@ -1,9 +1,9 @@
+import { brainPath } from '@company-brain/backend-client';
 import { useQuery } from '@tanstack/react-query';
 import { Home, Loader2, RefreshCw } from 'lucide-react';
 import type { ReactNode, SyntheticEvent } from 'react';
 import { Button } from '#/components/ui/button.tsx';
 import { Card } from '#/components/ui/card.tsx';
-import { brainPath } from '#/lib/brain-client.ts';
 import { type KnowledgePreview, listKnowledge, listKnowledgeTypes } from '#/lib/brain-functions.ts';
 
 type KnowledgeExplorerProps = {
