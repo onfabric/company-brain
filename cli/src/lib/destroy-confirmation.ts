@@ -27,10 +27,6 @@ export async function confirmDestructiveAction({
   }
 }
 
-export function localDestroyPhrase(): string {
-  return 'destroy-local';
-}
-
 export function awsDestroyPhrase(environment: string, accountId: string): string {
   return `destroy-${environment}-${accountId}`;
 }

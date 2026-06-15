@@ -17,14 +17,9 @@ inputs:
   cache-scope:
     description: GitHub Actions cache scope; keep distinct per image to avoid collisions.
     required: true
-  platforms:
-    description: Comma-separated target platforms.
-    required: false
-    default: linux/amd64,linux/arm64
-
 outputs:
   image-uri:
-    description: The immutable image reference that was pushed.
+    description: The immutable image reference to deploy.
     value: ${{ steps.tags.outputs.immutable }}
 
 runs:
@@ -40,18 +35,29 @@ runs:
         echo "immutable=$IMAGE_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
         echo "latest=$IMAGE_REPOSITORY:latest" >> "$GITHUB_OUTPUT"
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+    - name: Check for existing image
+      id: existing-image
+      shell: bash
+      env:
+        IMAGE_URI: ${{ steps.tags.outputs.immutable }}
+      run: |
+        if docker manifest inspect "$IMAGE_URI" >/dev/null 2>&1; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+          echo "Image $IMAGE_URI already exists; skipping build." >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Set up Docker Buildx
+      if: steps.existing-image.outputs.exists != 'true'
       uses: docker/setup-buildx-action@v3
 
     - name: Build and push image
+      if: steps.existing-image.outputs.exists != 'true'
       shell: bash
       env:
         IMAGE_REPOSITORY: ${{ inputs.image-repository }}
         IMAGE_TAG: ${{ inputs.image-tag }}
-        PLATFORM: ${{ inputs.platforms }}
         BUILD_CONTEXT: ${{ inputs.context }}
         DOCKERFILE: ${{ inputs.dockerfile }}
         CACHE_SCOPE: ${{ inputs.cache-scope }}

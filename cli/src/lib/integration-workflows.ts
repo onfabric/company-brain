@@ -1,22 +1,20 @@
 import { intro, isCancel, note, outro, text } from '@clack/prompts';
-import { type Target, targetLabel } from './deployment-target.ts';
+import {
+  defaultIntegrationIds,
+  integrationIdsInCatalogOrder,
+  loadHostedNangoContext,
+  persistAddedIntegrations,
+  persistAddedSyncs,
+  syncIntegrationIdsInCatalogOrder,
+  syncSelectionConfig,
+} from './hosted-nango-config.ts';
 import { bootstrapNangoIntegrations } from './nango.ts';
 import {
   collectNangoEnv,
   resolveIntegrationSelection,
   selectedConnectionHints,
 } from './nango-add-prompts.ts';
-import {
-  defaultIntegrationIds,
-  defaultNangoUrl,
-  integrationIdsInCatalogOrder,
-  loadTargetContext,
-  persistAddedIntegrations,
-  persistAddedSyncs,
-  syncIntegrationIdsInCatalogOrder,
-  syncSelectionConfig,
-} from './nango-add-targets.ts';
-import { normalizeNangoHostport, upsertNangoEnv } from './nango-env.ts';
+import { normalizeNangoHostport } from './nango-env.ts';
 import { deploySelectedSyncs, resolveSyncSelection } from './sync-deployment.ts';
 
 type Printer = {
@@ -25,7 +23,6 @@ type Printer = {
 };
 
 export type AddIntegrationsInput = {
-  target: Target;
   nangoSecretKey?: string;
   nangoUrl?: string;
   force?: boolean;
@@ -37,7 +34,6 @@ export type AddIntegrationsInput = {
 };
 
 export type AddSyncsInput = {
-  target: Target;
   nangoSecretKey?: string;
   nangoUrl?: string;
   only?: string;
@@ -48,7 +44,6 @@ export type AddSyncsInput = {
 };
 
 export async function addIntegrations({
-  target,
   nangoSecretKey,
   nangoUrl,
   force,
@@ -58,9 +53,9 @@ export async function addIntegrations({
   verbose,
   print,
 }: AddIntegrationsInput): Promise<void> {
-  intro(`Company Brain ${targetLabel(target)} integrations`);
+  intro('Company Brain cloud integrations');
 
-  const context = await loadTargetContext(target, { nangoSecretKey, nangoUrl }, true);
+  const context = await loadHostedNangoContext({ nangoSecretKey, nangoUrl });
   const selected = await resolveIntegrationSelection(
     only,
     Boolean(all),
@@ -76,7 +71,7 @@ export async function addIntegrations({
   const nangoHostport = normalizeNangoHostport(
     await requireValue(
       'Nango dashboard/API URL',
-      context.env.NANGO_HOSTPORT || context.env.NANGO_BASE_URL || defaultNangoUrl(target),
+      context.env.NANGO_HOSTPORT || context.env.NANGO_BASE_URL,
       Boolean(force),
       nonInteractive,
     ),
@@ -109,12 +104,7 @@ export async function addIntegrations({
     selected,
     Boolean(force),
     nonInteractive,
-    target,
   );
-
-  if (target === 'local') {
-    await upsertNangoEnv(env);
-  }
 
   const addedIds = selected.map((integration) => integration.id);
   await bootstrapNangoIntegrations(addedIds, {
@@ -125,7 +115,7 @@ export async function addIntegrations({
   const allIds = integrationIdsInCatalogOrder([...defaultIntegrationIds(context), ...addedIds]);
   await persistAddedIntegrations(context, env, selected, allIds);
 
-  print.success(`Selected ${targetLabel(target)} integrations are configured.`);
+  print.success('Selected cloud integrations are configured.');
   note(
     [
       'Open the Nango dashboard and create OAuth connections for the providers you want now:',
@@ -135,7 +125,7 @@ export async function addIntegrations({
       ...selectedConnectionHints(addedIds),
       '',
       'After the connections are ready, run:',
-      `company-brain add syncs --target ${target} --only ${addedIds.join(',')}`,
+      `company-brain add syncs --only ${addedIds.join(',')}`,
     ].join('\n'),
     'Next',
   );
@@ -143,7 +133,6 @@ export async function addIntegrations({
 }
 
 export async function addSyncs({
-  target,
   nangoSecretKey,
   nangoUrl,
   only,
@@ -152,12 +141,12 @@ export async function addSyncs({
   verbose,
   print,
 }: AddSyncsInput): Promise<void> {
-  intro(`Company Brain ${targetLabel(target)} syncs`);
+  intro('Company Brain cloud syncs');
 
-  const context = await loadTargetContext(target, { nangoSecretKey, nangoUrl }, false);
+  const context = await loadHostedNangoContext({ nangoSecretKey, nangoUrl });
   if (!context.env.NANGO_SECRET_KEY_DEV) {
     throw new Error(
-      `Missing NANGO_SECRET_KEY_DEV. Run \`company-brain resume --target ${target}\` to save the Nango API key, or pass --nango-secret-key.`,
+      'Missing NANGO_SECRET_KEY_DEV. Run `company-brain resume` to save the Nango API key, or pass --nango-secret-key.',
     );
   }
 

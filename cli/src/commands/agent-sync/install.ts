@@ -1,18 +1,16 @@
 import { intro, note, outro } from '@clack/prompts';
 import { defineCommand } from '@parshjs/core';
-import { installAgentSyncForTarget } from '../../lib/agent-sync/operations.ts';
+import { installAgentSync } from '../../lib/agent-sync/operations.ts';
 import { isNonInteractive } from '../../lib/interaction.ts';
-import { resolveCommandTarget, targetOptions } from '../../lib/target.ts';
 
 export const command = defineCommand('agent-sync install', {
-  description: 'Install the selected target agent conversation sync schedule.',
-  options: targetOptions,
-  handler: async ({ options, rootOptions, print }) => {
+  description: 'Install the hosted Company Brain agent conversation sync schedule.',
+  options: {},
+  handler: async ({ rootOptions, print }) => {
     const nonInteractive = isNonInteractive(rootOptions['non-interactive']);
-    const target = await resolveCommandTarget(options.target, nonInteractive);
 
-    intro(`Company Brain ${target} agent sync install`);
-    const result = await installAgentSyncForTarget(target, {
+    intro('Company Brain cloud agent sync install');
+    const result = await installAgentSync({
       nonInteractive,
       verbose: Boolean(rootOptions.verbose),
       print,
@@ -26,6 +24,6 @@ export const command = defineCommand('agent-sync install', {
       ].join('\n'),
       'Agent sync',
     );
-    outro(`${target === 'local' ? 'Local' : 'Cloud'} agent sync is scheduled.`);
+    outro('Cloud agent sync is scheduled.');
   },
 });

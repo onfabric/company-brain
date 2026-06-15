@@ -1,63 +1,34 @@
 import { type AwsConfig, readAwsConfig, writeAwsConfig } from './aws-config.ts';
-import type { Target } from './deployment-target.ts';
 import { hostedExistingNangoEnv } from './hosted-nango-env.ts';
-import { type LocalConfig, readLocalConfig, writeLocalConfig } from './local-config.ts';
 import { nangoIntegrationSpecs, nangoSyncSpecs } from './nango.ts';
-import { applyNangoEnvOverrides, ensureNangoEnvBase, readNangoEnv } from './nango-env.ts';
 
 type IntegrationSpec = (typeof nangoIntegrationSpecs)[number];
 
-export type TargetContext = {
-  target: Target;
+export type HostedNangoContext = {
   env: Record<string, string>;
-  localConfig?: LocalConfig;
   awsConfig?: AwsConfig;
 };
 
-export async function loadTargetContext(
-  target: Target,
-  overrides: { nangoSecretKey?: string; nangoUrl?: string },
-  prepareIntegrations: boolean,
-): Promise<TargetContext> {
-  const nangoOverrides = {
-    nangoHostport: overrides.nangoUrl,
-    nangoSecretKey: overrides.nangoSecretKey,
-  };
-
-  if (target === 'local') {
-    if (prepareIntegrations) {
-      await ensureNangoEnvBase();
-    }
-
-    return {
-      target,
-      env: applyNangoEnvOverrides(await readNangoEnv(), nangoOverrides),
-      localConfig: await readLocalConfig(),
-    };
-  }
-
+export async function loadHostedNangoContext(overrides: {
+  nangoSecretKey?: string;
+  nangoUrl?: string;
+}): Promise<HostedNangoContext> {
   const awsConfig = await readAwsConfig();
   return {
-    target,
-    env: hostedExistingNangoEnv(awsConfig, nangoOverrides),
+    env: hostedExistingNangoEnv(awsConfig, {
+      nangoHostport: overrides.nangoUrl,
+      nangoSecretKey: overrides.nangoSecretKey,
+    }),
     awsConfig,
   };
 }
 
 export async function persistAddedIntegrations(
-  context: TargetContext,
+  context: HostedNangoContext,
   env: Record<string, string>,
   selected: IntegrationSpec[],
   integrationIds: string[],
 ): Promise<void> {
-  if (context.target === 'local') {
-    await writeLocalConfig({
-      ...localConfigOrEmpty(context),
-      installedIntegrationIds: integrationIds,
-    });
-    return;
-  }
-
   if (!context.awsConfig) {
     return;
   }
@@ -66,17 +37,9 @@ export async function persistAddedIntegrations(
 }
 
 export async function persistAddedSyncs(
-  context: TargetContext,
+  context: HostedNangoContext,
   integrationIds: string[],
 ): Promise<void> {
-  if (context.target === 'local') {
-    await writeLocalConfig({
-      ...localConfigOrEmpty(context),
-      selectedIntegrationIds: integrationIds,
-    });
-    return;
-  }
-
   if (!context.awsConfig) {
     return;
   }
@@ -92,27 +55,18 @@ export async function persistAddedSyncs(
   });
 }
 
-export function defaultIntegrationIds(context: TargetContext): string[] {
-  if (context.target === 'local') {
-    return context.localConfig?.installedIntegrationIds ?? [];
-  }
-
+export function defaultIntegrationIds(context: HostedNangoContext): string[] {
   return context.awsConfig?.selectedIntegrationIds ?? [];
 }
 
-export function syncSelectionConfig(context: TargetContext): LocalConfig {
-  if (context.target === 'local') {
-    return localConfigOrEmpty(context);
-  }
-
+export function syncSelectionConfig(context: HostedNangoContext): {
+  installedIntegrationIds: string[];
+  selectedIntegrationIds: string[];
+} {
   return {
     installedIntegrationIds: context.awsConfig?.selectedIntegrationIds ?? [],
     selectedIntegrationIds: context.awsConfig?.selectedIntegrationIds ?? [],
   };
-}
-
-export function defaultNangoUrl(target: Target): string | undefined {
-  return target === 'local' ? 'http://localhost:3003' : undefined;
 }
 
 export function integrationIdsInCatalogOrder(ids: string[]): string[] {
@@ -171,10 +125,6 @@ async function writeHostedNangoConfig(
       oauth,
     },
   });
-}
-
-function localConfigOrEmpty(context: TargetContext): LocalConfig {
-  return context.localConfig ?? { installedIntegrationIds: [], selectedIntegrationIds: [] };
 }
 
 function requiredNangoEnv(env: Record<string, string>, key: string): string {

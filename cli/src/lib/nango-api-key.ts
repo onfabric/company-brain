@@ -1,40 +1,11 @@
 import { isCancel, note, password } from '@clack/prompts';
 import type { AwsConfig } from './aws-config.ts';
 import { writeAwsConfig } from './aws-config.ts';
-import { readNangoEnv, upsertNangoEnv } from './nango-env.ts';
 
 type Printer = {
   success: (message: string) => void;
   warn: (message: string) => void;
 };
-
-export async function ensureLocalNangoApiKey(
-  nonInteractive: boolean,
-  print: Printer,
-): Promise<string | undefined> {
-  const env = await readNangoEnv();
-  if (env.NANGO_SECRET_KEY_DEV) {
-    print.success('Local Nango dev API key is configured.');
-    return env.NANGO_SECRET_KEY_DEV;
-  }
-
-  if (nonInteractive) {
-    print.warn('Local Nango dev API key is missing.');
-    note(
-      [
-        'Open http://localhost:3003/dev/environment-settings#api-keys and copy the dev API key.',
-        'Then run: company-brain resume --target local',
-      ].join('\n'),
-      'Nango API key',
-    );
-    return undefined;
-  }
-
-  const key = await promptNangoApiKey('Local Nango dev API key');
-  await upsertNangoEnv({ NANGO_SECRET_KEY_DEV: key });
-  print.success('Local Nango dev API key is saved.');
-  return key;
-}
 
 export async function ensureCloudNangoApiKey(
   config: AwsConfig,
@@ -51,7 +22,7 @@ export async function ensureCloudNangoApiKey(
     note(
       [
         `Open https://${config.nangoHostname}/dev/environment-settings#api-keys and copy the dev API key.`,
-        'Then run: company-brain resume --target cloud',
+        'Then run: company-brain resume',
       ].join('\n'),
       'Nango API key',
     );

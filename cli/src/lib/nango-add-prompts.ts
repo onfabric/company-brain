@@ -1,7 +1,6 @@
 import { isCancel, multiselect, password, text } from '@clack/prompts';
 import { oauthConnectionHints } from '../../../nango-integrations/_scripts/lib/catalog.ts';
 import { parseSelection } from '../../../nango-integrations/_scripts/lib/selection.ts';
-import type { Target } from './deployment-target.ts';
 import {
   bootstrappedConnectionIntegrationIds,
   nangoDefaultIntegrationSpecs,
@@ -16,13 +15,12 @@ export async function collectNangoEnv(
   selected: IntegrationSpec[],
   force: boolean,
   nonInteractive: boolean,
-  target: Target,
 ): Promise<Record<string, string>> {
   const values: Record<string, string> = {
     ...existing,
     NANGO_HOSTPORT: nangoHostport,
     NANGO_SECRET_KEY_DEV: await promptValue(
-      target === 'cloud' ? 'Hosted Nango dev API key' : 'Nango dev API key',
+      'Hosted Nango dev API key',
       existing.NANGO_SECRET_KEY_DEV,
       force,
       true,

@@ -3,6 +3,7 @@
 import {
   buildSsmDeploymentEnv,
   ciTerraformVars,
+  githubDeploymentImageUris,
   githubImageMatrix,
   resolveCiDeploymentEnvironment,
   runtimeBundleUrl,
@@ -34,18 +35,26 @@ switch (command) {
 
 function writeGithubOutputs(environmentName: string): void {
   const environment = resolveCiDeploymentEnvironment(environmentName);
+  const gitSha = requiredEnv('GITHUB_SHA');
+  const nangoSubmoduleSha = gitRevParse('HEAD:nango');
+  const imageInput = { gitSha, nangoSubmoduleSha };
+  const imageUris = githubDeploymentImageUris(imageInput);
+
   writeKeyValues({
     environment: environment.environment,
     aws_region: environment.awsRegion,
     terraform_backend_config: environment.terraformBackendConfig,
     ssm_secret_prefix: environment.ssmSecretPrefix,
     deploy_group: environment.deployGroup,
-    deploy_id: requiredEnv('GITHUB_SHA'),
+    deploy_id: gitSha,
     nango_hostname: environment.nangoHostname,
     nango_connect_hostname: environment.nangoConnectHostname,
     brain_hostname: environment.brainHostname,
     dozzle_hostname: environment.dozzleHostname,
-    image_matrix: JSON.stringify(githubImageMatrix()),
+    nango_image_uri: imageUris.nangoImageUri,
+    brain_image_uri: imageUris.brainImageUri,
+    pg_backup_image_uri: imageUris.pgBackupImageUri,
+    image_matrix: JSON.stringify(githubImageMatrix(imageInput)),
   });
 }
 
@@ -107,4 +116,19 @@ function requiredEnv(name: string): string {
   }
 
   return value;
+}
+
+function gitRevParse(revision: string): string {
+  const proc = Bun.spawnSync(['git', 'rev-parse', revision], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+
+  if (proc.exitCode !== 0) {
+    throw new Error(
+      `Could not resolve ${revision}: ${new TextDecoder().decode(proc.stderr).trim()}`,
+    );
+  }
+
+  return new TextDecoder().decode(proc.stdout).trim();
 }

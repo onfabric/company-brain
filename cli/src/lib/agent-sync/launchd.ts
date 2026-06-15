@@ -3,12 +3,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { Target } from '../deployment-target.ts';
 import { DEFAULT_SCAN_INTERVAL_MS, REQUIRED_CONFIG_KEYS, readConfigFile } from './config.ts';
 
 const LABEL = 'dev.company-brain.agent-sync';
 const MILLISECONDS_PER_SECOND = 1000;
-export type AgentSyncTarget = Target;
 
 export interface LaunchAgentConfig {
   label: string;
@@ -20,7 +18,6 @@ export interface LaunchAgentConfig {
 
 export function launchAgentConfig(
   dataDir: string,
-  target: AgentSyncTarget = 'local',
   scanIntervalMs = DEFAULT_SCAN_INTERVAL_MS,
 ): LaunchAgentConfig {
   const logDirectory = path.join(dataDir, 'logs');
@@ -28,7 +25,7 @@ export function launchAgentConfig(
     label: LABEL,
     plistPath: path.join(os.homedir(), 'Library/LaunchAgents', `${LABEL}.plist`),
     logDirectory,
-    programArguments: syncNowProgramArguments(target),
+    programArguments: syncNowProgramArguments(),
     startIntervalSeconds: intervalSeconds(scanIntervalMs),
   };
 }
@@ -61,19 +58,16 @@ ${args}
 `;
 }
 
-export async function installLaunchAgent(
-  dataDir: string,
-  target: AgentSyncTarget,
-): Promise<LaunchAgentConfig> {
+export async function installLaunchAgent(dataDir: string): Promise<LaunchAgentConfig> {
   const fileConfig = await readConfigFile(dataDir);
   const missing = REQUIRED_CONFIG_KEYS.filter((key) => !fileConfig[key]);
   if (missing.length > 0) {
     throw new Error(
-      `agent-sync setup needed before installing LaunchAgent. Run: company-brain agent-sync install --target ${target} (${missing.join(', ')})`,
+      `agent-sync setup needed before installing LaunchAgent. Run: company-brain agent-sync install (${missing.join(', ')})`,
     );
   }
 
-  const config = launchAgentConfig(dataDir, target, fileConfig.scanIntervalMs);
+  const config = launchAgentConfig(dataDir, fileConfig.scanIntervalMs);
   await fs.promises.mkdir(path.dirname(config.plistPath), { recursive: true });
   await fs.promises.mkdir(config.logDirectory, { recursive: true });
   await fs.promises.writeFile(config.plistPath, renderLaunchAgentPlist(config));
@@ -108,25 +102,18 @@ function launchTarget(): string {
   return `gui/${process.getuid?.() ?? os.userInfo().uid}`;
 }
 
-function syncNowProgramArguments(target: AgentSyncTarget): string[] {
+function syncNowProgramArguments(): string[] {
   const scriptPath = process.argv[1];
   if (scriptPath && scriptPath !== process.execPath && scriptPath.endsWith('.ts')) {
-    return [
-      process.execPath,
-      path.resolve(scriptPath),
-      'agent-sync',
-      'sync-now',
-      '--target',
-      target,
-    ];
+    return [process.execPath, path.resolve(scriptPath), 'agent-sync', 'sync-now'];
   }
 
   const cliPath = fileURLToPath(new URL('../../main.ts', import.meta.url));
   if (fs.existsSync(cliPath)) {
-    return [process.execPath, cliPath, 'agent-sync', 'sync-now', '--target', target];
+    return [process.execPath, cliPath, 'agent-sync', 'sync-now'];
   }
 
-  return [process.execPath, 'agent-sync', 'sync-now', '--target', target];
+  return [process.execPath, 'agent-sync', 'sync-now'];
 }
 
 function intervalSeconds(scanIntervalMs: number): number {

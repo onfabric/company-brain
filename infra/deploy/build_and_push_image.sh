@@ -3,7 +3,7 @@ set -euo pipefail
 
 : "${IMAGE_REPOSITORY:?}" "${IMAGE_TAG:?}" "${BUILD_CONTEXT:?}" "${DOCKERFILE:?}"
 
-PLATFORM="${PLATFORM:-linux/amd64,linux/arm64}"
+PLATFORM="${PLATFORM:-linux/amd64}"
 LATEST_TAG="${LATEST_TAG:-latest}"
 SOURCE_LABEL="${SOURCE_LABEL:-https://github.com/onfabric/company-brain}"
 CACHE_SCOPE="${CACHE_SCOPE:-}"

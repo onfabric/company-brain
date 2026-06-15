@@ -1,6 +1,7 @@
 import type { ReleaseManifest } from './release.ts';
 
 export const PUBLIC_IMAGE_REGISTRY = 'ghcr.io/onfabric';
+const NANGO_IMAGE_TAG_VERSION = 'v1';
 
 export const DEPLOYMENT_IMAGES = [
   {
@@ -78,9 +79,16 @@ export const CI_DEPLOYMENT_ENVIRONMENTS = {
 export type GithubImageMatrixItem = {
   key: DeploymentImageKey;
   repository: DeploymentImage['repository'];
+  image_tag: string;
+  image_uri: string;
   context: DeploymentImage['context'];
   dockerfile: DeploymentImage['dockerfile'];
   cache_scope: DeploymentImage['cacheScope'];
+};
+
+export type GithubDeploymentImageInput = {
+  gitSha: string;
+  nangoSubmoduleSha: string;
 };
 
 export type SsmDeploymentEnvInput = {
@@ -108,14 +116,43 @@ export function resolveCiDeploymentEnvironment(name: string): CiDeploymentEnviro
   return environment;
 }
 
-export function githubImageMatrix(): GithubImageMatrixItem[] {
-  return DEPLOYMENT_IMAGES.map((image) => ({
-    key: image.key,
-    repository: image.repository,
-    context: image.context,
-    dockerfile: image.dockerfile,
-    cache_scope: image.cacheScope,
-  }));
+export function githubDeploymentImageTags(
+  input: GithubDeploymentImageInput,
+): Record<DeploymentImageKey, string> {
+  return {
+    nango: `nango-${NANGO_IMAGE_TAG_VERSION}-${input.nangoSubmoduleSha}`,
+    brain: `sha-${input.gitSha}`,
+    'pg-backup': `sha-${input.gitSha}`,
+  };
+}
+
+export function githubDeploymentImageUris(input: GithubDeploymentImageInput): DeploymentImageUris {
+  const tags = githubDeploymentImageTags(input);
+  const uris = {} as DeploymentImageUris;
+
+  for (const image of DEPLOYMENT_IMAGES) {
+    uris[image.imageUriKey] = imageUri(image.repository, tags[image.key]);
+  }
+
+  return uris;
+}
+
+export function githubImageMatrix(input: GithubDeploymentImageInput): GithubImageMatrixItem[] {
+  const tags = githubDeploymentImageTags(input);
+
+  return DEPLOYMENT_IMAGES.map((image) => {
+    const tag = tags[image.key];
+
+    return {
+      key: image.key,
+      repository: image.repository,
+      image_tag: tag,
+      image_uri: imageUri(image.repository, tag),
+      context: image.context,
+      dockerfile: image.dockerfile,
+      cache_scope: image.cacheScope,
+    };
+  });
 }
 
 export function ciTerraformVars(environment: CiDeploymentEnvironment): Record<string, unknown> {
