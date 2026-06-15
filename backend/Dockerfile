@@ -16,6 +16,7 @@ RUN bun install --frozen-lockfile
 
 FROM base AS build
 COPY --from=install /temp/deps ./
+COPY backend-client backend-client
 COPY backend backend
 COPY dashboard dashboard
 WORKDIR /monorepo/backend
