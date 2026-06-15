@@ -1,6 +1,7 @@
 import type { AwsConfig } from './aws-config.ts';
 import { awsCommandEnv } from './aws-credentials.ts';
 import type { ImageUris } from './aws-images.ts';
+import { buildSsmDeploymentEnv } from './deployment-contract.ts';
 import { buildDozzleUsersYaml } from './dozzle.ts';
 import { deployPath } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
@@ -64,20 +65,20 @@ export async function deployOverSsm({
     purpose: 'Deploy the current bundle and images on the EC2 host via SSM.',
     env: {
       ...awsCommandEnv(config),
-      BUNDLE_URL: bundleUrl,
-      DEPLOY_GROUP: outputs.deployGroupTag,
-      DATA_VOLUME_ID: outputs.dataVolumeId,
-      ARTIFACTS_BUCKET: outputs.artifactsBucket,
-      NANGO_IMAGE_URI: images.nangoImageUri,
-      BRAIN_IMAGE_URI: images.brainImageUri,
-      PG_BACKUP_IMAGE_URI: images.pgBackupImageUri,
-      SSM_SECRET_PREFIX: config.ssmSecretPrefix,
-      NANGO_HOSTNAME: config.nangoHostname,
-      NANGO_CONNECT_HOSTNAME: config.nangoConnectHostname,
-      BRAIN_HOSTNAME: config.brainHostname,
-      DOZZLE_HOSTNAME: config.dozzleHostname,
-      ACME_EMAIL: config.acmeEmail,
-      AWS_REGION: config.region,
+      ...buildSsmDeploymentEnv({
+        bundleUrl,
+        deployGroup: outputs.deployGroupTag,
+        dataVolumeId: outputs.dataVolumeId,
+        artifactsBucket: outputs.artifactsBucket,
+        imageUris: images,
+        ssmSecretPrefix: config.ssmSecretPrefix,
+        nangoHostname: config.nangoHostname,
+        nangoConnectHostname: config.nangoConnectHostname,
+        brainHostname: config.brainHostname,
+        dozzleHostname: config.dozzleHostname,
+        acmeEmail: config.acmeEmail,
+        awsRegion: config.region,
+      }),
       GITHUB_SHA: config.lastDeployId,
     },
   });

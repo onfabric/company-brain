@@ -19,17 +19,34 @@ permissions:
   id-token: write # assume AWS roles via OIDC
 
 env:
-  AWS_REGION: eu-west-2
-  SSM_SECRET_PREFIX: /company-brain/dev
-  NANGO_HOSTNAME: nango-dev.onfabric.io
-  NANGO_CONNECT_HOSTNAME: nango-auth-dev.onfabric.io
-  BRAIN_HOSTNAME: brain-dev.onfabric.io
-  DOZZLE_HOSTNAME: dozzle-dev.onfabric.io
-  DEPLOY_GROUP: company-brain-dev
   NO_COLOR: "1"
 
 jobs:
+  deploy-config:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.config.outputs.environment }}
+      aws_region: ${{ steps.config.outputs.aws_region }}
+      terraform_backend_config: ${{ steps.config.outputs.terraform_backend_config }}
+      ssm_secret_prefix: ${{ steps.config.outputs.ssm_secret_prefix }}
+      deploy_group: ${{ steps.config.outputs.deploy_group }}
+      deploy_id: ${{ steps.config.outputs.deploy_id }}
+      nango_hostname: ${{ steps.config.outputs.nango_hostname }}
+      nango_connect_hostname: ${{ steps.config.outputs.nango_connect_hostname }}
+      brain_hostname: ${{ steps.config.outputs.brain_hostname }}
+      dozzle_hostname: ${{ steps.config.outputs.dozzle_hostname }}
+      image_matrix: ${{ steps.config.outputs.image_matrix }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/prepare
+
+      - name: Resolve deployment config
+        id: config
+        run: bun cli/src/scripts/github-deploy-plan.ts github-outputs dev >> "$GITHUB_OUTPUT"
+
   terraform-apply:
+    needs: deploy-config
     runs-on: ubuntu-latest
     outputs:
       nango_ecr_repository_url: ${{ steps.tf_outputs.outputs.nango_ecr_repository_url }}
@@ -38,6 +55,7 @@ jobs:
       artifacts_bucket: ${{ steps.tf_outputs.outputs.artifacts_bucket }}
       github_deploy_role_arn: ${{ steps.tf_outputs.outputs.github_deploy_role_arn }}
       data_volume_id: ${{ steps.tf_outputs.outputs.data_volume_id }}
+      deploy_group_tag: ${{ steps.tf_outputs.outputs.deploy_group_tag }}
     defaults:
       run:
         working-directory: infra/terraform
@@ -50,10 +68,13 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ needs.deploy-config.outputs.aws_region }}
 
-      - run: terraform init -input=false -backend-config=backends/dev.conf
-      - run: terraform plan -input=false -var-file=dev.tfvars -out=tfplan
+      - name: Write Terraform vars
+        run: bun ../../cli/src/scripts/github-deploy-plan.ts terraform-vars dev > cd.auto.tfvars.json
+
+      - run: terraform init -input=false -backend-config=${{ needs.deploy-config.outputs.terraform_backend_config }}
+      - run: terraform plan -input=false -var-file=cd.auto.tfvars.json -out=tfplan
         env:
           TF_VAR_google_client_id: ${{ vars.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_ID }}
           TF_VAR_google_client_secret: ${{ secrets.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_SECRET }}
@@ -92,6 +113,7 @@ jobs:
           echo "artifacts_bucket=$(terraform output -raw artifacts_bucket)" >> "$GITHUB_OUTPUT"
           echo "github_deploy_role_arn=$(terraform output -raw github_deploy_role_arn)" >> "$GITHUB_OUTPUT"
           echo "data_volume_id=$(terraform output -raw data_volume_id)" >> "$GITHUB_OUTPUT"
+          echo "deploy_group_tag=$(terraform output -raw deploy_group_tag)" >> "$GITHUB_OUTPUT"
 
       - name: Outputs
         run: |
@@ -102,11 +124,13 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-  build-docker-nango:
-    needs: terraform-apply
+  build-docker:
+    needs: [deploy-config, terraform-apply]
     runs-on: ubuntu-latest
-    outputs:
-      docker_image_tag: ${{ steps.build.outputs.image-tag }}
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.deploy-config.outputs.image_matrix) }}
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v6
@@ -117,55 +141,16 @@ jobs:
         id: build
         uses: ./.github/actions/build-and-push-docker
         with:
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ needs.deploy-config.outputs.aws_region }}
           deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
-          ecr-repository-url: ${{ needs.terraform-apply.outputs.nango_ecr_repository_url }}
-          context: ./nango
-          dockerfile: ./nango/Dockerfile
-          cache-scope: nango
-
-  build-docker-brain:
-    needs: terraform-apply
-    runs-on: ubuntu-latest
-    outputs:
-      docker_image_tag: ${{ steps.build.outputs.image-tag }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Build and push
-        id: build
-        uses: ./.github/actions/build-and-push-docker
-        with:
-          aws-region: ${{ env.AWS_REGION }}
-          deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
-          ecr-repository-url: ${{ needs.terraform-apply.outputs.brain_ecr_repository_url }}
-          context: .
-          dockerfile: backend/Dockerfile
-          cache-scope: brain
-
-  build-docker-pg-backup:
-    needs: terraform-apply
-    runs-on: ubuntu-latest
-    outputs:
-      docker_image_tag: ${{ steps.build.outputs.image-tag }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Build and push
-        id: build
-        uses: ./.github/actions/build-and-push-docker
-        with:
-          aws-region: ${{ env.AWS_REGION }}
-          deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
-          ecr-repository-url: ${{ needs.terraform-apply.outputs.pg_backup_ecr_repository_url }}
-          context: infra/pg-backup
-          dockerfile: infra/pg-backup/Dockerfile
-          cache-scope: pg-backup
+          ecr-repository-url: ${{ needs.terraform-apply.outputs[matrix.image.repository_output] }}
+          image-tag: ${{ needs.deploy-config.outputs.deploy_id }}
+          context: ${{ matrix.image.context }}
+          dockerfile: ${{ matrix.image.dockerfile }}
+          cache-scope: ${{ matrix.image.cache_scope }}
 
   build-bundle:
-    needs: terraform-apply
+    needs: [deploy-config, terraform-apply]
     runs-on: ubuntu-latest
     outputs:
       bundle_url: ${{ steps.meta.outputs.bundle_url }}
@@ -175,17 +160,20 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: ./.github/actions/prepare
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ needs.deploy-config.outputs.aws_region }}
 
       - name: Resolve bundle URL
         id: meta
         env:
           ARTIFACTS_BUCKET: ${{ needs.terraform-apply.outputs.artifacts_bucket }}
-        run: echo "bundle_url=s3://$ARTIFACTS_BUCKET/dev/$GITHUB_SHA.tar.gz" >> "$GITHUB_OUTPUT"
+          DEPLOY_ID: ${{ needs.deploy-config.outputs.deploy_id }}
+        run: bun cli/src/scripts/github-deploy-plan.ts bundle-output dev >> "$GITHUB_OUTPUT"
 
       - name: Package runtime bundle
         run: infra/deploy/package_runtime_bundle.sh bundle.tar.gz
@@ -196,44 +184,44 @@ jobs:
   deploy:
     needs:
       [
+        deploy-config,
         terraform-apply,
-        build-docker-nango,
-        build-docker-brain,
-        build-docker-pg-backup,
+        build-docker,
         build-bundle,
       ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
+      - uses: ./.github/actions/prepare
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ needs.deploy-config.outputs.aws_region }}
+
+      - name: Prepare SSM deploy environment
+        run: bun cli/src/scripts/github-deploy-plan.ts ssm-env dev >> "$GITHUB_ENV"
+        env:
+          DEPLOY_ID: ${{ needs.deploy-config.outputs.deploy_id }}
+          BUNDLE_URL: ${{ needs.build-bundle.outputs.bundle_url }}
+          DEPLOY_GROUP: ${{ needs.terraform-apply.outputs.deploy_group_tag }}
+          DATA_VOLUME_ID: ${{ needs.terraform-apply.outputs.data_volume_id }}
+          ARTIFACTS_BUCKET: ${{ needs.terraform-apply.outputs.artifacts_bucket }}
+          NANGO_ECR_REPOSITORY_URL: ${{ needs.terraform-apply.outputs.nango_ecr_repository_url }}
+          BRAIN_ECR_REPOSITORY_URL: ${{ needs.terraform-apply.outputs.brain_ecr_repository_url }}
+          PG_BACKUP_ECR_REPOSITORY_URL: ${{ needs.terraform-apply.outputs.pg_backup_ecr_repository_url }}
+          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
 
       - name: Deploy on instance via SSM
         run: infra/deploy/ssm_deploy.sh
-        env:
-          BUNDLE_URL: ${{ needs.build-bundle.outputs.bundle_url }}
-          DEPLOY_GROUP: ${{ env.DEPLOY_GROUP }}
-          DATA_VOLUME_ID: ${{ needs.terraform-apply.outputs.data_volume_id }}
-          ARTIFACTS_BUCKET: ${{ needs.terraform-apply.outputs.artifacts_bucket }}
-          NANGO_IMAGE_URI: ${{ needs.build-docker-nango.outputs.docker_image_tag }}
-          BRAIN_IMAGE_URI: ${{ needs.build-docker-brain.outputs.docker_image_tag }}
-          PG_BACKUP_IMAGE_URI: ${{ needs.build-docker-pg-backup.outputs.docker_image_tag }}
-          SSM_SECRET_PREFIX: ${{ env.SSM_SECRET_PREFIX }}
-          NANGO_HOSTNAME: ${{ env.NANGO_HOSTNAME }}
-          NANGO_CONNECT_HOSTNAME: ${{ env.NANGO_CONNECT_HOSTNAME }}
-          BRAIN_HOSTNAME: ${{ env.BRAIN_HOSTNAME }}
-          DOZZLE_HOSTNAME: ${{ env.DOZZLE_HOSTNAME }}
-          ACME_EMAIL: ${{ vars.ACME_EMAIL }}
-          AWS_REGION: ${{ env.AWS_REGION }}
 
   deploy-nango-integrations:
-    needs: [terraform-apply, deploy]
+    needs: [deploy-config, terraform-apply, deploy]
     runs-on: ubuntu-latest
     env:
+      NANGO_HOSTNAME: ${{ needs.deploy-config.outputs.nango_hostname }}
       NOTION_CLIENT_ID: ${{ secrets.NOTION_CLIENT_ID }}
       NOTION_CLIENT_SECRET: ${{ secrets.NOTION_CLIENT_SECRET }}
       SLACK_CLIENT_ID: ${{ secrets.SLACK_CLIENT_ID }}

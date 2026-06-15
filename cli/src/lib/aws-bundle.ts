@@ -2,6 +2,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AwsConfig } from './aws-config.ts';
 import { awsCommandEnv } from './aws-credentials.ts';
+import { runtimeBundleUrl } from './deployment-contract.ts';
 import { deployPath, repoRoot } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
@@ -12,7 +13,7 @@ export async function uploadRuntimeBundle(
 ): Promise<string> {
   const outputs = requiredOutputs(config);
   const bundlePath = join(tmpdir(), `company-brain-${deployId}.tar.gz`);
-  const bundleUrl = `s3://${outputs.artifactsBucket}/${config.environment}/${deployId}.tar.gz`;
+  const bundleUrl = runtimeBundleUrl(outputs.artifactsBucket, config.environment, deployId);
 
   await runVisible(['bash', `${deployPath}/package_runtime_bundle.sh`, bundlePath], context, {
     cwd: repoRoot,

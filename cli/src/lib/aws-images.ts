@@ -1,13 +1,16 @@
 import type { AwsConfig } from './aws-config.ts';
 import { awsCommandEnv } from './aws-credentials.ts';
+import {
+  DEPLOYMENT_IMAGES,
+  type DeploymentImage,
+  type DeploymentImageUris,
+  imageUri,
+  latestImageUri,
+} from './deployment-contract.ts';
 import { deployPath, repoRoot } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
-export type ImageUris = {
-  nangoImageUri: string;
-  brainImageUri: string;
-  pgBackupImageUri: string;
-};
+export type ImageUris = DeploymentImageUris;
 
 export async function buildAndPushImages(
   config: AwsConfig,
@@ -20,6 +23,7 @@ export async function buildAndPushImages(
     throw new Error('Could not derive ECR registry from Terraform outputs.');
   }
   const env = awsCommandEnv(config);
+  const imageUris = {} as DeploymentImageUris;
 
   const loginPassword = await runVisible(
     ['aws', 'ecr', 'get-login-password', '--region', config.region],
@@ -36,60 +40,40 @@ export async function buildAndPushImages(
     },
   );
 
-  const nangoImageUri = await buildAndPushImage({
-    repositoryUrl: outputs.nangoEcrRepositoryUrl,
-    deployId,
-    contextDir: './nango',
-    dockerfile: './nango/Dockerfile',
-    cacheScope: 'nango',
-    context,
-  });
-  const brainImageUri = await buildAndPushImage({
-    repositoryUrl: outputs.brainEcrRepositoryUrl,
-    deployId,
-    contextDir: '.',
-    dockerfile: 'backend/Dockerfile',
-    cacheScope: 'brain',
-    context,
-  });
-  const pgBackupImageUri = await buildAndPushImage({
-    repositoryUrl: outputs.pgBackupEcrRepositoryUrl,
-    deployId,
-    contextDir: 'infra/pg-backup',
-    dockerfile: 'infra/pg-backup/Dockerfile',
-    cacheScope: 'pg-backup',
-    context,
-  });
+  for (const image of DEPLOYMENT_IMAGES) {
+    imageUris[image.imageUriKey] = await buildAndPushImage({
+      image,
+      repositoryUrl: outputs[image.repositoryOutputKey],
+      deployId,
+      context,
+    });
+  }
 
-  return { nangoImageUri, brainImageUri, pgBackupImageUri };
+  return imageUris;
 }
 
 async function buildAndPushImage({
+  image,
   repositoryUrl,
   deployId,
-  contextDir,
-  dockerfile,
-  cacheScope,
   context,
 }: {
+  image: DeploymentImage;
   repositoryUrl: string;
   deployId: string;
-  contextDir: string;
-  dockerfile: string;
-  cacheScope: string;
   context: VisibleCommandContext;
 }): Promise<string> {
-  const deployTag = `${repositoryUrl}:${deployId}`;
-  const latestTag = `${repositoryUrl}:latest`;
+  const deployTag = imageUri(repositoryUrl, deployId);
+  const latestTag = latestImageUri(repositoryUrl);
 
   await runVisible(['bash', `${deployPath}/build_and_push_image.sh`], context, {
     cwd: repoRoot,
     env: {
       ECR_REPOSITORY_URL: repositoryUrl,
       IMAGE_TAG: deployId,
-      BUILD_CONTEXT: contextDir,
-      DOCKERFILE: dockerfile,
-      CACHE_SCOPE: cacheScope,
+      BUILD_CONTEXT: image.context,
+      DOCKERFILE: image.dockerfile,
+      CACHE_SCOPE: image.cacheScope,
       CACHE_FROM: `type=registry,ref=${latestTag}`,
       CACHE_TO: 'type=inline',
       SOURCE_LABEL: 'https://github.com/onfabric/company-brain',
