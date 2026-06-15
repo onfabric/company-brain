@@ -38,8 +38,8 @@ describe('hostedNangoEnvDefaults', () => {
     expect(values.NANGO_SECRET_KEY_DEV).toBeUndefined();
   });
 
-  it('points missing API keys at the hosted integrations command', () => {
-    expect(() => hostedNangoEnv(config())).toThrow('bun run company-brain deploy add integrations');
+  it('points missing API keys at cloud resume', () => {
+    expect(() => hostedNangoEnv(config())).toThrow('bun run company-brain cloud resume');
   });
 });
 

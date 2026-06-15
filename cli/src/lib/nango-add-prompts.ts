@@ -1,7 +1,11 @@
 import { isCancel, multiselect, password, text } from '@clack/prompts';
 import { oauthConnectionHints } from '../../../nango-integrations/_scripts/lib/catalog.ts';
 import { parseSelection } from '../../../nango-integrations/_scripts/lib/selection.ts';
-import { bootstrappedConnectionIntegrationIds, nangoIntegrationSpecs } from './nango.ts';
+import {
+  bootstrappedConnectionIntegrationIds,
+  nangoDefaultIntegrationSpecs,
+  nangoIntegrationSpecs,
+} from './nango.ts';
 import type { AddTarget } from './nango-add-targets.ts';
 
 export type IntegrationSpec = (typeof nangoIntegrationSpecs)[number];
@@ -18,7 +22,7 @@ export async function collectNangoEnv(
     ...existing,
     NANGO_HOSTPORT: nangoHostport,
     NANGO_SECRET_KEY_DEV: await promptValue(
-      target === 'deploy' ? 'Hosted Nango dev API key' : 'Nango dev API key',
+      target === 'cloud' ? 'Hosted Nango dev API key' : 'Nango dev API key',
       existing.NANGO_SECRET_KEY_DEV,
       force,
       true,
@@ -62,7 +66,7 @@ export async function resolveIntegrationSelection(
   defaultIds: string[],
 ): Promise<IntegrationSpec[]> {
   if (all) {
-    return nangoIntegrationSpecs;
+    return nangoDefaultIntegrationSpecs;
   }
 
   if (only) {
@@ -82,9 +86,10 @@ export async function resolveIntegrationSelection(
     throw new Error('Pass --only notion,slack or --all when running without a TTY.');
   }
 
+  const promptIntegrations = nangoDefaultIntegrationSpecs;
   const answer = await multiselect({
     message: 'Which integrations should Company Brain add?',
-    options: nangoIntegrationSpecs.map((integration) => ({
+    options: promptIntegrations.map((integration) => ({
       value: integration.id,
       label: integration.displayName,
       hint: integration.provider,
@@ -96,7 +101,7 @@ export async function resolveIntegrationSelection(
     throw new Error('Integration setup cancelled.');
   }
 
-  return nangoIntegrationSpecs.filter((integration) => answer.includes(integration.id));
+  return promptIntegrations.filter((integration) => answer.includes(integration.id));
 }
 
 export function selectedConnectionHints(integrationIds: string[]): string[] {
