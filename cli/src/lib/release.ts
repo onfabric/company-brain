@@ -23,7 +23,6 @@ const ReleaseManifestSchema = z.object({
   version: z.string().min(1),
   gitSha: z.string().min(MIN_GIT_SHA_LENGTH),
   nangoSubmoduleSha: z.string().min(MIN_GIT_SHA_LENGTH).optional(),
-  minimumCliVersion: z.string().min(1).optional(),
   images: z.object({
     nango: z.string().min(1),
     brain: z.string().min(1),

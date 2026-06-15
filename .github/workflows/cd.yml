@@ -92,13 +92,6 @@ jobs:
 
       - uses: ./.github/actions/prepare
 
-      - name: Verify images are public
-        run: |
-          infra/deploy/verify_public_images.sh \
-            ghcr.io/onfabric/company-brain-nango:${{ env.IMAGE_TAG }} \
-            ghcr.io/onfabric/company-brain-brain:${{ env.IMAGE_TAG }} \
-            ghcr.io/onfabric/company-brain-pg-backup:${{ env.IMAGE_TAG }}
-
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -190,6 +183,13 @@ jobs:
       - uses: actions/checkout@v6
 
       - uses: ./.github/actions/prepare
+
+      - name: Verify images are public
+        run: |
+          infra/deploy/verify_public_images.sh \
+            ghcr.io/onfabric/company-brain-nango:${{ env.IMAGE_TAG }} \
+            ghcr.io/onfabric/company-brain-brain:${{ env.IMAGE_TAG }} \
+            ghcr.io/onfabric/company-brain-pg-backup:${{ env.IMAGE_TAG }}
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6
