@@ -54,7 +54,9 @@ export async function deploySyncs(
   environment: string,
   passthroughArgs: string[],
 ): Promise<void> {
-  await run(['bun', 'run', 'build:backend-client']);
+  if (process.env.COMPANY_BRAIN_PACKAGED_INTEGRATIONS !== 'true') {
+    await run(['bun', 'run', 'build:backend-client']);
+  }
 
   for (const command of buildDeployCommands(selected, environment, passthroughArgs)) {
     await run(command);

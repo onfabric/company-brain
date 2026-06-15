@@ -1,4 +1,4 @@
-# The nango services are inspired by the Nango Docker compose file in the ./nango submodule.
+# The nango services are inspired by the Nango Docker compose file.
 
 # Postgres image, shared by the database and the one-shot brain DB bootstrap (so
 # the bootstrap's psql client always matches the server).
@@ -7,10 +7,7 @@ x-db-image: &db-image paradedb/paradedb:0.23.5-pg18
 # Shared base for every Nango container: one image, built once from the
 # submodule's Dockerfile, reused by server / orchestrator / persist / jobs.
 x-nango-base: &nango-base
-  image: company-brain/nango:local
-  build:
-    context: ./nango
-    dockerfile: Dockerfile
+  image: ${NANGO_IMAGE_URI}
   restart: always
   networks:
     - nango
@@ -76,7 +73,6 @@ services:
       - JOBS_SERVICE_URL=http://nango-jobs:3005
       - NANGO_REDIS_URL=redis://nango-redis:6379
     volumes:
-      - ./nango/packages/providers/providers.yaml:/app/nango/packages/providers/providers.yaml:ro
       - nango-integrations:/app/nango/packages/shared/dist/nango-integrations
     ports:
       - "${NANGO_SERVER_PORT}:3003"
@@ -270,10 +266,7 @@ services:
       - nango
 
   brain:
-    image: company-brain/brain:local
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: ${BRAIN_IMAGE_URI}
     container_name: brain
     environment:
       - DATABASE_URL=postgresql://${BRAIN_DB_USER}:${BRAIN_DB_PASSWORD}@postgres-db:5432/${NANGO_DB_NAME}

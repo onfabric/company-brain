@@ -16,6 +16,7 @@ import { isNonInteractive } from '../lib/interaction.ts';
 import { ensureRootEnv, readRootEnv } from '../lib/local-env.ts';
 import { ensureLocalNangoApiKey } from '../lib/nango-api-key.ts';
 import { ensureNangoEnvBase } from '../lib/nango-env.ts';
+import { ensureReleaseAssets } from '../lib/release.ts';
 import { rejectOptionsForTarget, resolveCommandTarget, targetOptions } from '../lib/target.ts';
 
 export const command = defineCommand('setup', {
@@ -80,12 +81,14 @@ async function setupLocal(options: {
 }): Promise<void> {
   intro('Company Brain local setup');
 
+  const release = await ensureReleaseAssets();
   const allowedEmails =
     options.allowedEmails ?? (await promptAllowedEmailsIfMissing(options.nonInteractive));
   await ensureRootEnv({
     force: options.force,
     allowedDashboardAccountsEmailsRegex:
       allowedEmails === undefined ? undefined : allowedEmailsToRegex(allowedEmails),
+    release: release.manifest,
   });
   await ensureNangoEnvBase(options.force);
 
@@ -143,9 +146,15 @@ async function setupCloud(options: {
 
   let config = await collectAwsConfig({
     existing,
+    awsAccountId: prerequisites.accountId,
     force: options.force,
     nonInteractive: options.nonInteractive,
   });
+  if (config.awsAccountId !== prerequisites.accountId) {
+    throw new Error(
+      `Saved cloud config points at AWS account ${config.awsAccountId}, but current credentials are for ${prerequisites.accountId}.`,
+    );
+  }
   config = {
     ...config,
     awsProfile: prerequisites.awsProfile,

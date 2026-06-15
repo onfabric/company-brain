@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import {
   BOOTSTRAPPED_CONNECTIONS,
   DEFAULT_INTEGRATIONS,
@@ -6,6 +7,7 @@ import {
   SYNC_SPECS,
 } from '../../../nango-integrations/_scripts/lib/catalog.ts';
 import { nangoIntegrationsPath } from './paths.ts';
+import { ensureNangoIntegrationsAssets } from './release.ts';
 import { run } from './shell.ts';
 
 export const nangoIntegrationSpecs = INTEGRATIONS;
@@ -22,13 +24,15 @@ export async function bootstrapNangoIntegrations(
   integrationIds: string[],
   options: NangoCommandOptions = {},
 ): Promise<void> {
+  await ensureNangoIntegrationsAssets();
+  await ensureNangoIntegrationDependencies(options.verbose);
   const selectionArgs = selectedArgs(integrationIds);
 
   await run(
     ['bun', 'run', 'bootstrap:integrations', 'dev', '--update-existing', ...selectionArgs],
     {
       cwd: nangoIntegrationsPath,
-      env: options.env,
+      env: packagedEnv(options.env),
       verbose: options.verbose,
     },
   );
@@ -42,7 +46,7 @@ export async function bootstrapNangoIntegrations(
     ['bun', 'run', 'bootstrap:connections', 'dev', ...selectedArgs(connectionIntegrationIds)],
     {
       cwd: nangoIntegrationsPath,
-      env: options.env,
+      env: packagedEnv(options.env),
       verbose: options.verbose,
     },
   );
@@ -52,9 +56,11 @@ export async function checkNangoConnections(
   integrationIds: string[],
   options: NangoCommandOptions = {},
 ): Promise<void> {
+  await ensureNangoIntegrationsAssets();
+  await ensureNangoIntegrationDependencies(options.verbose);
   await run(['bun', 'run', 'check:connections', 'dev', ...selectedArgs(integrationIds)], {
     cwd: nangoIntegrationsPath,
-    env: options.env,
+    env: packagedEnv(options.env),
     verbose: options.verbose,
   });
 }
@@ -63,6 +69,8 @@ export async function deployNangoSyncs(
   integrationIds: string[],
   options: NangoCommandOptions = {},
 ): Promise<void> {
+  await ensureNangoIntegrationsAssets();
+  await ensureNangoIntegrationDependencies(options.verbose);
   await run(
     [
       'bun',
@@ -76,7 +84,7 @@ export async function deployNangoSyncs(
     ],
     {
       cwd: nangoIntegrationsPath,
-      env: options.env,
+      env: packagedEnv(options.env),
       verbose: options.verbose,
     },
   );
@@ -93,4 +101,22 @@ export function bootstrappedConnectionIntegrationIds(integrationIds: string[]): 
 
 function selectedArgs(integrationIds: string[]): string[] {
   return integrationIds.length > 0 ? ['--only', integrationIds.join(',')] : [];
+}
+
+function packagedEnv(env: Record<string, string | undefined> | undefined) {
+  return {
+    ...env,
+    COMPANY_BRAIN_PACKAGED_INTEGRATIONS: 'true',
+  };
+}
+
+async function ensureNangoIntegrationDependencies(verbose: boolean | undefined): Promise<void> {
+  if (existsSync(`${nangoIntegrationsPath}/node_modules/.bin/nango`)) {
+    return;
+  }
+
+  const installArgs = existsSync(`${nangoIntegrationsPath}/bun.lock`)
+    ? ['bun', 'install', '--frozen-lockfile']
+    : ['bun', 'install'];
+  await run(installArgs, { cwd: nangoIntegrationsPath, verbose });
 }

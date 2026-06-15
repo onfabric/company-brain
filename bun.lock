@@ -107,7 +107,6 @@
       "name": "nango-integrations",
       "version": "1.0.0",
       "devDependencies": {
-        "@company-brain/backend": "workspace:*",
         "@elysiajs/eden": "^1.4.9",
         "elysia": "^1.4.28",
         "nango": "0.70.5",

@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { nangoSubmodulePath, repoRoot } from './paths.ts';
+import { rootEnvPath, runtimePath } from './paths.ts';
 import { commandSucceeds, run } from './shell.ts';
 
 const HEALTH_TIMEOUT_SECONDS = 600;
@@ -16,10 +16,6 @@ const LOCAL_COMPANY_BRAIN_CONTAINERS = [
   'db-prepare',
   'brain',
   'dozzle',
-] as const;
-const LOCAL_COMPANY_BRAIN_IMAGES = [
-  'company-brain/nango:local',
-  'company-brain/brain:local',
 ] as const;
 const LOCAL_COMPOSE_PROJECT = 'company-brain';
 const LOCAL_DESTROY_ENV = {
@@ -59,10 +55,6 @@ export async function verifyLocalPrerequisites(): Promise<string[]> {
     issues.push('Docker is not running or the Docker CLI cannot reach the daemon.');
   }
 
-  if (!existsSync(nangoSubmodulePath)) {
-    issues.push('The nango submodule is missing. Run `git submodule update --init --recursive`.');
-  }
-
   return issues;
 }
 
@@ -73,24 +65,20 @@ export async function verifyDockerDaemon(): Promise<void> {
 }
 
 export async function startLocalStack(verbose = false): Promise<void> {
-  await run(['docker', 'compose', 'up', '-d', '--build'], { cwd: repoRoot, verbose });
+  await run([...composeCommand(), 'pull'], { cwd: runtimePath, verbose });
+  await run([...composeCommand(), 'up', '-d', '--remove-orphans'], { cwd: runtimePath, verbose });
   await waitForComposeHealth(verbose);
 }
 
 export async function destroyLocalStack(verbose = false): Promise<void> {
-  await run(['docker', 'compose', 'down', '--volumes', '--remove-orphans'], {
-    cwd: repoRoot,
+  await run([...composeCommand(false), 'down', '--volumes', '--remove-orphans'], {
+    cwd: runtimePath,
     env: LOCAL_DESTROY_ENV,
     verbose,
   });
   for (const container of LOCAL_COMPANY_BRAIN_CONTAINERS) {
     if (await commandSucceeds(['docker', 'container', 'inspect', container])) {
       await run(['docker', 'container', 'rm', '--force', container], { verbose });
-    }
-  }
-  for (const image of LOCAL_COMPANY_BRAIN_IMAGES) {
-    if (await commandSucceeds(['docker', 'image', 'inspect', image])) {
-      await run(['docker', 'image', 'rm', '--force', image], { verbose });
     }
   }
   await removeLabeledComposeObjects('volume', verbose);
@@ -156,15 +144,14 @@ export type ComposeService = {
 export async function composeServices(): Promise<ComposeService[]> {
   const output = await run(
     [
-      'docker',
-      'compose',
+      ...composeCommand(false),
       'ps',
       '-a',
       '--format',
       '{{.Name}}|{{.State}}|{{.Health}}|{{.ExitCode}}|{{.Status}}',
     ],
     {
-      cwd: repoRoot,
+      cwd: runtimePath,
       capture: true,
     },
   );
@@ -189,4 +176,18 @@ export function isComposeServiceReady(row: ComposeService): boolean {
   }
 
   return row.state === 'running';
+}
+
+function composeCommand(requireEnvFile = true): string[] {
+  return [
+    'docker',
+    'compose',
+    '--project-name',
+    LOCAL_COMPOSE_PROJECT,
+    '--project-directory',
+    runtimePath,
+    ...(requireEnvFile || existsSync(rootEnvPath) ? ['--env-file', rootEnvPath] : []),
+    '-f',
+    `${runtimePath}/docker-compose.yml`,
+  ];
 }

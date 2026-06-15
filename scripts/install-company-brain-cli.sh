@@ -2,11 +2,11 @@
 set -euo pipefail
 
 BIN_NAME="company-brain"
-DEFAULT_REPO_DIR="$HOME/Library/Application Support/company-brain/repo"
 INSTALL_DIR="${COMPANY_BRAIN_CLI_INSTALL_DIR:-"$HOME/.local/bin"}"
-REPO_DIR="${COMPANY_BRAIN_CLI_REPO_DIR:-}"
-REPO_REF="${COMPANY_BRAIN_CLI_REPO_REF:-}"
-REPO_URL="${COMPANY_BRAIN_CLI_REPO_URL:-https://github.com/onfabric/company-brain.git}"
+RELEASE_VERSION="${COMPANY_BRAIN_CLI_VERSION:-latest}"
+RELEASE_BASE_URL="${COMPANY_BRAIN_CLI_RELEASE_BASE_URL:-https://github.com/onfabric/company-brain/releases}"
+RELEASES_API_URL="${COMPANY_BRAIN_CLI_RELEASES_API_URL:-https://api.github.com/repos/onfabric/company-brain/releases?per_page=100}"
+RELEASE_MANIFEST_ASSET="company-brain-release.json"
 
 say() {
   printf '%s\n' "$*"
@@ -23,71 +23,117 @@ require_command() {
   fi
 }
 
-is_company_brain_repo() {
-  local candidate="$1"
-  [[ -f "$candidate/package.json" && -f "$candidate/cli/src/main.ts" ]]
+ensure_bun() {
+  if command -v bun >/dev/null 2>&1; then
+    return
+  fi
+
+  say "Installing Bun for packaged Nango integration commands..."
+  curl -fsSL https://bun.sh/install | bash
+  export BUN_INSTALL="${BUN_INSTALL:-"$HOME/.bun"}"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+  if ! command -v bun >/dev/null 2>&1; then
+    fail "Bun installation finished, but bun is not on PATH"
+  fi
 }
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-script_repo_dir="$(cd "$script_dir/.." && pwd)"
+asset_platform() {
+  case "$(uname -s)" in
+    Darwin) printf 'darwin' ;;
+    Linux) printf 'linux' ;;
+    *) fail "Unsupported OS: $(uname -s)" ;;
+  esac
+}
+
+asset_arch() {
+  case "$(uname -m)" in
+    arm64|aarch64) printf 'arm64' ;;
+    x86_64|amd64) printf 'x64' ;;
+    *) fail "Unsupported architecture: $(uname -m)" ;;
+  esac
+}
+
+download_url() {
+  local asset="$1"
+  printf '%s/download/%s/%s' "$RELEASE_BASE_URL" "$resolved_release_version" "$asset"
+}
+
+resolve_release_version() {
+  if [ "$RELEASE_VERSION" != "latest" ]; then
+    printf '%s\n' "$RELEASE_VERSION"
+    return
+  fi
+
+  COMPANY_BRAIN_CLI_RELEASES_API_URL="$RELEASES_API_URL" \
+  COMPANY_BRAIN_CLI_RELEASE_MANIFEST_ASSET="$RELEASE_MANIFEST_ASSET" \
+    bun --eval '
+      const apiUrl = Bun.env.COMPANY_BRAIN_CLI_RELEASES_API_URL;
+      const manifestAsset = Bun.env.COMPANY_BRAIN_CLI_RELEASE_MANIFEST_ASSET;
+      const response = await fetch(apiUrl, {
+        headers: {
+          accept: "application/vnd.github+json",
+          "user-agent": "company-brain-installer",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Could not resolve latest Company Brain release: ${response.status}`);
+      }
+
+      const releases = await response.json();
+      const release = releases.find((candidate) =>
+        !candidate.draft &&
+        !candidate.prerelease &&
+        candidate.assets?.some((asset) => asset.name === manifestAsset)
+      );
+      if (!release?.tag_name) {
+        throw new Error(`Could not find a Company Brain release containing ${manifestAsset}`);
+      }
+
+      console.log(release.tag_name);
+    '
+}
 
 say "Company Brain CLI installer"
 say "Checking prerequisites..."
-require_command bun
-
-if [[ -z "$REPO_DIR" ]]; then
-  if is_company_brain_repo "$script_repo_dir"; then
-    REPO_DIR="$script_repo_dir"
-  else
-    REPO_DIR="$DEFAULT_REPO_DIR"
-  fi
+require_command curl
+if command -v shasum >/dev/null 2>&1; then
+  checksum_cmd=(shasum -a 256)
+elif command -v sha256sum >/dev/null 2>&1; then
+  checksum_cmd=(sha256sum)
+else
+  fail "Missing required command: shasum or sha256sum"
 fi
+ensure_bun
 
-if [[ ! -d "$REPO_DIR" ]]; then
-  require_command git
-  say "Cloning Company Brain into $REPO_DIR..."
-  mkdir -p "$(dirname "$REPO_DIR")"
-  git clone --recurse-submodules "$REPO_URL" "$REPO_DIR"
-elif ! is_company_brain_repo "$REPO_DIR"; then
-  fail "$REPO_DIR does not look like a Company Brain checkout"
+platform="$(asset_platform)"
+arch="$(asset_arch)"
+asset="${BIN_NAME}-${platform}-${arch}"
+resolved_release_version="$(resolve_release_version)"
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
+
+say "Downloading $asset from $resolved_release_version..."
+curl -fsSL "$(download_url "$asset")" -o "$tmp_dir/$asset"
+curl -fsSL "$(download_url SHA256SUMS)" -o "$tmp_dir/SHA256SUMS"
+
+expected="$(awk -v file="$asset" '$2 == "dist/" file || $2 == file { print $1 }' "$tmp_dir/SHA256SUMS" | head -1)"
+if [ -z "$expected" ]; then
+  fail "No checksum found for $asset"
 fi
-
-say "Preparing checkout at $REPO_DIR..."
-if [[ -d "$REPO_DIR/.git" ]]; then
-  require_command git
-  (
-    cd "$REPO_DIR"
-    if [[ -n "$REPO_REF" ]]; then
-      say "Checking out $REPO_REF..."
-      git fetch --tags origin
-      git checkout "$REPO_REF"
-    fi
-    git submodule update --init --recursive
-  )
+actual="$("${checksum_cmd[@]}" "$tmp_dir/$asset" | awk '{print $1}')"
+if [ "$expected" != "$actual" ]; then
+  fail "Checksum mismatch for $asset"
 fi
-
-say "Installing Bun dependencies..."
-(
-  cd "$REPO_DIR"
-  bun install
-)
 
 say "Installing $BIN_NAME into $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR"
-bin_path="$INSTALL_DIR/$BIN_NAME"
-{
-  printf '%s\n' '#!/usr/bin/env bash'
-  printf '%s\n' 'set -euo pipefail'
-  printf 'COMPANY_BRAIN_REPO_DIR=%q\n' "$REPO_DIR"
-  printf '%s\n' 'exec bun "$COMPANY_BRAIN_REPO_DIR/cli/src/main.ts" "$@"'
-} > "$bin_path"
-chmod 0755 "$bin_path"
+install -m 0755 "$tmp_dir/$asset" "$INSTALL_DIR/$BIN_NAME"
 
-say "Installed $BIN_NAME at $bin_path"
+say "Installed $BIN_NAME at $INSTALL_DIR/$BIN_NAME"
 if command -v "$BIN_NAME" >/dev/null 2>&1; then
   say "Run: $BIN_NAME --help"
 else
   say "Add $INSTALL_DIR to PATH, then run: $BIN_NAME --help"
-  say "You can also run it directly: $bin_path --help"
+  say "You can also run it directly: $INSTALL_DIR/$BIN_NAME --help"
 fi
-say "Next: $BIN_NAME local setup or $BIN_NAME cloud setup"
+say "Next: $BIN_NAME target"

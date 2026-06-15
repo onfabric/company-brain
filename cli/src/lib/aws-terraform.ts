@@ -96,9 +96,6 @@ export async function readTerraformOutputs(
   return {
     publicIp: outputValue(parsed, 'public_ip'),
     publicIpv6: optionalOutputValue(parsed, 'public_ipv6'),
-    nangoEcrRepositoryUrl: outputValue(parsed, 'nango_ecr_repository_url'),
-    brainEcrRepositoryUrl: outputValue(parsed, 'brain_ecr_repository_url'),
-    pgBackupEcrRepositoryUrl: outputValue(parsed, 'pg_backup_ecr_repository_url'),
     artifactsBucket: outputValue(parsed, 'artifacts_bucket'),
     instanceId: outputValue(parsed, 'instance_id'),
     dataVolumeId: outputValue(parsed, 'data_volume_id'),

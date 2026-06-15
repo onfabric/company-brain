@@ -32,8 +32,14 @@ export async function ensureTerraformStateBackend(
 ): Promise<TerraformBackend> {
   const env = awsCommandEnv(config);
   const accountId = await resolveAwsAccountId(context, env);
+  if (accountId !== config.awsAccountId) {
+    throw new Error(
+      `Saved cloud config points at AWS account ${config.awsAccountId}, but current credentials are for ${accountId}.`,
+    );
+  }
+
   const backend = {
-    bucket: terraformStateBucketName(accountId, config.region, config.environment),
+    bucket: terraformStateBucketName(config.awsAccountId, config.region, config.environment),
     key: terraformStateKey(config.environment),
     region: config.region,
   };

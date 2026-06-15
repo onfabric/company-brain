@@ -28,21 +28,6 @@ output "dozzle_hostname" {
   value = var.dozzle_hostname
 }
 
-output "nango_ecr_repository_url" {
-  description = "ECR repo for the Nango image."
-  value       = aws_ecr_repository.nango.repository_url
-}
-
-output "brain_ecr_repository_url" {
-  description = "ECR repo for the brain (Data Transformation Service) image."
-  value       = aws_ecr_repository.brain.repository_url
-}
-
-output "pg_backup_ecr_repository_url" {
-  description = "ECR repo for the nightly Postgres backup image."
-  value       = aws_ecr_repository.pg_backup.repository_url
-}
-
 output "artifacts_bucket" {
   value = aws_s3_bucket.artifacts.bucket
 }

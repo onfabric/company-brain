@@ -1,12 +1,13 @@
-import type { AwsOutputs } from './aws-config.ts';
+import type { ReleaseManifest } from './release.ts';
+
+export const PUBLIC_IMAGE_REGISTRY = 'ghcr.io/onfabric';
 
 export const DEPLOYMENT_IMAGES = [
   {
     key: 'nango',
     imageUriKey: 'nangoImageUri',
     imageEnvVar: 'NANGO_IMAGE_URI',
-    repositoryOutputKey: 'nangoEcrRepositoryUrl',
-    githubRepositoryOutput: 'nango_ecr_repository_url',
+    repository: `${PUBLIC_IMAGE_REGISTRY}/company-brain-nango`,
     context: './nango',
     dockerfile: './nango/Dockerfile',
     cacheScope: 'nango',
@@ -15,8 +16,7 @@ export const DEPLOYMENT_IMAGES = [
     key: 'brain',
     imageUriKey: 'brainImageUri',
     imageEnvVar: 'BRAIN_IMAGE_URI',
-    repositoryOutputKey: 'brainEcrRepositoryUrl',
-    githubRepositoryOutput: 'brain_ecr_repository_url',
+    repository: `${PUBLIC_IMAGE_REGISTRY}/company-brain-brain`,
     context: '.',
     dockerfile: 'backend/Dockerfile',
     cacheScope: 'brain',
@@ -25,8 +25,7 @@ export const DEPLOYMENT_IMAGES = [
     key: 'pg-backup',
     imageUriKey: 'pgBackupImageUri',
     imageEnvVar: 'PG_BACKUP_IMAGE_URI',
-    repositoryOutputKey: 'pgBackupEcrRepositoryUrl',
-    githubRepositoryOutput: 'pg_backup_ecr_repository_url',
+    repository: `${PUBLIC_IMAGE_REGISTRY}/company-brain-pg-backup`,
     context: 'infra/pg-backup',
     dockerfile: 'infra/pg-backup/Dockerfile',
     cacheScope: 'pg-backup',
@@ -78,7 +77,7 @@ export const CI_DEPLOYMENT_ENVIRONMENTS = {
 
 export type GithubImageMatrixItem = {
   key: DeploymentImageKey;
-  repository_output: DeploymentImage['githubRepositoryOutput'];
+  repository: DeploymentImage['repository'];
   context: DeploymentImage['context'];
   dockerfile: DeploymentImage['dockerfile'];
   cache_scope: DeploymentImage['cacheScope'];
@@ -112,7 +111,7 @@ export function resolveCiDeploymentEnvironment(name: string): CiDeploymentEnviro
 export function githubImageMatrix(): GithubImageMatrixItem[] {
   return DEPLOYMENT_IMAGES.map((image) => ({
     key: image.key,
-    repository_output: image.githubRepositoryOutput,
+    repository: image.repository,
     context: image.context,
     dockerfile: image.dockerfile,
     cache_scope: image.cacheScope,
@@ -138,27 +137,18 @@ export function ciTerraformVars(environment: CiDeploymentEnvironment): Record<st
   };
 }
 
-export function deploymentImageUris(
-  repositories: Pick<
-    AwsOutputs,
-    'nangoEcrRepositoryUrl' | 'brainEcrRepositoryUrl' | 'pgBackupEcrRepositoryUrl'
-  >,
-  imageTag: string,
+export function deploymentImageUrisFromManifest(
+  manifest: Pick<ReleaseManifest, 'images'>,
 ): DeploymentImageUris {
-  const imageUris = {} as DeploymentImageUris;
-  for (const image of DEPLOYMENT_IMAGES) {
-    imageUris[image.imageUriKey] = imageUri(repositories[image.repositoryOutputKey], imageTag);
-  }
-
-  return imageUris;
+  return {
+    nangoImageUri: manifest.images.nango,
+    brainImageUri: manifest.images.brain,
+    pgBackupImageUri: manifest.images.pgBackup,
+  };
 }
 
 export function imageUri(repositoryUrl: string, imageTag: string): string {
   return `${repositoryUrl}:${imageTag}`;
-}
-
-export function latestImageUri(repositoryUrl: string): string {
-  return imageUri(repositoryUrl, 'latest');
 }
 
 export function runtimeBundleUrl(

@@ -135,7 +135,7 @@ export async function addIntegrations({
       ...selectedConnectionHints(addedIds),
       '',
       'After the connections are ready, run:',
-      `bun run company-brain ${target} add syncs --only ${addedIds.join(',')}`,
+      `company-brain add syncs --target ${target} --only ${addedIds.join(',')}`,
     ].join('\n'),
     'Next',
   );
@@ -157,7 +157,7 @@ export async function addSyncs({
   const context = await loadTargetContext(target, { nangoSecretKey, nangoUrl }, false);
   if (!context.env.NANGO_SECRET_KEY_DEV) {
     throw new Error(
-      `Missing NANGO_SECRET_KEY_DEV. Run \`bun run company-brain ${target} resume\` to save the Nango API key, or pass --nango-secret-key.`,
+      `Missing NANGO_SECRET_KEY_DEV. Run \`company-brain resume --target ${target}\` to save the Nango API key, or pass --nango-secret-key.`,
     );
   }
 

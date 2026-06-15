@@ -29,7 +29,7 @@ describe('AWS prompt options', () => {
     expect(optionsWithCurrent(AWS_REGION_OPTIONS, 'ap-southeast-2')[0]).toEqual({
       value: 'ap-southeast-2',
       label: 'ap-southeast-2',
-      hint: 'Current value from .company-brain.aws.json.',
+      hint: 'Current value from saved cloud config.',
     });
   });
 });

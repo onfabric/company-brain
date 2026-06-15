@@ -7,6 +7,7 @@
     "company-brain": "./src/main.ts"
   },
   "scripts": {
+    "build": "bun build --compile src/main.ts --outfile dist/company-brain",
     "codegen": "parsh-codegen generate --commands src/commands --out src/command-tree.gen.ts && bun run --bun biome check --write src/command-tree.gen.ts",
     "company-brain": "bun run src/main.ts",
     "check:types": "bun run codegen && bun run --bun tsc",

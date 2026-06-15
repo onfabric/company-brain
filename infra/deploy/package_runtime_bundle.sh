@@ -12,12 +12,17 @@ mkdir -p "$(dirname "$output_path")"
 
 cmd=(
   tar czf "$output_path"
+  --exclude=infra/terraform/.terraform
+  --exclude=infra/terraform/*.tfplan
+  --exclude=infra/terraform/*.auto.tfvars.json
   -C "$repo_root"
-  docker-compose.yml docker-compose.prod.yml
+  .env.example docker-compose.yml docker-compose.prod.yml
   db/prepare
-  nango/packages/providers/providers.yaml
+  nango-integrations/.env.example
+  infra/terraform
+  infra/deploy/on_box_deploy.sh infra/deploy/ensure_data_volume.sh infra/deploy/ssm_deploy.sh infra/deploy/package_runtime_bundle.sh
   -C "$repo_root/infra" caddy/Caddyfile
-  -C "$repo_root/infra/deploy" on_box_deploy.sh ensure_data_volume.sh
+  -C "$repo_root/infra/deploy" on_box_deploy.sh ensure_data_volume.sh ssm_deploy.sh package_runtime_bundle.sh
 )
 
 printf '$'

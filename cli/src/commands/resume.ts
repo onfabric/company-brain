@@ -10,6 +10,7 @@ import { isNonInteractive } from '../lib/interaction.ts';
 import { ensureRootEnv } from '../lib/local-env.ts';
 import { ensureLocalNangoApiKey } from '../lib/nango-api-key.ts';
 import { ensureNangoEnvBase } from '../lib/nango-env.ts';
+import { ensureReleaseAssets } from '../lib/release.ts';
 import { rejectOptionsForTarget, resolveCommandTarget, targetOptions } from '../lib/target.ts';
 
 export const command = defineCommand('resume', {
@@ -50,7 +51,8 @@ async function resumeLocal(options: {
 }): Promise<void> {
   intro('Company Brain local resume');
 
-  await ensureRootEnv();
+  const release = await ensureReleaseAssets();
+  await ensureRootEnv({ release: release.manifest });
   await ensureNangoEnvBase();
 
   const issues = await verifyLocalPrerequisites();
@@ -98,6 +100,11 @@ async function resumeCloud(options: {
     awsProfile: prerequisites.awsProfile,
     terraformCommand: prerequisites.terraformCommand,
   };
+  if (config.awsAccountId !== prerequisites.accountId) {
+    throw new Error(
+      `Saved cloud config points at AWS account ${config.awsAccountId}, but current credentials are for ${prerequisites.accountId}.`,
+    );
+  }
   await writeAwsConfig(config);
   await continueAwsDeployment({
     config: withAwsCredentials(config, prerequisites),

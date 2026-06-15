@@ -5,12 +5,11 @@ import {
   configuredAccountId,
   manualDnsCleanupMessage,
   normalizeObjectVersions,
-  repositoryNameFromUrl,
 } from './aws-destroy.ts';
 
 describe('AWS destroy helpers', () => {
-  it('derives the configured AWS account from ECR outputs', () => {
-    expect(configuredAccountId(config().outputs)).toBe('123456789012');
+  it('reads the configured AWS account from deploy config', () => {
+    expect(configuredAccountId(config())).toBe('123456789012');
   });
 
   it('blocks teardown with credentials for a different AWS account', () => {
@@ -23,12 +22,6 @@ describe('AWS destroy helpers', () => {
     expect(() =>
       assertConfiguredAccountMatchesCurrentAccount(config(), '123456789012'),
     ).not.toThrow();
-  });
-
-  it('extracts ECR repository names from repository URLs', () => {
-    expect(
-      repositoryNameFromUrl('123456789012.dkr.ecr.eu-west-2.amazonaws.com/company-brain-dev/brain'),
-    ).toBe('company-brain-dev/brain');
   });
 
   it('strips AWS metadata before deleting S3 object versions', () => {
@@ -73,6 +66,7 @@ describe('AWS destroy helpers', () => {
 function config(): AwsConfig {
   return {
     version: 1,
+    awsAccountId: '123456789012',
     region: 'eu-west-2',
     environment: 'dev',
     instanceType: 't3.large',
@@ -96,10 +90,6 @@ function config(): AwsConfig {
     outputs: {
       publicIp: '203.0.113.10',
       publicIpv6: '2001:db8::10',
-      nangoEcrRepositoryUrl: '123456789012.dkr.ecr.eu-west-2.amazonaws.com/company-brain-dev/nango',
-      brainEcrRepositoryUrl: '123456789012.dkr.ecr.eu-west-2.amazonaws.com/company-brain-dev/brain',
-      pgBackupEcrRepositoryUrl:
-        '123456789012.dkr.ecr.eu-west-2.amazonaws.com/company-brain-dev/pg-backup',
       artifactsBucket: 'company-brain-deploy-123456789012-dev',
       instanceId: 'i-123',
       dataVolumeId: 'vol-123',

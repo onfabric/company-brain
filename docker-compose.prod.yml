@@ -1,34 +1,15 @@
 # Production override, applied on top of docker-compose.yml on the EC2 box:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml ...
 #
-# Differences from local dev:
-#   - Nango image comes from ECR (${NANGO_IMAGE_URI}) instead of being built locally.
+# Differences from local:
 #   - Server/Connect-UI ports are bound to loopback; only Caddy is public.
 #   - Caddy terminates TLS (Let's Encrypt) and reverse-proxies the public host.
 
 services:
   nango-server:
-    image: ${NANGO_IMAGE_URI}
-    build: !reset null
     ports: !override
       - "127.0.0.1:3003:3003"
       - "127.0.0.1:3009:3009"
-
-  nango-orchestrator:
-    image: ${NANGO_IMAGE_URI}
-    build: !reset null
-
-  nango-persist:
-    image: ${NANGO_IMAGE_URI}
-    build: !reset null
-
-  nango-jobs:
-    image: ${NANGO_IMAGE_URI}
-    build: !reset null
-
-  brain:
-    image: ${BRAIN_IMAGE_URI}
-    build: !reset null
 
   dozzle:
     environment:

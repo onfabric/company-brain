@@ -9,11 +9,12 @@ import {
   waitForDnsRecords,
   waitForHttps,
 } from './aws-dns.ts';
-import { buildAndPushImages } from './aws-images.ts';
 import { confirmManualDnsReady } from './aws-prompts.ts';
 import { deployOverSsm, putDozzleUsers } from './aws-ssm.ts';
 import { applyAwsTerraform } from './aws-terraform.ts';
+import { deploymentImageUrisFromManifest } from './deployment-contract.ts';
 import { ensureCloudNangoApiKey } from './nango-api-key.ts';
+import { ensureReleaseAssets } from './release.ts';
 import type { VisibleCommandContext } from './visible-command.ts';
 
 const DEPLOY_ID_LENGTH = 14;
@@ -31,6 +32,7 @@ export async function provisionAwsInfrastructure(
   context: VisibleCommandContext,
   print: Printer,
 ): Promise<AwsConfig> {
+  await ensureReleaseAssets();
   const outputs = await applyAwsTerraform(config, context);
   const updated = { ...config, outputs };
   await writeAwsConfig(updated);
@@ -99,11 +101,17 @@ export async function deployAwsApplication(
   const withDeployId = { ...config, lastDeployId: deployId };
   await writeAwsConfig(withDeployId);
 
-  const images = await buildAndPushImages(withDeployId, deployId, context);
+  const release = await ensureReleaseAssets();
+  const images = deploymentImageUrisFromManifest(release.manifest);
   const bundleUrl = await uploadRuntimeBundle(withDeployId, deployId, context);
   await deployOverSsm({ config: withDeployId, images, bundleUrl, context });
 
-  const deployed = { ...withDeployId, appDeployedAt: new Date().toISOString() };
+  const deployed = {
+    ...withDeployId,
+    releaseVersion: release.manifest.version,
+    releaseGitSha: release.manifest.gitSha,
+    appDeployedAt: new Date().toISOString(),
+  };
   await writeAwsConfig(deployed);
   print.success('Application containers are deployed and healthy on EC2.');
 

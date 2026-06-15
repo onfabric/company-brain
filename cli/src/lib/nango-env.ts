@@ -1,4 +1,6 @@
 import { existsSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { readEnvFile, upsertEnvFile, writeEnvFromTemplate } from './env-file.ts';
 import { nangoEnvExamplePath, nangoEnvPath } from './paths.ts';
 import { randomToken } from './secrets.ts';
@@ -27,6 +29,7 @@ export async function ensureNangoEnvBase(force = false): Promise<void> {
   };
 
   if (!existsSync(nangoEnvPath) || force) {
+    await mkdir(dirname(nangoEnvPath), { recursive: true });
     await writeEnvFromTemplate({
       templatePath: nangoEnvExamplePath,
       outputPath: nangoEnvPath,
@@ -39,6 +42,7 @@ export async function ensureNangoEnvBase(force = false): Promise<void> {
 }
 
 export async function upsertNangoEnv(values: NangoEnvValues): Promise<void> {
+  await mkdir(dirname(nangoEnvPath), { recursive: true });
   await upsertEnvFile(nangoEnvPath, values);
 }
 

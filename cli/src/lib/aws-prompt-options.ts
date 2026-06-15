@@ -64,7 +64,7 @@ export function optionsWithCurrent<Value extends number | string>(
     {
       value: current,
       label: `${current}`,
-      hint: 'Current value from .company-brain.aws.json.',
+      hint: 'Current value from saved cloud config.',
     },
     ...options,
   ];
