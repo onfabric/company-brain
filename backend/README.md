@@ -22,6 +22,9 @@ management, and source-record discovery to agents. It is OAuth-gated; the REST
 
 Discovery tools:
 
+- `list_knowledge_workflows`, `get_knowledge_workflow` — read the
+  knowledge-authoring workflow instructions agents should follow before creating
+  or updating knowledge pages.
 - `get_index_page`, `get_page` — read navigable HTML knowledge pages.
 - `get_knowledge_types` — find exact type names for knowledge tools.
 - `get_people` — find exact person names or emails for knowledge tools and

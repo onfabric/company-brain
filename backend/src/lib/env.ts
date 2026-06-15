@@ -9,6 +9,7 @@ declare global {
       readonly GOOGLE_CLIENT_ID?: string;
       readonly GOOGLE_CLIENT_SECRET?: string;
       readonly ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX?: string;
+      readonly KNOWLEDGE_WORKFLOW_DOCS_ROOT?: string;
     }
   }
 }
@@ -36,6 +37,7 @@ type Env = {
   googleClientId: string;
   googleClientSecret: string;
   allowedDashboardAccountsEmailsRegex: RegExp | null;
+  knowledgeWorkflowDocsRoot: string | undefined;
 };
 
 function required(name: keyof NodeJS.ProcessEnv): string {
@@ -66,6 +68,7 @@ function loadEnv(): Env {
     allowedDashboardAccountsEmailsRegex: process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX
       ? new RegExp(process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX)
       : null,
+    knowledgeWorkflowDocsRoot: process.env.KNOWLEDGE_WORKFLOW_DOCS_ROOT,
   };
 }
 
