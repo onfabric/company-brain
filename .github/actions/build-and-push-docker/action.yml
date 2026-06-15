@@ -1,5 +1,5 @@
 name: Build and push Docker image
-description: Authenticate to ECR and build + push a Docker image, tagged with the commit SHA and latest.
+description: Authenticate to ECR and build + push a Docker image, tagged with an immutable tag and latest.
 
 inputs:
   aws-region:
@@ -9,7 +9,10 @@ inputs:
     description: IAM role to assume (OIDC) for ECR push.
     required: true
   ecr-repository-url:
-    description: Target ECR repository URL; images are tagged :$GITHUB_SHA and :latest.
+    description: Target ECR repository URL; images are tagged with image-tag and :latest.
+    required: true
+  image-tag:
+    description: Immutable image tag to deploy.
     required: true
   context:
     description: Docker build context.
@@ -23,8 +26,8 @@ inputs:
 
 outputs:
   image-tag:
-    description: The ':latest' image reference that was pushed.
-    value: ${{ steps.tags.outputs.latest }}
+    description: The immutable image reference that was pushed.
+    value: ${{ steps.tags.outputs.immutable }}
 
 runs:
   using: composite
@@ -43,8 +46,9 @@ runs:
       shell: bash
       env:
         IMAGE_REPO: ${{ inputs.ecr-repository-url }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
       run: |
-        echo "commit=$IMAGE_REPO:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+        echo "immutable=$IMAGE_REPO:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
         echo "latest=$IMAGE_REPO:latest" >> "$GITHUB_OUTPUT"
 
     - name: Set up Docker Buildx
@@ -54,7 +58,7 @@ runs:
       shell: bash
       env:
         ECR_REPOSITORY_URL: ${{ inputs.ecr-repository-url }}
-        IMAGE_TAG: ${{ github.sha }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
         BUILD_CONTEXT: ${{ inputs.context }}
         DOCKERFILE: ${{ inputs.dockerfile }}
         CACHE_SCOPE: ${{ inputs.cache-scope }}
