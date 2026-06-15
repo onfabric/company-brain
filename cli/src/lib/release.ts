@@ -3,8 +3,10 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { z } from 'zod';
+import { CURRENT_DEPLOYMENT_CONTRACT_VERSION } from './deployment-contract.ts';
 import { downloadsPath, nangoIntegrationsPath, releaseStatePath, runtimePath } from './paths.ts';
 import { run } from './shell.ts';
+import { CLI_VERSION, versionSatisfiesMinimum } from './version.ts';
 
 const DEFAULT_RELEASE_BASE_URL = 'https://github.com/onfabric/company-brain/releases';
 const DEFAULT_RELEASES_API_URL =
@@ -23,6 +25,17 @@ const ReleaseManifestSchema = z.object({
   version: z.string().min(1),
   gitSha: z.string().min(MIN_GIT_SHA_LENGTH),
   nangoSubmoduleSha: z.string().min(MIN_GIT_SHA_LENGTH).optional(),
+  cli: z
+    .object({
+      minVersion: z.string().min(1),
+    })
+    .default({ minVersion: '0.0.0' }),
+  deployment: z
+    .object({
+      contractVersion: z.number().int().positive(),
+      infraVersion: z.number().int().nonnegative(),
+    })
+    .default({ contractVersion: 1, infraVersion: 1 }),
   images: z.object({
     nango: z.string().min(1),
     brain: z.string().min(1),
@@ -58,6 +71,7 @@ export type ReleaseAssets = {
 
 export async function ensureReleaseAssets(): Promise<ReleaseAssets> {
   const manifest = await loadReleaseManifest();
+  assertReleaseCompatible(manifest);
   await ensureAsset('runtime', runtimePath, manifest.assets.runtime, manifest);
   await ensureAsset('integrations', nangoIntegrationsPath, manifest.assets.integrations, manifest);
   await writeReleaseState(manifest);
@@ -71,6 +85,7 @@ export async function ensureNangoIntegrationsAssets(): Promise<void> {
   }
 
   const manifest = await loadReleaseManifest();
+  assertReleaseCompatible(manifest);
   await ensureAsset('integrations', nangoIntegrationsPath, manifest.assets.integrations, manifest);
   await writeReleaseState(manifest);
 }
@@ -104,6 +119,28 @@ export async function resolveReleaseManifestUrl(): Promise<string> {
 
 export function releaseManifestUrl(version: string): string {
   return `${DEFAULT_RELEASE_BASE_URL}/download/${version}/${RELEASE_MANIFEST_ASSET}`;
+}
+
+export function assertReleaseCompatible(manifest: ReleaseManifest, cliVersion = CLI_VERSION): void {
+  if (!versionSatisfiesMinimum(cliVersion, manifest.cli.minVersion)) {
+    throw new Error(
+      [
+        `Company Brain ${manifest.version} requires company-brain CLI ${manifest.cli.minVersion} or newer.`,
+        `Current CLI version: ${cliVersion}.`,
+        'Re-run the Company Brain installer to update the CLI, then retry.',
+      ].join('\n'),
+    );
+  }
+
+  if (manifest.deployment.contractVersion !== CURRENT_DEPLOYMENT_CONTRACT_VERSION) {
+    throw new Error(
+      [
+        `Company Brain ${manifest.version} uses deployment contract ${manifest.deployment.contractVersion}.`,
+        `This CLI supports deployment contract ${CURRENT_DEPLOYMENT_CONTRACT_VERSION}.`,
+        'Re-run the Company Brain installer to update the CLI, then retry.',
+      ].join('\n'),
+    );
+  }
 }
 
 async function latestCompanyBrainReleaseVersion(): Promise<string> {

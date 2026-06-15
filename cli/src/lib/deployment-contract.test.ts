@@ -6,6 +6,9 @@ import {
   githubDeploymentImageTags,
   githubDeploymentImageUris,
   githubImageMatrix,
+  githubReleaseImageMatrix,
+  releaseDeploymentImageTags,
+  releaseDeploymentImageUris,
   resolveCiDeploymentEnvironment,
   runtimeBundleUrl,
 } from './deployment-contract.ts';
@@ -38,6 +41,7 @@ describe('deployment contract', () => {
         key: 'nango',
         repository: 'ghcr.io/onfabric/company-brain-nango',
         image_tag: 'nango-v1-def456',
+        extra_tags: '',
         image_uri: 'ghcr.io/onfabric/company-brain-nango:nango-v1-def456',
         context: './nango',
         dockerfile: './nango/Dockerfile',
@@ -47,6 +51,7 @@ describe('deployment contract', () => {
         key: 'brain',
         repository: 'ghcr.io/onfabric/company-brain-brain',
         image_tag: 'sha-abc123',
+        extra_tags: '',
         image_uri: 'ghcr.io/onfabric/company-brain-brain:sha-abc123',
         context: '.',
         dockerfile: 'backend/Dockerfile',
@@ -56,7 +61,59 @@ describe('deployment contract', () => {
         key: 'pg-backup',
         repository: 'ghcr.io/onfabric/company-brain-pg-backup',
         image_tag: 'sha-abc123',
+        extra_tags: '',
         image_uri: 'ghcr.io/onfabric/company-brain-pg-backup:sha-abc123',
+        context: 'infra/pg-backup',
+        dockerfile: 'infra/pg-backup/Dockerfile',
+        cache_scope: 'pg-backup',
+      },
+    ]);
+  });
+
+  it('uses the release version as the public release image tag', () => {
+    expect(releaseDeploymentImageTags({ ...githubImageInput, version: 'v1.2.3' })).toEqual({
+      nango: 'v1.2.3',
+      brain: 'v1.2.3',
+      'pg-backup': 'v1.2.3',
+    });
+  });
+
+  it('builds release image URIs from release tags', () => {
+    expect(releaseDeploymentImageUris({ ...githubImageInput, version: 'v1.2.3' })).toEqual({
+      nangoImageUri: 'ghcr.io/onfabric/company-brain-nango:v1.2.3',
+      brainImageUri: 'ghcr.io/onfabric/company-brain-brain:v1.2.3',
+      pgBackupImageUri: 'ghcr.io/onfabric/company-brain-pg-backup:v1.2.3',
+    });
+  });
+
+  it('exposes release image matrix entries with content-tag aliases', () => {
+    expect(githubReleaseImageMatrix({ ...githubImageInput, version: 'v1.2.3' })).toEqual([
+      {
+        key: 'nango',
+        repository: 'ghcr.io/onfabric/company-brain-nango',
+        image_tag: 'v1.2.3',
+        extra_tags: 'nango-v1-def456',
+        image_uri: 'ghcr.io/onfabric/company-brain-nango:v1.2.3',
+        context: './nango',
+        dockerfile: './nango/Dockerfile',
+        cache_scope: 'nango',
+      },
+      {
+        key: 'brain',
+        repository: 'ghcr.io/onfabric/company-brain-brain',
+        image_tag: 'v1.2.3',
+        extra_tags: 'sha-abc123',
+        image_uri: 'ghcr.io/onfabric/company-brain-brain:v1.2.3',
+        context: '.',
+        dockerfile: 'backend/Dockerfile',
+        cache_scope: 'brain',
+      },
+      {
+        key: 'pg-backup',
+        repository: 'ghcr.io/onfabric/company-brain-pg-backup',
+        image_tag: 'v1.2.3',
+        extra_tags: 'sha-abc123',
+        image_uri: 'ghcr.io/onfabric/company-brain-pg-backup:v1.2.3',
         context: 'infra/pg-backup',
         dockerfile: 'infra/pg-backup/Dockerfile',
         cache_scope: 'pg-backup',

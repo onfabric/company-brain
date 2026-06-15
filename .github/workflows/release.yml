@@ -33,8 +33,12 @@ jobs:
       - id: meta
         run: |
           version="${{ inputs.version || github.ref_name }}"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          bun cli/src/scripts/github-deploy-plan.ts github-outputs dev >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.ref_name }}" != "$version" ]; then
+            echo "::error::Run the release workflow on the ${version} tag, or use the Create Release Tag workflow."
+            exit 1
+          fi
+          bun cli/src/scripts/github-deploy-plan.ts verify-release-version "$version"
+          bun cli/src/scripts/github-deploy-plan.ts release-outputs "$version" >> "$GITHUB_OUTPUT"
 
   images:
     needs: config
@@ -61,6 +65,7 @@ jobs:
         with:
           image-repository: ${{ matrix.image.repository }}
           image-tag: ${{ matrix.image.image_tag }}
+          extra-tags: ${{ matrix.image.extra_tags }}
           context: ${{ matrix.image.context }}
           dockerfile: ${{ matrix.image.dockerfile }}
           cache-scope: ${{ matrix.image.cache_scope }}
@@ -81,7 +86,31 @@ jobs:
             ${{ needs.config.outputs.brain_image_uri }} \
             ${{ needs.config.outputs.pg_backup_image_uri }}
 
+      - uses: docker/setup-buildx-action@v3
+
       - uses: ./.github/actions/prepare
+
+      - name: Resolve image digests
+        id: image_refs
+        env:
+          NANGO_IMAGE_URI: ${{ needs.config.outputs.nango_image_uri }}
+          BRAIN_IMAGE_URI: ${{ needs.config.outputs.brain_image_uri }}
+          PG_BACKUP_IMAGE_URI: ${{ needs.config.outputs.pg_backup_image_uri }}
+        run: |
+          resolve_ref() {
+            local ref="$1"
+            local digest
+            digest="$(docker buildx imagetools inspect "$ref" | awk '$1 == "Digest:" { print $2; exit }')"
+            if [ -z "$digest" ]; then
+              echo "::error::Could not resolve digest for $ref"
+              exit 1
+            fi
+            printf '%s@%s' "$ref" "$digest"
+          }
+
+          echo "nango=$(resolve_ref "$NANGO_IMAGE_URI")" >> "$GITHUB_OUTPUT"
+          echo "brain=$(resolve_ref "$BRAIN_IMAGE_URI")" >> "$GITHUB_OUTPUT"
+          echo "pg_backup=$(resolve_ref "$PG_BACKUP_IMAGE_URI")" >> "$GITHUB_OUTPUT"
 
       - name: Package runtime and integrations
         run: |
@@ -100,37 +129,26 @@ jobs:
       - name: Build release manifest and checksums
         env:
           VERSION: ${{ needs.config.outputs.version }}
-          NANGO_IMAGE_URI: ${{ needs.config.outputs.nango_image_uri }}
-          BRAIN_IMAGE_URI: ${{ needs.config.outputs.brain_image_uri }}
-          PG_BACKUP_IMAGE_URI: ${{ needs.config.outputs.pg_backup_image_uri }}
+          NANGO_IMAGE_URI: ${{ steps.image_refs.outputs.nango }}
+          BRAIN_IMAGE_URI: ${{ steps.image_refs.outputs.brain }}
+          PG_BACKUP_IMAGE_URI: ${{ steps.image_refs.outputs.pg_backup }}
         run: |
           runtime_sha=$(shasum -a 256 dist/company-brain-runtime.tar.gz | awk '{print $1}')
           integrations_sha=$(shasum -a 256 dist/company-brain-integrations.tar.gz | awk '{print $1}')
-          git_sha="${GITHUB_SHA}"
-          nango_sha="$(git -C nango rev-parse HEAD)"
-          cat > dist/company-brain-release.json <<EOF
-          {
-            "version": "${VERSION}",
-            "gitSha": "${git_sha}",
-            "nangoSubmoduleSha": "${nango_sha}",
-            "images": {
-              "nango": "${NANGO_IMAGE_URI}",
-              "brain": "${BRAIN_IMAGE_URI}",
-              "pgBackup": "${PG_BACKUP_IMAGE_URI}"
-            },
-            "assets": {
-              "runtime": {
-                "url": "https://github.com/onfabric/company-brain/releases/download/${VERSION}/company-brain-runtime.tar.gz",
-                "sha256": "${runtime_sha}"
-              },
-              "integrations": {
-                "url": "https://github.com/onfabric/company-brain/releases/download/${VERSION}/company-brain-integrations.tar.gz",
-                "sha256": "${integrations_sha}"
-              }
-            }
-          }
-          EOF
+          RUNTIME_SHA256="$runtime_sha" \
+          INTEGRATIONS_SHA256="$integrations_sha" \
+            bun cli/src/scripts/github-deploy-plan.ts release-manifest > dist/company-brain-release.json
           shasum -a 256 dist/* > dist/SHA256SUMS
+
+      - name: Refuse to overwrite an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.config.outputs.version }}
+        run: |
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "::error::GitHub release $VERSION already exists. Release versions are immutable."
+            exit 1
+          fi
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2

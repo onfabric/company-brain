@@ -32,9 +32,9 @@ export async function provisionAwsInfrastructure(
   context: VisibleCommandContext,
   print: Printer,
 ): Promise<AwsConfig> {
-  await ensureReleaseAssets();
+  const release = await ensureReleaseAssets();
   const outputs = await applyAwsTerraform(config, context);
-  const updated = { ...config, outputs };
+  const updated = { ...config, infraVersion: release.manifest.deployment.infraVersion, outputs };
   await writeAwsConfig(updated);
   await putDozzleUsers(updated, context);
   print.success('AWS infrastructure is ready.');
@@ -110,6 +110,7 @@ export async function deployAwsApplication(
     ...withDeployId,
     releaseVersion: release.manifest.version,
     releaseGitSha: release.manifest.gitSha,
+    infraVersion: release.manifest.deployment.infraVersion,
     appDeployedAt: new Date().toISOString(),
   };
   await writeAwsConfig(deployed);
