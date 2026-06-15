@@ -1,4 +1,5 @@
 import { intro, isCancel, note, outro, text } from '@clack/prompts';
+import { type Target, targetLabel } from './deployment-target.ts';
 import { bootstrapNangoIntegrations } from './nango.ts';
 import {
   collectNangoEnv,
@@ -6,7 +7,6 @@ import {
   selectedConnectionHints,
 } from './nango-add-prompts.ts';
 import {
-  type AddTarget,
   defaultIntegrationIds,
   defaultNangoUrl,
   integrationIdsInCatalogOrder,
@@ -15,7 +15,6 @@ import {
   persistAddedSyncs,
   syncIntegrationIdsInCatalogOrder,
   syncSelectionConfig,
-  targetLabel,
 } from './nango-add-targets.ts';
 import { normalizeNangoHostport, upsertNangoEnv } from './nango-env.ts';
 import { deploySelectedSyncs, resolveSyncSelection } from './sync-deployment.ts';
@@ -26,7 +25,7 @@ type Printer = {
 };
 
 export type AddIntegrationsInput = {
-  target: AddTarget;
+  target: Target;
   nangoSecretKey?: string;
   nangoUrl?: string;
   force?: boolean;
@@ -38,7 +37,7 @@ export type AddIntegrationsInput = {
 };
 
 export type AddSyncsInput = {
-  target: AddTarget;
+  target: Target;
   nangoSecretKey?: string;
   nangoUrl?: string;
   only?: string;
@@ -158,7 +157,7 @@ export async function addSyncs({
   const context = await loadTargetContext(target, { nangoSecretKey, nangoUrl }, false);
   if (!context.env.NANGO_SECRET_KEY_DEV) {
     throw new Error(
-      `Missing NANGO_SECRET_KEY_DEV. Run \`bun run company-brain ${target} add integrations\` first.`,
+      `Missing NANGO_SECRET_KEY_DEV. Run \`bun run company-brain ${target} resume\` to save the Nango API key, or pass --nango-secret-key.`,
     );
   }
 

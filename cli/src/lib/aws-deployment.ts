@@ -13,6 +13,7 @@ import { buildAndPushImages } from './aws-images.ts';
 import { confirmManualDnsReady } from './aws-prompts.ts';
 import { deployOverSsm, putDozzleUsers } from './aws-ssm.ts';
 import { applyAwsTerraform } from './aws-terraform.ts';
+import { ensureCloudNangoApiKey } from './nango-api-key.ts';
 import type { VisibleCommandContext } from './visible-command.ts';
 
 const DEPLOY_ID_LENGTH = 14;
@@ -72,6 +73,7 @@ export async function continueAwsDeployment({
     return current;
   }
 
+  current = await ensureCloudNangoApiKey(current, Boolean(context.nonInteractive), print);
   print.success('Hosted deployment is ready for Nango configuration.');
   note(
     [
@@ -79,10 +81,11 @@ export async function continueAwsDeployment({
       `Hosted Nango dashboard/login and API keys: https://${current.nangoHostname}`,
       `Dozzle logs: https://${current.dozzleHostname}`,
       '',
-      'Next: create/sign in to the hosted Nango dashboard, copy the dev API key, then run:',
-      'bun run company-brain deploy add integrations',
+      'Next: add integrations or install the cloud agent sync schedule:',
+      'company-brain add integrations --target cloud',
+      'company-brain agent-sync install --target cloud',
     ].join('\n'),
-    'Deployment URLs',
+    'Cloud URLs',
   );
   return current;
 }
@@ -123,7 +126,7 @@ async function ensureDns(
       [
         'Create the DNS records above in your DNS provider.',
         'Use DNS-only records if your provider has a proxy mode.',
-        'Then run: bun run company-brain deploy resume',
+        'Then run: company-brain resume --target cloud',
       ].join('\n'),
       'Manual DNS required',
     );
@@ -137,7 +140,7 @@ async function ensureDns(
   if (issues.length > 0) {
     print.warn('DNS records are not ready yet.');
     note(issues.join('\n'), 'DNS check');
-    note('Fix DNS, wait for propagation, then run: bun run company-brain deploy resume', 'Next');
+    note('Fix DNS, wait for propagation, then run: company-brain resume --target cloud', 'Next');
     return false;
   }
 
@@ -157,7 +160,7 @@ async function ensureHttps(config: AwsConfig, print: Printer): Promise<boolean> 
         ...issues,
         '',
         'Common causes: DNS records are wrong, a DNS proxy is enabled, or ports 80/443 are blocked.',
-        'After fixing it, run: bun run company-brain deploy resume',
+        'After fixing it, run: company-brain resume --target cloud',
       ].join('\n'),
       'Certificate/service check',
     );

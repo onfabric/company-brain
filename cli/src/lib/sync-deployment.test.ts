@@ -49,7 +49,6 @@ describe('resolveSyncSelection', () => {
       'slack',
       'github',
       'google-mail',
-      'agent-conversations',
     ]);
   });
 

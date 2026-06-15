@@ -1,6 +1,7 @@
 .env
 .company-brain.local.json
 .company-brain.aws.json
+.company-brain.cli.json
 
 # Dozzle simple-auth users file (rendered on the box from SSM)
 dozzle/data/

@@ -1,5 +1,6 @@
 import {
   BOOTSTRAPPED_CONNECTIONS,
+  DEFAULT_INTEGRATIONS,
   DEFAULT_SYNC_SPECS,
   INTEGRATIONS,
   SYNC_SPECS,
@@ -8,6 +9,7 @@ import { nangoIntegrationsPath } from './paths.ts';
 import { run } from './shell.ts';
 
 export const nangoIntegrationSpecs = INTEGRATIONS;
+export const nangoDefaultIntegrationSpecs = DEFAULT_INTEGRATIONS;
 export const nangoSyncSpecs = SYNC_SPECS;
 export const nangoDefaultSyncSpecs = DEFAULT_SYNC_SPECS;
 

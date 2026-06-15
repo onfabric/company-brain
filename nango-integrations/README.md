@@ -32,21 +32,26 @@ The Nango server is not started from this folder. The CLI compiles these functio
 
 `bun run bootstrap:integrations dev` creates the programmatically managed Nango integrations used by the Company Brain syncs if they do not already exist. Re-run with `--update-existing` to repair display names, webhook forwarding, client IDs, and scopes on existing integrations. Pass `--only notion,slack` to create or update only specific integrations.
 
-`bun run bootstrap:connections dev` creates non-OAuth connections that CI can safely provision. It currently creates or updates `agent-conversations/local-agent-sync` with `credentials.type = "NONE"` and connection metadata `{ "webhookSecret": "..." }`. Pass the same `--only` selection used for integrations to restrict bootstrapped connections.
+`bun run bootstrap:connections dev --only agent-conversations` creates the
+non-OAuth connection used by the local agent conversation sync. The Company
+Brain CLI runs this as part of `company-brain <target> agent-sync install`; it
+is not part of the default source integration bootstrap.
 
 Circleback MCP is intentionally not created by bootstrap or included in default connection checks/deploys. Create and manage the Nango integration manually; the sync and MCP client remain in this package so they can run against that manual integration with `--only circleback-mcp`.
 
 Deploy order matters on a fresh environment:
 
 1. Run `bun run bootstrap:integrations dev --update-existing`.
-2. Run `bun run bootstrap:connections dev`.
-3. Create one OAuth dashboard connection for each integration: `notion`, `slack`, `github`, and `google-mail`. Nango may assign generated UUID connection IDs for these manual connections.
-4. Run `bun run check:connections dev`.
-5. Run `bun run deploy dev`.
+2. Create one OAuth dashboard connection for each integration: `notion`, `slack`, `github`, and `google-mail`. Nango may assign generated UUID connection IDs for these manual connections.
+3. Run `bun run check:connections dev`.
+4. Run `bun run deploy dev`.
 
 On a fresh hosted `dev` environment, the first CD run deploys Nango and then stops before bootstrapping integrations when the repository secret `NANGO_SECRET_KEY_DEV` is missing. Sign up in the Nango dashboard, copy the generated `dev` API key, add it as the repository secret `NANGO_SECRET_KEY_DEV`, and rerun CD.
 
-After that, CD bootstraps integrations and non-OAuth connections, then intentionally stops before deploying syncs while required OAuth connections are missing. Create the dashboard connections for `notion`, `slack`, `github`, and `google-mail`, then rerun CD.
+After that, CD bootstraps source integrations, then intentionally stops before
+deploying syncs while required OAuth connections are missing. Create the
+dashboard connections for `notion`, `slack`, `github`, and `google-mail`, then
+rerun CD.
 
 Required environment:
 
@@ -61,12 +66,11 @@ GH_OAUTH_CLIENT_ID=...
 GH_OAUTH_CLIENT_SECRET=...
 GMAIL_CLIENT_ID=...
 GMAIL_CLIENT_SECRET=...
-AGENT_SYNC_WEBHOOK_SECRET=...
 ```
 
 Scopes default to the lists below. Override them with GitHub Actions variables `SLACK_SCOPES`, `GH_OAUTH_SCOPES`, and `GMAIL_SCOPES` when needed.
 
-The connection gate checks configured connection IDs first, then accepts any existing dashboard connection for the OAuth integrations. Set `NOTION_CONNECTION_ID`, `SLACK_CONNECTION_ID`, `GH_CONNECTION_ID`, or `GMAIL_CONNECTION_ID` only when you want the gate to prefer a specific manual connection. The `agent-conversations` connection is provisioned by CI and defaults to `local-agent-sync`; override it with `AGENT_CONVERSATIONS_CONNECTION_ID` only if the webhook sender uses a different connection ID.
+The connection gate checks configured connection IDs first, then accepts any existing dashboard connection for the OAuth integrations. Set `NOTION_CONNECTION_ID`, `SLACK_CONNECTION_ID`, `GH_CONNECTION_ID`, or `GMAIL_CONNECTION_ID` only when you want the gate to prefer a specific manual connection.
 
 Slack is configured with:
 

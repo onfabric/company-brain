@@ -1,4 +1,5 @@
 import { type AwsConfig, readAwsConfig, writeAwsConfig } from './aws-config.ts';
+import type { Target } from './deployment-target.ts';
 import { hostedExistingNangoEnv } from './hosted-nango-env.ts';
 import { type LocalConfig, readLocalConfig, writeLocalConfig } from './local-config.ts';
 import { nangoIntegrationSpecs, nangoSyncSpecs } from './nango.ts';
@@ -6,17 +7,15 @@ import { applyNangoEnvOverrides, ensureNangoEnvBase, readNangoEnv } from './nang
 
 type IntegrationSpec = (typeof nangoIntegrationSpecs)[number];
 
-export type AddTarget = 'local' | 'deploy';
-
 export type TargetContext = {
-  target: AddTarget;
+  target: Target;
   env: Record<string, string>;
   localConfig?: LocalConfig;
   awsConfig?: AwsConfig;
 };
 
 export async function loadTargetContext(
-  target: AddTarget,
+  target: Target,
   overrides: { nangoSecretKey?: string; nangoUrl?: string },
   prepareIntegrations: boolean,
 ): Promise<TargetContext> {
@@ -112,11 +111,7 @@ export function syncSelectionConfig(context: TargetContext): LocalConfig {
   };
 }
 
-export function targetLabel(target: AddTarget): string {
-  return target === 'local' ? 'local' : 'hosted deployment';
-}
-
-export function defaultNangoUrl(target: AddTarget): string | undefined {
+export function defaultNangoUrl(target: Target): string | undefined {
   return target === 'local' ? 'http://localhost:3003' : undefined;
 }
 

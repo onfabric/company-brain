@@ -28,7 +28,7 @@ export async function exportAwsCredentials(
     throw new Error(
       [
         'AWS CLI could not export credentials for Terraform.',
-        'Run `aws login` again, then rerun the Company Brain deploy command.',
+        'Run `aws login` again, then rerun the Company Brain cloud command.',
         detail,
       ].join('\n'),
     );
