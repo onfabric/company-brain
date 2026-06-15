@@ -76,12 +76,6 @@ DOZZLE_HOSTNAME=${DOZZLE_HOSTNAME}
 ACME_EMAIL=${ACME_EMAIL}
 EOF
 
-# Authenticate Docker to ECR. Both images share one registry host, so a single
-# login covers them.
-registry="${NANGO_IMAGE_URI%%/*}"
-log "Authenticating Docker to ECR (${registry})"
-aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
-
 compose="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
 
 log "Pulling images"

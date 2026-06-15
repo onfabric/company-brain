@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { exportAwsCredentials } from './aws-credential-export.ts';
 import {
   type AwsCredentials,
@@ -6,7 +5,6 @@ import {
   awsSdkEnv,
   detectAwsProfile,
 } from './aws-credentials.ts';
-import { nangoSubmodulePath } from './paths.ts';
 import { commandSucceeds } from './shell.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
@@ -22,20 +20,11 @@ export async function verifyAwsPrerequisites(
   context: VisibleCommandContext,
 ): Promise<AwsPrerequisites> {
   const prerequisites = await verifyAwsDestroyPrerequisites(context);
-  const missing = await missingCommands(['bash', 'docker', 'jq', 'tar']);
+  const missing = await missingCommands(['bash', 'jq', 'tar']);
 
   if (missing.length > 0) {
     throw new Error(`Missing required local tools: ${missing.join(', ')}`);
   }
-
-  if (!existsSync(nangoSubmodulePath)) {
-    throw new Error(
-      'The nango submodule is missing. Run `git submodule update --init --recursive`.',
-    );
-  }
-
-  await runVisible(['docker', 'info'], context, { capture: true });
-  await runVisible(['docker', 'buildx', 'version'], context, { capture: true });
 
   return prerequisites;
 }

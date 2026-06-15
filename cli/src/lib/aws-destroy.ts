@@ -21,7 +21,6 @@ import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
 const DATA_VOLUME_RESOURCE = 'aws_ebs_volume.data';
 const DELETE_OBJECTS_BATCH_SIZE = 1000;
-const DELETE_IMAGES_BATCH_SIZE = 100;
 
 type Printer = {
   warn: (message: string) => void;
@@ -40,16 +39,6 @@ type VersionedObject = {
 };
 
 type AwsObjectVersion = Partial<VersionedObject> & Record<string, unknown>;
-
-type EcrImageId = {
-  imageDigest?: string;
-  imageTag?: string;
-};
-
-type BatchDeleteImageResponse = {
-  imageIds?: EcrImageId[];
-  failures?: { failureCode?: string; failureReason?: string; imageId?: EcrImageId }[];
-};
 
 export async function destroyAwsDeployment({
   accountId,
@@ -156,7 +145,6 @@ export function summarizeAwsDestroy(config: AwsConfig, accountId: string, phrase
     `- EC2 instance: ${outputs?.instanceId ?? 'from Terraform state'}`,
     `- persistent data volume: ${outputs?.dataVolumeId ?? 'from Terraform state'}`,
     `- backup snapshots tagged: ${outputs?.deployGroupTag ?? `company-brain-${config.environment}`}`,
-    `- ECR repositories: ${formatRepositoryNames(outputs)}`,
     `- deploy artifact bucket: ${outputs?.artifactsBucket ?? 'from Terraform state'}`,
     '- VPC, subnet, routes, security group, Elastic IP, IAM roles/policies, SSM parameters, DLM policy',
     `- DNS records: ${config.dns.mode === 'route53' ? 'deleted from Route53' : 'manual provider cleanup required'}`,
@@ -181,29 +169,16 @@ export function assertConfiguredAccountMatchesCurrentAccount(
   config: AwsConfig,
   accountId: string,
 ): void {
-  const configured = configuredAccountId(config.outputs);
+  const configured = configuredAccountId(config);
   if (configured && configured !== accountId) {
     throw new Error(
-      `.company-brain.aws.json points at AWS account ${configured}, but current credentials are for ${accountId}.`,
+      `Saved cloud config points at AWS account ${configured}, but current credentials are for ${accountId}.`,
     );
   }
 }
 
-export function configuredAccountId(outputs: AwsOutputs | undefined): string | undefined {
-  const candidates = [
-    outputs?.nangoEcrRepositoryUrl,
-    outputs?.brainEcrRepositoryUrl,
-    outputs?.pgBackupEcrRepositoryUrl,
-  ]
-    .map((url) => url?.match(/^(\d{12})\.dkr\.ecr\./)?.[1])
-    .filter((value): value is string => Boolean(value));
-
-  return candidates[0];
-}
-
-export function repositoryNameFromUrl(repositoryUrl: string): string {
-  const slash = repositoryUrl.indexOf('/');
-  return slash === -1 ? repositoryUrl : repositoryUrl.slice(slash + 1);
+export function configuredAccountId(config: AwsConfig): string {
+  return config.awsAccountId;
 }
 
 async function terraformOutputsOrConfigOutputs(
@@ -324,127 +299,6 @@ async function emptyDeploymentStorage(
   context: VisibleCommandContext,
 ): Promise<void> {
   await emptyBucket(outputs.artifactsBucket, config, context);
-
-  for (const repositoryUrl of [
-    outputs.nangoEcrRepositoryUrl,
-    outputs.brainEcrRepositoryUrl,
-    outputs.pgBackupEcrRepositoryUrl,
-  ]) {
-    await emptyEcrRepository(repositoryNameFromUrl(repositoryUrl), config, context);
-  }
-}
-
-async function emptyEcrRepository(
-  repositoryName: string,
-  config: AwsConfig,
-  context: VisibleCommandContext,
-): Promise<void> {
-  if (!(await ecrRepositoryExists(repositoryName, config, context))) {
-    return;
-  }
-
-  while (true) {
-    const images = await listEcrImages(repositoryName, config, context);
-    if (images.length === 0) {
-      return;
-    }
-
-    for (const batch of chunks(images, DELETE_IMAGES_BATCH_SIZE)) {
-      const output = await runVisible(
-        [
-          'aws',
-          'ecr',
-          'batch-delete-image',
-          '--repository-name',
-          repositoryName,
-          '--image-ids',
-          JSON.stringify(batch),
-          '--output',
-          'json',
-          '--region',
-          config.region,
-        ],
-        context,
-        {
-          capture: true,
-          env: awsSdkEnv(config),
-          purpose: `Delete ${batch.length} image(s) from ECR repository ${repositoryName}.`,
-        },
-      );
-      const result = JSON.parse(output) as BatchDeleteImageResponse;
-      const deleted = result.imageIds?.length ?? 0;
-      const failures = result.failures ?? [];
-      if (deleted === 0 && failures.length > 0) {
-        throw new Error(
-          `Could not empty ECR repository ${repositoryName}: ${failures
-            .map((failure) => failure.failureReason ?? failure.failureCode ?? 'unknown failure')
-            .join('; ')}`,
-        );
-      }
-    }
-  }
-}
-
-async function ecrRepositoryExists(
-  repositoryName: string,
-  config: AwsConfig,
-  context: VisibleCommandContext,
-): Promise<boolean> {
-  try {
-    await runVisible(
-      [
-        'aws',
-        'ecr',
-        'describe-repositories',
-        '--repository-names',
-        repositoryName,
-        '--region',
-        config.region,
-      ],
-      context,
-      {
-        capture: true,
-        env: awsSdkEnv(config),
-      },
-    );
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function listEcrImages(
-  repositoryName: string,
-  config: AwsConfig,
-  context: VisibleCommandContext,
-): Promise<EcrImageId[]> {
-  const output = await runVisible(
-    [
-      'aws',
-      'ecr',
-      'list-images',
-      '--repository-name',
-      repositoryName,
-      '--filter',
-      'tagStatus=ANY',
-      '--query',
-      'imageIds',
-      '--output',
-      'json',
-      '--region',
-      config.region,
-    ],
-    context,
-    {
-      capture: true,
-      env: awsSdkEnv(config),
-      purpose: `List images in ECR repository ${repositoryName}.`,
-    },
-  );
-
-  return (JSON.parse(output) as EcrImageId[]).filter(
-    (image) => image.imageDigest || image.imageTag,
-  );
 }
 
 async function deleteBackupSnapshots(
@@ -652,20 +506,6 @@ async function removeLocalAwsDestroyFiles(): Promise<void> {
   await rm(awsConfigPath, { force: true });
   await rm(terraformPlanPath(), { force: true });
   await rm(terraformDestroyPlanPath(), { force: true });
-}
-
-function formatRepositoryNames(outputs: AwsOutputs | undefined): string {
-  if (!outputs) {
-    return 'from Terraform state';
-  }
-
-  return [
-    outputs.nangoEcrRepositoryUrl,
-    outputs.brainEcrRepositoryUrl,
-    outputs.pgBackupEcrRepositoryUrl,
-  ]
-    .map(repositoryNameFromUrl)
-    .join(', ');
 }
 
 function chunks<T>(items: T[], size: number): T[][] {

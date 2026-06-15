@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
-import { chmod, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { z } from 'zod';
 import { normalizeAwsProfile } from './aws-credentials.ts';
 import { normalizeAwsEnvironment, validateAwsEnvironment } from './aws-environment.ts';
@@ -11,9 +12,6 @@ const AWS_CONFIG_FILE_MODE = 0o600;
 const AwsOutputsSchema = z.object({
   publicIp: z.string(),
   publicIpv6: z.string().optional(),
-  nangoEcrRepositoryUrl: z.string(),
-  brainEcrRepositoryUrl: z.string(),
-  pgBackupEcrRepositoryUrl: z.string(),
   artifactsBucket: z.string(),
   instanceId: z.string(),
   dataVolumeId: z.string(),
@@ -46,6 +44,7 @@ const AwsConfigSchema = z.object({
   version: z.literal(AWS_CONFIG_VERSION).default(AWS_CONFIG_VERSION),
   terraformCommand: z.string().optional(),
   awsProfile: AwsProfileSchema,
+  awsAccountId: z.string().regex(/^\d{12}$/),
   region: z.string(),
   environment: AwsEnvironmentSchema,
   baseDomain: z.string().optional(),
@@ -68,6 +67,8 @@ const AwsConfigSchema = z.object({
   scopes: z.record(z.string(), z.string()).default({}),
   dns: AwsDnsSchema.default({ mode: 'manual' }),
   outputs: AwsOutputsSchema.optional(),
+  releaseVersion: z.string().optional(),
+  releaseGitSha: z.string().optional(),
   lastDeployId: z.string().optional(),
   appDeployedAt: z.string().optional(),
   nangoBootstrappedAt: z.string().optional(),
@@ -95,15 +96,14 @@ export async function readAwsConfig(): Promise<AwsConfig | undefined> {
 export async function requireAwsConfig(): Promise<AwsConfig> {
   const config = await readAwsConfig();
   if (!config) {
-    throw new Error(
-      'Missing .company-brain.aws.json. Run `company-brain setup --target cloud` first.',
-    );
+    throw new Error('Missing cloud config. Run `company-brain setup --target cloud` first.');
   }
 
   return config;
 }
 
 export async function writeAwsConfig(config: AwsConfig): Promise<void> {
+  await mkdir(dirname(awsConfigPath), { recursive: true });
   await writeFile(awsConfigPath, `${JSON.stringify(AwsConfigSchema.parse(config), null, 2)}\n`, {
     mode: AWS_CONFIG_FILE_MODE,
   });

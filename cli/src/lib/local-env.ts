@@ -1,13 +1,18 @@
 import { existsSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { readEnvFile, upsertEnvFile, writeEnvFromTemplate } from './env-file.ts';
 import { rootEnvExamplePath, rootEnvPath } from './paths.ts';
+import type { ReleaseManifest } from './release.ts';
 import { randomBase64, randomUuid } from './secrets.ts';
 
 const SECRET_BYTES = 32;
+const IMAGE_URI_KEYS = ['NANGO_IMAGE_URI', 'BRAIN_IMAGE_URI', 'PG_BACKUP_IMAGE_URI'] as const;
 
 export type EnsureRootEnvOptions = {
   force?: boolean;
   allowedDashboardAccountsEmailsRegex?: string;
+  release?: ReleaseManifest;
 };
 
 export async function readRootEnv(): Promise<Record<string, string>> {
@@ -19,10 +24,12 @@ export async function ensureRootEnv(options: EnsureRootEnvOptions = {}): Promise
   const values = rootEnvValues(
     existing,
     options.allowedDashboardAccountsEmailsRegex,
+    options.release,
     Boolean(options.force),
   );
 
   if (!existsSync(rootEnvPath) || options.force) {
+    await mkdir(dirname(rootEnvPath), { recursive: true });
     await writeEnvFromTemplate({
       templatePath: rootEnvExamplePath,
       outputPath: rootEnvPath,
@@ -31,12 +38,13 @@ export async function ensureRootEnv(options: EnsureRootEnvOptions = {}): Promise
     return;
   }
 
-  await upsertEnvFile(rootEnvPath, missingValues(existing, values));
+  await upsertEnvFile(rootEnvPath, envUpdates(existing, values, Boolean(options.release)));
 }
 
 function rootEnvValues(
   existing: Record<string, string>,
   allowedDashboardAccountsEmailsRegex?: string,
+  release?: ReleaseManifest,
   reset = false,
 ): Record<string, string> {
   const regex =
@@ -63,6 +71,10 @@ function rootEnvValues(
       reset,
     ),
     ...(regex ? { ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX: regex } : {}),
+    NANGO_IMAGE_URI: release?.images.nango ?? keepExisting(existing.NANGO_IMAGE_URI, '', reset),
+    BRAIN_IMAGE_URI: release?.images.brain ?? keepExisting(existing.BRAIN_IMAGE_URI, '', reset),
+    PG_BACKUP_IMAGE_URI:
+      release?.images.pgBackup ?? keepExisting(existing.PG_BACKUP_IMAGE_URI, '', reset),
   };
 }
 
@@ -77,6 +89,32 @@ function missingValues(
   return Object.fromEntries(
     Object.entries(values).filter(([key, value]) => !existing[key] && value.length > 0),
   );
+}
+
+function envUpdates(
+  existing: Record<string, string>,
+  values: Record<string, string>,
+  updateImages: boolean,
+): Record<string, string> {
+  return {
+    ...missingValues(existing, values),
+    ...(updateImages ? selectedValues(values, IMAGE_URI_KEYS) : {}),
+  };
+}
+
+function selectedValues(
+  values: Record<string, string>,
+  keys: readonly string[],
+): Record<string, string> {
+  const selected: Record<string, string> = {};
+  for (const key of keys) {
+    const value = values[key];
+    if (value) {
+      selected[key] = value;
+    }
+  }
+
+  return selected;
 }
 
 function replaceLocalDefault(

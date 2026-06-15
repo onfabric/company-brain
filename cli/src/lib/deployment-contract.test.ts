@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   buildSsmDeploymentEnv,
   ciTerraformVars,
-  deploymentImageUris,
+  deploymentImageUrisFromManifest,
   githubImageMatrix,
   resolveCiDeploymentEnvironment,
   runtimeBundleUrl,
@@ -13,21 +13,21 @@ describe('deployment contract', () => {
     expect(githubImageMatrix()).toEqual([
       {
         key: 'nango',
-        repository_output: 'nango_ecr_repository_url',
+        repository: 'ghcr.io/onfabric/company-brain-nango',
         context: './nango',
         dockerfile: './nango/Dockerfile',
         cache_scope: 'nango',
       },
       {
         key: 'brain',
-        repository_output: 'brain_ecr_repository_url',
+        repository: 'ghcr.io/onfabric/company-brain-brain',
         context: '.',
         dockerfile: 'backend/Dockerfile',
         cache_scope: 'brain',
       },
       {
         key: 'pg-backup',
-        repository_output: 'pg_backup_ecr_repository_url',
+        repository: 'ghcr.io/onfabric/company-brain-pg-backup',
         context: 'infra/pg-backup',
         dockerfile: 'infra/pg-backup/Dockerfile',
         cache_scope: 'pg-backup',
@@ -35,20 +35,19 @@ describe('deployment contract', () => {
     ]);
   });
 
-  it('builds immutable image URIs from Terraform repository outputs', () => {
+  it('builds image URIs from the release manifest', () => {
     expect(
-      deploymentImageUris(
-        {
-          nangoEcrRepositoryUrl: '123.dkr.ecr.eu-west-2.amazonaws.com/nango',
-          brainEcrRepositoryUrl: '123.dkr.ecr.eu-west-2.amazonaws.com/brain',
-          pgBackupEcrRepositoryUrl: '123.dkr.ecr.eu-west-2.amazonaws.com/pg-backup',
+      deploymentImageUrisFromManifest({
+        images: {
+          nango: 'ghcr.io/onfabric/company-brain-nango@sha256:nango',
+          brain: 'ghcr.io/onfabric/company-brain-brain@sha256:brain',
+          pgBackup: 'ghcr.io/onfabric/company-brain-pg-backup@sha256:pg',
         },
-        'abc123',
-      ),
+      }),
     ).toEqual({
-      nangoImageUri: '123.dkr.ecr.eu-west-2.amazonaws.com/nango:abc123',
-      brainImageUri: '123.dkr.ecr.eu-west-2.amazonaws.com/brain:abc123',
-      pgBackupImageUri: '123.dkr.ecr.eu-west-2.amazonaws.com/pg-backup:abc123',
+      nangoImageUri: 'ghcr.io/onfabric/company-brain-nango@sha256:nango',
+      brainImageUri: 'ghcr.io/onfabric/company-brain-brain@sha256:brain',
+      pgBackupImageUri: 'ghcr.io/onfabric/company-brain-pg-backup@sha256:pg',
     });
   });
 
@@ -79,9 +78,9 @@ describe('deployment contract', () => {
         dataVolumeId: 'vol-1',
         artifactsBucket: 'bucket',
         imageUris: {
-          nangoImageUri: 'repo/nango:abc123',
-          brainImageUri: 'repo/brain:abc123',
-          pgBackupImageUri: 'repo/pg-backup:abc123',
+          nangoImageUri: 'ghcr.io/onfabric/company-brain-nango:v1',
+          brainImageUri: 'ghcr.io/onfabric/company-brain-brain:v1',
+          pgBackupImageUri: 'ghcr.io/onfabric/company-brain-pg-backup:v1',
         },
         ssmSecretPrefix: '/company-brain/dev',
         nangoHostname: 'nango-dev.onfabric.io',
@@ -103,9 +102,9 @@ describe('deployment contract', () => {
       DOZZLE_HOSTNAME: 'dozzle-dev.onfabric.io',
       ACME_EMAIL: 'ops@example.com',
       AWS_REGION: 'eu-west-2',
-      NANGO_IMAGE_URI: 'repo/nango:abc123',
-      BRAIN_IMAGE_URI: 'repo/brain:abc123',
-      PG_BACKUP_IMAGE_URI: 'repo/pg-backup:abc123',
+      NANGO_IMAGE_URI: 'ghcr.io/onfabric/company-brain-nango:v1',
+      BRAIN_IMAGE_URI: 'ghcr.io/onfabric/company-brain-brain:v1',
+      PG_BACKUP_IMAGE_URI: 'ghcr.io/onfabric/company-brain-pg-backup:v1',
     });
   });
 });

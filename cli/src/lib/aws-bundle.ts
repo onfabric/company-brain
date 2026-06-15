@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { AwsConfig } from './aws-config.ts';
 import { awsCommandEnv } from './aws-credentials.ts';
 import { runtimeBundleUrl } from './deployment-contract.ts';
-import { deployPath, repoRoot } from './paths.ts';
+import { deployPath, runtimePath } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
 
 export async function uploadRuntimeBundle(
@@ -16,7 +16,7 @@ export async function uploadRuntimeBundle(
   const bundleUrl = runtimeBundleUrl(outputs.artifactsBucket, config.environment, deployId);
 
   await runVisible(['bash', `${deployPath}/package_runtime_bundle.sh`, bundlePath], context, {
-    cwd: repoRoot,
+    cwd: runtimePath,
     approve: true,
     purpose: 'Package the runtime bundle for the EC2 host.',
   });

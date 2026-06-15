@@ -24,26 +24,6 @@ resource "aws_iam_role_policy_attachment" "ssm_core" {
 }
 
 data "aws_iam_policy_document" "instance" {
-  # Pull images from ECR.
-  statement {
-    sid       = "EcrAuth"
-    actions   = ["ecr:GetAuthorizationToken"]
-    resources = ["*"]
-  }
-  statement {
-    sid = "EcrPull"
-    actions = [
-      "ecr:BatchGetImage",
-      "ecr:GetDownloadUrlForLayer",
-      "ecr:BatchCheckLayerAvailability",
-    ]
-    resources = [
-      aws_ecr_repository.nango.arn,
-      aws_ecr_repository.brain.arn,
-      aws_ecr_repository.pg_backup.arn,
-    ]
-  }
-
   # Download the runtime bundle.
   statement {
     sid       = "ArtifactsRead"

@@ -16,10 +16,12 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write # assume AWS roles via OIDC
+  id-token: write
+  packages: write
 
 env:
   NO_COLOR: "1"
+  IMAGE_TAG: sha-${{ github.sha }}
 
 jobs:
   deploy-config:
@@ -45,13 +47,39 @@ jobs:
         id: config
         run: bun cli/src/scripts/github-deploy-plan.ts github-outputs dev >> "$GITHUB_OUTPUT"
 
+  build-images:
+    needs: deploy-config
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.deploy-config.outputs.image_matrix) }}
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: ./.github/actions/build-and-push-docker
+        with:
+          image-repository: ${{ matrix.image.repository }}
+          image-tag: ${{ env.IMAGE_TAG }}
+          context: ${{ matrix.image.context }}
+          dockerfile: ${{ matrix.image.dockerfile }}
+          cache-scope: ${{ matrix.image.cache_scope }}
+
   terraform-apply:
     needs: deploy-config
     runs-on: ubuntu-latest
     outputs:
-      nango_ecr_repository_url: ${{ steps.tf_outputs.outputs.nango_ecr_repository_url }}
-      brain_ecr_repository_url: ${{ steps.tf_outputs.outputs.brain_ecr_repository_url }}
-      pg_backup_ecr_repository_url: ${{ steps.tf_outputs.outputs.pg_backup_ecr_repository_url }}
       artifacts_bucket: ${{ steps.tf_outputs.outputs.artifacts_bucket }}
       github_deploy_role_arn: ${{ steps.tf_outputs.outputs.github_deploy_role_arn }}
       data_volume_id: ${{ steps.tf_outputs.outputs.data_volume_id }}
@@ -79,10 +107,6 @@ jobs:
           TF_VAR_google_client_id: ${{ vars.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_ID }}
           TF_VAR_google_client_secret: ${{ secrets.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_SECRET }}
 
-      # Auto-applying a plan that destroys or replaces resources already
-      # terminated the instance once (a floating-AMI bump on 2026-06-10).
-      # Destructive plans need a human: rerun via workflow_dispatch with
-      # allow_destroy enabled.
       - name: Block destructive plans
         if: inputs.allow_destroy != true
         run: |
@@ -101,15 +125,11 @@ jobs:
             exit 1
           fi
 
-      # Applying the saved plan guarantees what was checked is what runs.
       - run: terraform apply -input=false tfplan
 
       - name: Capture outputs
         id: tf_outputs
         run: |
-          echo "nango_ecr_repository_url=$(terraform output -raw nango_ecr_repository_url)" >> "$GITHUB_OUTPUT"
-          echo "brain_ecr_repository_url=$(terraform output -raw brain_ecr_repository_url)" >> "$GITHUB_OUTPUT"
-          echo "pg_backup_ecr_repository_url=$(terraform output -raw pg_backup_ecr_repository_url)" >> "$GITHUB_OUTPUT"
           echo "artifacts_bucket=$(terraform output -raw artifacts_bucket)" >> "$GITHUB_OUTPUT"
           echo "github_deploy_role_arn=$(terraform output -raw github_deploy_role_arn)" >> "$GITHUB_OUTPUT"
           echo "data_volume_id=$(terraform output -raw data_volume_id)" >> "$GITHUB_OUTPUT"
@@ -123,31 +143,6 @@ jobs:
             terraform output
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-
-  build-docker:
-    needs: [deploy-config, terraform-apply]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        image: ${{ fromJSON(needs.deploy-config.outputs.image_matrix) }}
-    steps:
-      - name: Checkout (with submodules)
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
-
-      - name: Build and push
-        id: build
-        uses: ./.github/actions/build-and-push-docker
-        with:
-          aws-region: ${{ needs.deploy-config.outputs.aws_region }}
-          deploy-role-arn: ${{ needs.terraform-apply.outputs.github_deploy_role_arn }}
-          ecr-repository-url: ${{ needs.terraform-apply.outputs[matrix.image.repository_output] }}
-          image-tag: ${{ needs.deploy-config.outputs.deploy_id }}
-          context: ${{ matrix.image.context }}
-          dockerfile: ${{ matrix.image.dockerfile }}
-          cache-scope: ${{ matrix.image.cache_scope }}
 
   build-bundle:
     needs: [deploy-config, terraform-apply]
@@ -182,18 +177,19 @@ jobs:
         run: aws s3 cp bundle.tar.gz "${{ steps.meta.outputs.bundle_url }}"
 
   deploy:
-    needs:
-      [
-        deploy-config,
-        terraform-apply,
-        build-docker,
-        build-bundle,
-      ]
+    needs: [deploy-config, terraform-apply, build-images, build-bundle]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
       - uses: ./.github/actions/prepare
+
+      - name: Verify images are public
+        run: |
+          infra/deploy/verify_public_images.sh \
+            ghcr.io/onfabric/company-brain-nango:${{ env.IMAGE_TAG }} \
+            ghcr.io/onfabric/company-brain-brain:${{ env.IMAGE_TAG }} \
+            ghcr.io/onfabric/company-brain-pg-backup:${{ env.IMAGE_TAG }}
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v6
@@ -209,9 +205,9 @@ jobs:
           DEPLOY_GROUP: ${{ needs.terraform-apply.outputs.deploy_group_tag }}
           DATA_VOLUME_ID: ${{ needs.terraform-apply.outputs.data_volume_id }}
           ARTIFACTS_BUCKET: ${{ needs.terraform-apply.outputs.artifacts_bucket }}
-          NANGO_ECR_REPOSITORY_URL: ${{ needs.terraform-apply.outputs.nango_ecr_repository_url }}
-          BRAIN_ECR_REPOSITORY_URL: ${{ needs.terraform-apply.outputs.brain_ecr_repository_url }}
-          PG_BACKUP_ECR_REPOSITORY_URL: ${{ needs.terraform-apply.outputs.pg_backup_ecr_repository_url }}
+          NANGO_IMAGE_URI: ghcr.io/onfabric/company-brain-nango:${{ env.IMAGE_TAG }}
+          BRAIN_IMAGE_URI: ghcr.io/onfabric/company-brain-brain:${{ env.IMAGE_TAG }}
+          PG_BACKUP_IMAGE_URI: ghcr.io/onfabric/company-brain-pg-backup:${{ env.IMAGE_TAG }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
 
       - name: Deploy on instance via SSM
@@ -242,6 +238,7 @@ jobs:
       NANGO_SECRET_KEY_DEV: ${{ secrets.NANGO_SECRET_KEY_DEV }}
       NANGO_DEPLOY_AUTO_CONFIRM: "true"
       NANGO_CLI_DEPENDENCY_UPDATE: "false"
+      COMPANY_BRAIN_INTEGRATIONS_DIR: ${{ github.workspace }}/nango-integrations
     steps:
       - uses: actions/checkout@v6
 

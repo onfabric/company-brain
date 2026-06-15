@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { z } from 'zod';
 import { localConfigPath } from './paths.ts';
 
@@ -20,5 +21,6 @@ export async function readLocalConfig(): Promise<LocalConfig> {
 }
 
 export async function writeLocalConfig(config: LocalConfig): Promise<void> {
+  await mkdir(dirname(localConfigPath), { recursive: true });
   await writeFile(localConfigPath, `${JSON.stringify(LocalConfigSchema.parse(config), null, 2)}\n`);
 }

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${ECR_REPOSITORY_URL:?}" "${IMAGE_TAG:?}" "${BUILD_CONTEXT:?}" "${DOCKERFILE:?}"
+: "${IMAGE_REPOSITORY:?}" "${IMAGE_TAG:?}" "${BUILD_CONTEXT:?}" "${DOCKERFILE:?}"
 
-PLATFORM="${PLATFORM:-linux/amd64}"
+PLATFORM="${PLATFORM:-linux/amd64,linux/arm64}"
 LATEST_TAG="${LATEST_TAG:-latest}"
 SOURCE_LABEL="${SOURCE_LABEL:-https://github.com/onfabric/company-brain}"
 CACHE_SCOPE="${CACHE_SCOPE:-}"
 CACHE_FROM="${CACHE_FROM:-}"
 CACHE_TO="${CACHE_TO:-}"
 
-image_uri="${ECR_REPOSITORY_URL}:${IMAGE_TAG}"
-latest_uri="${ECR_REPOSITORY_URL}:${LATEST_TAG}"
+image_uri="${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+latest_uri="${IMAGE_REPOSITORY}:${LATEST_TAG}"
 
 cmd=(
   docker buildx build

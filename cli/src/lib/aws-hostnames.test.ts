@@ -31,6 +31,7 @@ describe('inferBaseDomain', () => {
 function config(): AwsConfig {
   return {
     version: 1,
+    awsAccountId: '123456789012',
     region: 'eu-west-2',
     environment: 'mex',
     instanceType: 't3.large',

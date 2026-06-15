@@ -31,16 +31,18 @@ const WEBHOOK_SECRET_BYTES = 32;
 
 export async function collectAwsConfig({
   existing,
+  awsAccountId,
   force,
   nonInteractive,
 }: {
   existing?: AwsConfig;
+  awsAccountId: string;
   force?: boolean;
   nonInteractive?: boolean;
 }): Promise<AwsConfig> {
   if (nonInteractive && !existing) {
     throw new Error(
-      'Deployment setup needs prompts. Run interactively once, or keep .company-brain.aws.json.',
+      'Deployment setup needs prompts. Run interactively once, or keep saved cloud config.',
     );
   }
 
@@ -50,7 +52,7 @@ export async function collectAwsConfig({
   );
   const region = await promptSelect(
     'AWS region',
-    'Where AWS will create the EC2 instance, ECR repositories, S3 bucket, and SSM parameters.',
+    'Where AWS will create the EC2 instance, S3 bucket, and SSM parameters.',
     AWS_REGION_OPTIONS,
     existing?.region ?? DEFAULT_AWS_REGION,
     force,
@@ -187,6 +189,7 @@ export async function collectAwsConfig({
   const config: AwsConfig = {
     version: 1,
     terraformCommand: existing?.terraformCommand,
+    awsAccountId: existing?.awsAccountId ?? awsAccountId,
     region,
     environment,
     baseDomain,

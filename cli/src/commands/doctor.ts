@@ -187,6 +187,11 @@ async function doctorCloud(options: {
     awsProfile: prerequisites.awsProfile,
     terraformCommand: prerequisites.terraformCommand,
   };
+  if (config.awsAccountId !== prerequisites.accountId) {
+    throw new Error(
+      `Saved cloud config points at AWS account ${config.awsAccountId}, but current credentials are for ${prerequisites.accountId}.`,
+    );
+  }
   await writeAwsConfig(config);
   const runtimeConfig = withAwsCredentials(config, prerequisites);
 

@@ -45,30 +45,6 @@ resource "aws_iam_role" "github_deploy" {
 data "aws_iam_policy_document" "github_deploy" {
   count = var.enable_github_deploy ? 1 : 0
 
-  # Push images to ECR.
-  statement {
-    sid       = "EcrAuth"
-    actions   = ["ecr:GetAuthorizationToken"]
-    resources = ["*"]
-  }
-  statement {
-    sid = "EcrPush"
-    actions = [
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:CompleteLayerUpload",
-      "ecr:InitiateLayerUpload",
-      "ecr:PutImage",
-      "ecr:UploadLayerPart",
-      "ecr:BatchGetImage",
-      "ecr:GetDownloadUrlForLayer",
-    ]
-    resources = [
-      aws_ecr_repository.nango.arn,
-      aws_ecr_repository.brain.arn,
-      aws_ecr_repository.pg_backup.arn,
-    ]
-  }
-
   # Upload the runtime bundle.
   statement {
     sid       = "ArtifactsWrite"

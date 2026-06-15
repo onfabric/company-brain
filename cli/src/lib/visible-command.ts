@@ -1,5 +1,4 @@
 import { confirm, isCancel } from '@clack/prompts';
-import { repoRoot } from './paths.ts';
 
 export type VisibleCommandContext = {
   yes?: boolean;
@@ -26,7 +25,7 @@ export async function runVisible(
 
   const child = Bun.spawn({
     cmd,
-    cwd: options.cwd ?? repoRoot,
+    cwd: options.cwd,
     env: { ...process.env, ...options.env },
     stdin: options.input === undefined ? 'inherit' : 'pipe',
     stdout: options.capture ? 'pipe' : 'inherit',

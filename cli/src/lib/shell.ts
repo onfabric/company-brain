@@ -1,5 +1,3 @@
-import { repoRoot } from './paths.ts';
-
 export type RunOptions = {
   cwd?: string;
   env?: Record<string, string | undefined>;
@@ -14,7 +12,7 @@ export async function run(cmd: string[], options: RunOptions = {}): Promise<stri
 
   const child = Bun.spawn({
     cmd,
-    cwd: options.cwd ?? repoRoot,
+    cwd: options.cwd,
     env: { ...process.env, ...options.env },
     stdin: 'inherit',
     stdout: options.capture ? 'pipe' : 'inherit',
@@ -40,7 +38,7 @@ export async function run(cmd: string[], options: RunOptions = {}): Promise<stri
 export async function commandSucceeds(cmd: string[], options: RunOptions = {}): Promise<boolean> {
   const child = Bun.spawn({
     cmd,
-    cwd: options.cwd ?? repoRoot,
+    cwd: options.cwd,
     env: { ...process.env, ...options.env },
     stdin: 'ignore',
     stdout: 'ignore',

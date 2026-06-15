@@ -1,0 +1,134 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example v0.1.0"
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  NO_COLOR: "1"
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      image_matrix: ${{ steps.meta.outputs.image_matrix }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/prepare
+
+      - id: meta
+        run: |
+          version="${{ inputs.version || github.ref_name }}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          bun cli/src/scripts/github-deploy-plan.ts github-outputs dev \
+            | awk -F= '$1 == "image_matrix" { print "image_matrix=" $2 }' >> "$GITHUB_OUTPUT"
+
+  images:
+    needs: config
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.config.outputs.image_matrix) }}
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: ./.github/actions/build-and-push-docker
+        with:
+          image-repository: ${{ matrix.image.repository }}
+          image-tag: ${{ needs.config.outputs.version }}
+          context: ${{ matrix.image.context }}
+          dockerfile: ${{ matrix.image.dockerfile }}
+          cache-scope: ${{ matrix.image.cache_scope }}
+
+  artifacts:
+    needs: [config, images]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Verify images are public
+        run: |
+          infra/deploy/verify_public_images.sh \
+            ghcr.io/onfabric/company-brain-nango:${{ needs.config.outputs.version }} \
+            ghcr.io/onfabric/company-brain-brain:${{ needs.config.outputs.version }} \
+            ghcr.io/onfabric/company-brain-pg-backup:${{ needs.config.outputs.version }}
+
+      - uses: ./.github/actions/prepare
+
+      - name: Package runtime and integrations
+        run: |
+          mkdir -p dist
+          infra/deploy/package_runtime_bundle.sh dist/company-brain-runtime.tar.gz
+          infra/deploy/package_integrations_bundle.sh dist/company-brain-integrations.tar.gz
+
+      - name: Build CLI binaries
+        run: |
+          bun build --compile --target=bun-linux-x64 cli/src/main.ts --outfile dist/company-brain-linux-x64
+          bun build --compile --target=bun-linux-arm64 cli/src/main.ts --outfile dist/company-brain-linux-arm64
+          bun build --compile --target=bun-darwin-x64 cli/src/main.ts --outfile dist/company-brain-darwin-x64
+          bun build --compile --target=bun-darwin-arm64 cli/src/main.ts --outfile dist/company-brain-darwin-arm64
+          chmod 0755 dist/company-brain-*
+
+      - name: Build release manifest and checksums
+        env:
+          VERSION: ${{ needs.config.outputs.version }}
+        run: |
+          runtime_sha=$(shasum -a 256 dist/company-brain-runtime.tar.gz | awk '{print $1}')
+          integrations_sha=$(shasum -a 256 dist/company-brain-integrations.tar.gz | awk '{print $1}')
+          git_sha="${GITHUB_SHA}"
+          nango_sha="$(git -C nango rev-parse HEAD)"
+          cat > dist/company-brain-release.json <<EOF
+          {
+            "version": "${VERSION}",
+            "gitSha": "${git_sha}",
+            "nangoSubmoduleSha": "${nango_sha}",
+            "images": {
+              "nango": "ghcr.io/onfabric/company-brain-nango:${VERSION}",
+              "brain": "ghcr.io/onfabric/company-brain-brain:${VERSION}",
+              "pgBackup": "ghcr.io/onfabric/company-brain-pg-backup:${VERSION}"
+            },
+            "assets": {
+              "runtime": {
+                "url": "https://github.com/onfabric/company-brain/releases/download/${VERSION}/company-brain-runtime.tar.gz",
+                "sha256": "${runtime_sha}"
+              },
+              "integrations": {
+                "url": "https://github.com/onfabric/company-brain/releases/download/${VERSION}/company-brain-integrations.tar.gz",
+                "sha256": "${integrations_sha}"
+              }
+            }
+          }
+          EOF
+          shasum -a 256 dist/* > dist/SHA256SUMS
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.config.outputs.version }}
+          files: dist/*

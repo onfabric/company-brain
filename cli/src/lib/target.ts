@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { isCancel, select } from '@clack/prompts';
 import { z } from 'zod';
 import { type Target, TargetSchema, targetLabel, targets } from './deployment-target.ts';
@@ -79,6 +80,7 @@ async function readCliConfig(): Promise<CliConfig> {
 }
 
 async function writeCliConfig(config: CliConfig): Promise<void> {
+  await mkdir(dirname(cliConfigPath), { recursive: true });
   await writeFile(cliConfigPath, `${JSON.stringify(CliConfigSchema.parse(config), null, 2)}\n`);
 }
 

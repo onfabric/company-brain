@@ -1,7 +1,6 @@
 import type { AwsConfig } from './aws-config.ts';
 import { awsCommandEnv } from './aws-credentials.ts';
-import type { ImageUris } from './aws-images.ts';
-import { buildSsmDeploymentEnv } from './deployment-contract.ts';
+import { buildSsmDeploymentEnv, type DeploymentImageUris } from './deployment-contract.ts';
 import { buildDozzleUsersYaml } from './dozzle.ts';
 import { deployPath } from './paths.ts';
 import { runVisible, type VisibleCommandContext } from './visible-command.ts';
@@ -12,7 +11,7 @@ export async function putDozzleUsers(
 ): Promise<void> {
   const password = config.secrets.dozzlePassword;
   if (!password) {
-    throw new Error('Missing Dozzle password in .company-brain.aws.json.');
+    throw new Error('Missing Dozzle password in saved cloud config.');
   }
 
   const users = await buildDozzleUsersYaml({
@@ -53,7 +52,7 @@ export async function deployOverSsm({
   context,
 }: {
   config: AwsConfig;
-  images: ImageUris;
+  images: DeploymentImageUris;
   bundleUrl: string;
   context: VisibleCommandContext;
 }): Promise<void> {

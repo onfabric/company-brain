@@ -3,7 +3,6 @@
 import {
   buildSsmDeploymentEnv,
   ciTerraformVars,
-  deploymentImageUris,
   githubImageMatrix,
   resolveCiDeploymentEnvironment,
   runtimeBundleUrl,
@@ -70,14 +69,6 @@ function writeSsmEnv(environmentName: string): void {
   const environment = resolveCiDeploymentEnvironment(environmentName);
   const deployId = requiredEnv('DEPLOY_ID');
   const artifactsBucket = requiredEnv('ARTIFACTS_BUCKET');
-  const imageUris = deploymentImageUris(
-    {
-      nangoEcrRepositoryUrl: requiredEnv('NANGO_ECR_REPOSITORY_URL'),
-      brainEcrRepositoryUrl: requiredEnv('BRAIN_ECR_REPOSITORY_URL'),
-      pgBackupEcrRepositoryUrl: requiredEnv('PG_BACKUP_ECR_REPOSITORY_URL'),
-    },
-    deployId,
-  );
 
   writeKeyValues(
     buildSsmDeploymentEnv({
@@ -87,7 +78,11 @@ function writeSsmEnv(environmentName: string): void {
       deployGroup: process.env.DEPLOY_GROUP || environment.deployGroup,
       dataVolumeId: requiredEnv('DATA_VOLUME_ID'),
       artifactsBucket,
-      imageUris,
+      imageUris: {
+        nangoImageUri: requiredEnv('NANGO_IMAGE_URI'),
+        brainImageUri: requiredEnv('BRAIN_IMAGE_URI'),
+        pgBackupImageUri: requiredEnv('PG_BACKUP_IMAGE_URI'),
+      },
       ssmSecretPrefix: environment.ssmSecretPrefix,
       nangoHostname: environment.nangoHostname,
       nangoConnectHostname: environment.nangoConnectHostname,
