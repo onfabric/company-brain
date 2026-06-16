@@ -1,9 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
-import { log, note } from '@clack/prompts';
-import { requireAwsConfig } from '../aws-config.ts';
-import { httpsIssues } from '../aws-dns.ts';
-import { ensureCloudNangoApiKey } from '../nango-api-key.ts';
+import { log } from '@clack/prompts';
+import { requireCloudProvider } from '../cloud-provider.ts';
 import { loadConfig, readConfigFile, writeConfigFile } from './config.ts';
 import { ensureIdentity, readIdentity } from './identity.ts';
 import { installLaunchAgent, launchAgentConfig, uninstallLaunchAgent } from './launchd.ts';
@@ -134,24 +132,7 @@ async function resolveCloudTarget(
   nonInteractive: boolean,
   print: Printer,
 ): Promise<{ nangoUrl: string; nangoSecretKey: string; webhookSecret: string }> {
-  let config = await requireAwsConfig();
-  if (!config.outputs || !config.appDeployedAt) {
-    throw new Error('Cloud Company Brain is not deployed. Run: company-brain setup');
-  }
-
-  const issues = await httpsIssues(config);
-  if (issues.length > 0) {
-    note(issues.join('\n'), 'Cloud HTTPS check');
-    throw new Error('Cloud Company Brain is not reachable. Run: company-brain resume');
-  }
-
-  config = await ensureCloudNangoApiKey(config, nonInteractive, print);
-  const nangoSecretKey = requireValue(config.secrets.nangoSecretKey, 'Cloud Nango dev API key');
-  return {
-    nangoUrl: `https://${config.nangoHostname}`,
-    nangoSecretKey,
-    webhookSecret: config.agentSyncWebhookSecret,
-  };
+  return await (await requireCloudProvider()).resolveAgentSyncTarget(nonInteractive, print);
 }
 
 async function launchAgentIsLoaded(label: string): Promise<boolean> {
@@ -164,12 +145,4 @@ async function launchAgentIsLoaded(label: string): Promise<boolean> {
 
 function launchTarget(): string {
   return `gui/${process.getuid?.() ?? os.userInfo().uid}`;
-}
-
-function requireValue(value: string | undefined, label: string): string {
-  if (!value) {
-    throw new Error(`Missing ${label}.`);
-  }
-
-  return value;
 }

@@ -11,6 +11,7 @@ export const cloudConfigDir = join(companyBrainHome, 'cloud');
 export const downloadsPath = join(companyBrainHome, 'downloads');
 export const releaseStatePath = join(companyBrainHome, 'release.json');
 
+export const cloudTargetPath = join(cloudConfigDir, 'target.json');
 export const awsConfigPath = join(cloudConfigDir, 'config.json');
 export const terraformPath = join(runtimePath, 'infra/terraform');
 export const deployPath = join(runtimePath, 'infra/deploy');

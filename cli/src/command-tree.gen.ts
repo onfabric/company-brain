@@ -8,6 +8,7 @@ import type { command as agentsyncInstallCmd } from './commands/agent-sync/insta
 import type { command as agentsyncStatusCmd } from './commands/agent-sync/status.ts';
 import type { command as agentsyncSyncnowCmd } from './commands/agent-sync/sync-now.ts';
 import type { command as agentsyncUninstallCmd } from './commands/agent-sync/uninstall.ts';
+import type { command as deploymentTargetCmd } from './commands/deployment/target.ts';
 import type { command as destroyCmd } from './commands/destroy.ts';
 import type { command as doctorCmd } from './commands/doctor.ts';
 import type { command as resumeCmd } from './commands/resume.ts';
@@ -38,6 +39,10 @@ declare module '@parshjs/core' {
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
     'agent-sync uninstall': {
+      parents: {};
+      rootOptions: InferForwardedOptions<typeof rootCmd.options>;
+    };
+    'deployment target': {
       parents: {};
       rootOptions: InferForwardedOptions<typeof rootCmd.options>;
     };
@@ -133,6 +138,22 @@ export const commandTree: RuntimeNode = {
           command: {
             path: 'agent-sync uninstall',
             load: () => import('./commands/agent-sync/uninstall.ts').then((m) => m.command),
+          },
+          literalChildren: {},
+          paramChild: null,
+        },
+      },
+      paramChild: null,
+    },
+    deployment: {
+      segment: { kind: 'literal', value: 'deployment' },
+      command: null,
+      literalChildren: {
+        target: {
+          segment: { kind: 'literal', value: 'target' },
+          command: {
+            path: 'deployment target',
+            load: () => import('./commands/deployment/target.ts').then((m) => m.command),
           },
           literalChildren: {},
           paramChild: null,
