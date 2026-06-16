@@ -1,3 +1,5 @@
+import { type AllowedEmails, parseAllowedEmails } from '#lib/auth/allowed-emails.ts';
+
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
@@ -7,7 +9,7 @@ declare global {
       readonly BETTER_AUTH_SECRET?: string;
       readonly GOOGLE_CLIENT_ID?: string;
       readonly GOOGLE_CLIENT_SECRET?: string;
-      readonly ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX?: string;
+      readonly ALLOWED_DASHBOARD_ACCOUNTS_EMAILS?: string;
       readonly KNOWLEDGE_WORKFLOW_DOCS_ROOT?: string;
     }
   }
@@ -34,7 +36,7 @@ type Env = {
   betterAuthSecret: string;
   googleClientId: string;
   googleClientSecret: string;
-  allowedDashboardAccountsEmailsRegex: RegExp | null;
+  allowedDashboardAccountsEmails: AllowedEmails;
   knowledgeWorkflowDocsRoot: string | undefined;
 };
 
@@ -62,9 +64,9 @@ function loadEnv(): Env {
     betterAuthSecret: required('BETTER_AUTH_SECRET'),
     googleClientId: required('GOOGLE_CLIENT_ID'),
     googleClientSecret: required('GOOGLE_CLIENT_SECRET'),
-    allowedDashboardAccountsEmailsRegex: process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX
-      ? new RegExp(process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX)
-      : null,
+    allowedDashboardAccountsEmails: parseAllowedEmails(
+      required('ALLOWED_DASHBOARD_ACCOUNTS_EMAILS'),
+    ),
     knowledgeWorkflowDocsRoot: process.env.KNOWLEDGE_WORKFLOW_DOCS_ROOT,
   };
 }

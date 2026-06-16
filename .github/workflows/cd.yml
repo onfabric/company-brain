@@ -108,6 +108,11 @@ jobs:
         env:
           TF_VAR_google_client_id: ${{ vars.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_ID }}
           TF_VAR_google_client_secret: ${{ secrets.BACKEND_BETTER_AUTH_GOOGLE_CLIENT_SECRET }}
+          # Sign-in allowlist is non-secret config, so it lives in a repo Variable.
+          # No fallback: if the Variable is unset this passes an empty string, which
+          # the Terraform variable's validation rejects — a missing allowlist fails
+          # the deploy loudly rather than silently opening sign-in to every account.
+          TF_VAR_allowed_dashboard_accounts_emails: ${{ vars.BACKEND_ALLOWED_DASHBOARD_EMAILS }}
 
       - name: Block unexpected destructive plans
         if: inputs.allow_destroy != true

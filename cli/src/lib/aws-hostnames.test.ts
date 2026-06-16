@@ -43,7 +43,7 @@ function config(): AwsConfig {
     brainHostname: 'brain-mex.onfabric.io',
     dozzleHostname: 'dozzle-mex.onfabric.io',
     acmeEmail: 'ops@onfabric.io',
-    allowedDashboardAccountsEmailsRegex: '.*@onfabric\\.io$',
+    allowedDashboardAccountsEmails: '*@onfabric.io',
     googleClientId: 'client-id',
     dozzleUsername: 'admin',
     dozzleEmail: 'ops@onfabric.io',

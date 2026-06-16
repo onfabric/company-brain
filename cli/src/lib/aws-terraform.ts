@@ -108,8 +108,7 @@ export function terraformEnv(config: AwsConfig): Record<string, string | undefin
     ...awsSdkEnv(config),
     TF_VAR_google_client_id: config.googleClientId,
     TF_VAR_google_client_secret: config.secrets.googleClientSecret ?? '',
-    TF_VAR_allowed_dashboard_accounts_emails_regex:
-      config.allowedDashboardAccountsEmailsRegex || undefined,
+    TF_VAR_allowed_dashboard_accounts_emails: config.allowedDashboardAccountsEmails,
   };
 }
 

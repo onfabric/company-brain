@@ -7,6 +7,7 @@ testEnv.DATABASE_URL ??= 'postgresql://test:test@localhost:5432/test';
 testEnv.BETTER_AUTH_SECRET ??= 'test-better-auth-secret-0000000000000000';
 testEnv.GOOGLE_CLIENT_ID ??= 'test-google-client-id';
 testEnv.GOOGLE_CLIENT_SECRET ??= 'test-google-client-secret';
+testEnv.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS ??= '*@example.com';
 // Pin the public URL so the JWKS host mcp-use verifies against matches the mock
 // server below. The eager `env` singleton freezes these derivations at whichever
 // test file imports it first, so they are read back from `env`.

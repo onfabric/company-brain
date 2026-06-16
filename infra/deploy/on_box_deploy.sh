@@ -26,7 +26,7 @@ BRAIN_DB_PASSWORD="$(secret brain_db_password)"
 BETTER_AUTH_SECRET="$(secret better_auth_secret)"
 GOOGLE_CLIENT_ID="$(secret google_client_id)"
 GOOGLE_CLIENT_SECRET="$(secret google_client_secret)"
-ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX="$(secret allowed_dashboard_accounts_emails_regex)"
+ALLOWED_DASHBOARD_ACCOUNTS_EMAILS="$(secret allowed_dashboard_accounts_emails)"
 
 # Dozzle simple-auth users file (full users.yml, generated via `dozzle generate`),
 # mounted into the container at /data/users.yml by the prod compose override.
@@ -54,7 +54,7 @@ BRAIN_DB_PASSWORD=${BRAIN_DB_PASSWORD}
 BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
 GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
 GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX=${ALLOWED_DASHBOARD_ACCOUNTS_EMAILS_REGEX}
+ALLOWED_DASHBOARD_ACCOUNTS_EMAILS=${ALLOWED_DASHBOARD_ACCOUNTS_EMAILS}
 BRAIN_PUBLIC_URL=https://${BRAIN_HOSTNAME}
 NANGO_SERVER_PORT=3003
 NANGO_CONNECT_UI_PORT=3009

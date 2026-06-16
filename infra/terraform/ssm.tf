@@ -99,13 +99,13 @@ resource "aws_ssm_parameter" "google_client_secret" {
 
 # Brain sign-in allowlist. Not a credential, so a plain String; read on the box
 # alongside the other brain auth config and written into the compose .env.
-resource "aws_ssm_parameter" "allowed_dashboard_accounts_emails_regex" {
-  name  = "${var.ssm_secret_prefix}/allowed_dashboard_accounts_emails_regex"
+resource "aws_ssm_parameter" "allowed_dashboard_accounts_emails" {
+  name  = "${var.ssm_secret_prefix}/allowed_dashboard_accounts_emails"
   type  = "String"
-  value = var.allowed_dashboard_accounts_emails_regex
+  value = var.allowed_dashboard_accounts_emails
 
   tags = {
-    Name = "${local.resource_name_prefix}-allowed-dashboard-accounts-emails-regex"
+    Name = "${local.resource_name_prefix}-allowed-dashboard-accounts-emails"
   }
 }
 

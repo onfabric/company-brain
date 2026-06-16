@@ -8,6 +8,7 @@ testEnv.DATABASE_URL ??= 'postgresql://test:test@localhost:5432/test';
 testEnv.BETTER_AUTH_SECRET ??= 'test-better-auth-secret-0000000000000000';
 testEnv.GOOGLE_CLIENT_ID ??= 'test-google-client-id';
 testEnv.GOOGLE_CLIENT_SECRET ??= 'test-google-client-secret';
+testEnv.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS ??= '*@example.com';
 testEnv.BRAIN_PUBLIC_URL ??= 'http://localhost:18851';
 
 const migrationsDir = join(import.meta.dir, 'db/migrations');
