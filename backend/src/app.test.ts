@@ -1,11 +1,10 @@
-import { describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it, spyOn } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { StatusMap } from 'elysia';
 
 const testEnv = process.env as Record<string, string | undefined>;
 testEnv.DATABASE_URL ??= 'postgresql://test:test@localhost:5432/test';
-testEnv.BRAIN_API_KEY ??= '00000000-0000-4000-8000-000000000000';
 testEnv.BETTER_AUTH_SECRET ??= 'test-better-auth-secret-0000000000000000';
 testEnv.GOOGLE_CLIENT_ID ??= 'test-google-client-id';
 testEnv.GOOGLE_CLIENT_SECRET ??= 'test-google-client-secret';
@@ -66,6 +65,23 @@ describe('app', () => {
 });
 
 describe('api key auth', () => {
+  // The api-key verifier hashes the header and looks it up in brain.api_keys, so
+  // the positive path is exercised by stubbing the lookup rather than seeding a
+  // database the test suite does not provision.
+  let restore: (() => void) | undefined;
+  afterEach(() => {
+    restore?.();
+    restore = undefined;
+  });
+
+  async function withAcceptedApiKey(): Promise<string> {
+    const { ApiKeysService } = await import('#services/api-keys.service.ts');
+    const spy = spyOn(ApiKeysService.prototype, 'verify').mockResolvedValue(true);
+    restore = () => spy.mockRestore();
+    const { API_KEY_HEADER } = await import('#lib/auth/api-key.ts');
+    return API_KEY_HEADER;
+  }
+
   it('rejects a protected route without a valid api key', async () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(new Request('http://localhost/api/people'));
@@ -73,22 +89,22 @@ describe('api key auth', () => {
   });
 
   it('lets a protected route past auth with a valid api key', async () => {
+    const apiKeyHeader = await withAcceptedApiKey();
     const { createApp } = await import('#app.ts');
-    const { API_KEY_HEADER } = await import('#lib/auth/api-key.ts');
     const res = await createApp().handle(
       new Request('http://localhost/api/people', {
-        headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
+        headers: { [apiKeyHeader]: '00000000-0000-4000-8000-000000000000' },
       }),
     );
     expect(res.status).not.toBe(StatusMap.Unauthorized);
   });
 
   it('lets a knowledge page past auth with a valid api key', async () => {
+    const apiKeyHeader = await withAcceptedApiKey();
     const { createApp } = await import('#app.ts');
-    const { API_KEY_HEADER } = await import('#lib/auth/api-key.ts');
     const res = await createApp().handle(
       new Request('http://localhost/api/knowledge/pages/index', {
-        headers: { [API_KEY_HEADER]: '00000000-0000-4000-8000-000000000000' },
+        headers: { [apiKeyHeader]: '00000000-0000-4000-8000-000000000000' },
       }),
     );
     expect(res.status).not.toBe(StatusMap.Unauthorized);

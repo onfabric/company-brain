@@ -1,11 +1,13 @@
 import { Elysia } from 'elysia';
 import { sql } from '#db/client.ts';
 import { createLogger } from '#lib/logger.ts';
+import { ApiKeysRepository } from '#repositories/api-keys.repository.ts';
 import { HealthRepository } from '#repositories/health.repository.ts';
 import { KnowledgeRepository } from '#repositories/knowledge.repository.ts';
 import { KnowledgeTypesRepository } from '#repositories/knowledge-types.repository.ts';
 import { PeopleRepository } from '#repositories/people.repository.ts';
 import { RecordsRepository } from '#repositories/records.repository.ts';
+import { ApiKeysService } from '#services/api-keys.service.ts';
 import { HealthService } from '#services/health.service.ts';
 import { KnowledgeService } from '#services/knowledge.service.ts';
 import { KnowledgeMcpService } from '#services/knowledge-mcp.service.ts';
@@ -18,12 +20,14 @@ const recordsRepo = new RecordsRepository(sql);
 const peopleRepo = new PeopleRepository(sql);
 const knowledgeTypesRepo = new KnowledgeTypesRepository(sql);
 const knowledgeRepo = new KnowledgeRepository(sql);
+const apiKeysRepo = new ApiKeysRepository(sql);
 
 const healthService = new HealthService(healthRepo);
 const recordsService = new RecordsService(recordsRepo);
 const peopleService = new PeopleService(peopleRepo);
 const knowledgeTypesService = new KnowledgeTypesService(knowledgeTypesRepo);
 const knowledgeService = new KnowledgeService(knowledgeRepo);
+const apiKeysService = new ApiKeysService(apiKeysRepo);
 export const knowledgeMcpService = new KnowledgeMcpService({
   knowledge: knowledgeService,
   records: recordsService,
@@ -59,4 +63,9 @@ export const KnowledgeTypesServicePlugin = new Elysia({ name: 'service.knowledge
 export const KnowledgeServicePlugin = new Elysia({ name: 'service.knowledge' }).decorate(
   'knowledgeService',
   knowledgeService,
+);
+
+export const ApiKeysServicePlugin = new Elysia({ name: 'service.apiKeys' }).decorate(
+  'apiKeysService',
+  apiKeysService,
 );
