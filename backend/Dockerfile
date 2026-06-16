@@ -16,6 +16,9 @@ RUN bun install --frozen-lockfile
 
 FROM base AS build
 COPY --from=install /temp/deps ./
+COPY .agents/skills/build-knowledge-base .agents/skills/build-knowledge-base
+COPY .agents/skills/build-weekly-timeline .agents/skills/build-weekly-timeline
+COPY .agents/skills/research-knowledge-entity .agents/skills/research-knowledge-entity
 COPY backend-client backend-client
 COPY backend backend
 COPY dashboard dashboard

@@ -19,6 +19,7 @@ export class KnowledgeMcpService extends Service {
       issuer: env.issuer,
       scopes: OAUTH_SCOPES,
       authHandler: handleAuthRequest,
+      knowledgeWorkflowDocsRoot: env.knowledgeWorkflowDocsRoot,
     });
     this.handler = server.getHandler();
   }

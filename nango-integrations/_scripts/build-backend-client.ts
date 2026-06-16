@@ -17,6 +17,7 @@ const KEEP_EXTERNAL = [
   /^@elysiajs\//,
   /^mcp-use(\/|$)/,
   /^@mcp-use\//,
+  /^@ilbertt\//,
   /^langchain(\/|$)/,
   /^@langchain\//,
 ];

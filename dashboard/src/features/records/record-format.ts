@@ -25,9 +25,9 @@ export function recordPreview(record: Pick<RecordHit, 'body'>) {
     .replace(whitespacePattern, ' ');
 }
 
-export function recordDayLabel(record: Pick<RecordHit, 'created_at'>) {
+export function recordActivityDayLabel(record: Pick<RecordHit, 'updated_at'>) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'full' }).format(
-    new Date(dayKey(record.created_at)),
+    new Date(dayKey(record.updated_at)),
   );
 }
 

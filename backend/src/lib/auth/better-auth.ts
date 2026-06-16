@@ -1,11 +1,11 @@
 import { oauthProvider } from '@better-auth/oauth-provider';
+import { bunSqlAdapter } from '@ilbertt/better-auth-bun-sql';
 import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
 import { jwt } from 'better-auth/plugins';
 import { StatusMap } from 'elysia';
 import type { OpenAPIV3 } from 'openapi-types';
 import { sql } from '#db/client.ts';
-import { bunSqlAdapter } from '#lib/auth/adapter.ts';
 import { env } from '#lib/env.ts';
 import { createLogger } from '#lib/logger.ts';
 
@@ -43,9 +43,8 @@ export const auth = betterAuth({
       );
     },
   },
-  // better-auth runs on the same Bun.sql client as the rest of the brain, via a
-  // custom adapter that targets its own `auth` schema (migration 0011).
-  database: bunSqlAdapter(sql),
+  // Shares the brain's Bun.sql client, scoped to the `auth` schema (migration 0011).
+  database: bunSqlAdapter({ sql, schema: 'auth' }),
   trustedOrigins: [env.publicUrl.origin],
   socialProviders: {
     google: {

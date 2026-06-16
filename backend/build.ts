@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
-import { cp, rm } from 'node:fs/promises';
+import { cp, mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { KNOWLEDGE_WORKFLOW_NAMES } from './src/lib/knowledge-mcp/workflows.ts';
 
 const APP_DIR = import.meta.dir;
 const WORKSPACE_DIR = join(APP_DIR, '..');
@@ -10,6 +11,8 @@ const DASHBOARD_DIST_SRC = join(DASHBOARD_DIR, 'dist');
 const DASHBOARD_DIST_DST = join(DIST_DIR, 'public');
 const MIGRATIONS_SRC = join(APP_DIR, 'src/db/migrations');
 const MIGRATIONS_DST = join(DIST_DIR, 'migrations');
+const WORKFLOW_SKILLS_SRC = join(WORKSPACE_DIR, '.agents/skills');
+const WORKFLOW_DOCS_DST = join(DIST_DIR, 'knowledge-workflows');
 const SERVER_OUT = join(DIST_DIR, 'server');
 
 console.log('🧹 Cleaning dist...');
@@ -50,6 +53,14 @@ if (!buildResult.success) {
 
 console.log('📄 Copying migrations...');
 await cp(MIGRATIONS_SRC, MIGRATIONS_DST, { recursive: true });
+
+console.log('📄 Copying knowledge workflows...');
+await mkdir(WORKFLOW_DOCS_DST, { recursive: true });
+for (const workflowName of KNOWLEDGE_WORKFLOW_NAMES) {
+  await cp(join(WORKFLOW_SKILLS_SRC, workflowName), join(WORKFLOW_DOCS_DST, workflowName), {
+    recursive: true,
+  });
+}
 
 console.log('📄 Copying dashboard...');
 await cp(DASHBOARD_DIST_SRC, DASHBOARD_DIST_DST, { recursive: true });
