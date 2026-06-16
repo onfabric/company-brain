@@ -99,7 +99,7 @@ describe('ApiKeysService', () => {
 
   it('accepts a key whose hash exists', async () => {
     const service = new ApiKeysService(new MockApiKeysRepository({ exists: true }));
-    expect(await service.verify('cb_whatever')).toBe(true);
+    expect(await service.verify('00000000-0000-4000-8000-000000000000')).toBe(true);
   });
 
   it('fails closed when the repository throws', async () => {
@@ -109,6 +109,6 @@ describe('ApiKeysService', () => {
       }
     }
     const service = new ApiKeysService(new ThrowingRepo());
-    expect(await service.verify('cb_whatever')).toBe(false);
+    expect(await service.verify('00000000-0000-4000-8000-000000000000')).toBe(false);
   });
 });

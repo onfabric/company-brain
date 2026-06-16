@@ -27,7 +27,7 @@ const recordsService = new RecordsService(recordsRepo);
 const peopleService = new PeopleService(peopleRepo);
 const knowledgeTypesService = new KnowledgeTypesService(knowledgeTypesRepo);
 const knowledgeService = new KnowledgeService(knowledgeRepo);
-export const apiKeysService = new ApiKeysService(apiKeysRepo);
+const apiKeysService = new ApiKeysService(apiKeysRepo);
 export const knowledgeMcpService = new KnowledgeMcpService({
   knowledge: knowledgeService,
   records: recordsService,

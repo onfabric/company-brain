@@ -10,7 +10,7 @@ testEnv.BRAIN_PUBLIC_URL ??= 'http://localhost:18851';
 
 // /mcp is OAuth-only; any api-key value must be rejected, so a literal stand-in
 // is enough to prove the static-key path no longer authenticates there.
-const API_KEY = 'cb_not-accepted-on-mcp';
+const API_KEY = '00000000-0000-4000-8000-000000000000';
 
 const INITIALIZE_BODY = JSON.stringify({
   jsonrpc: '2.0',

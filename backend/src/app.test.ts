@@ -75,8 +75,8 @@ describe('api key auth', () => {
   });
 
   async function withAcceptedApiKey(): Promise<string> {
-    const { apiKeysService } = await import('#services/plugins.ts');
-    const spy = spyOn(apiKeysService, 'verify').mockResolvedValue(true);
+    const { ApiKeysService } = await import('#services/api-keys.service.ts');
+    const spy = spyOn(ApiKeysService.prototype, 'verify').mockResolvedValue(true);
     restore = () => spy.mockRestore();
     const { API_KEY_HEADER } = await import('#lib/auth/api-key.ts');
     return API_KEY_HEADER;
@@ -93,7 +93,7 @@ describe('api key auth', () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(
       new Request('http://localhost/api/people', {
-        headers: { [apiKeyHeader]: 'cb_accepted-by-stub' },
+        headers: { [apiKeyHeader]: '00000000-0000-4000-8000-000000000000' },
       }),
     );
     expect(res.status).not.toBe(StatusMap.Unauthorized);
@@ -104,7 +104,7 @@ describe('api key auth', () => {
     const { createApp } = await import('#app.ts');
     const res = await createApp().handle(
       new Request('http://localhost/api/knowledge/pages/index', {
-        headers: { [apiKeyHeader]: 'cb_accepted-by-stub' },
+        headers: { [apiKeyHeader]: '00000000-0000-4000-8000-000000000000' },
       }),
     );
     expect(res.status).not.toBe(StatusMap.Unauthorized);
