@@ -11,7 +11,7 @@ import { ApiKeysService } from '#services/api-keys.service.ts';
 const ROW: ApiKeyRow = {
   id: '019e8882-07f1-771c-993e-f6825a9224bb',
   name: 'ci',
-  key_prefix: 'cb_AbCdEfG',
+  key_prefix: '019e8882',
   created_at: new Date('2026-06-16T00:00:00.000Z'),
   updated_at: new Date('2026-06-16T00:00:00.000Z'),
 };
@@ -56,7 +56,7 @@ describe('ApiKeysService', () => {
 
     const created = await service.create('ci');
 
-    expect(created.key).toMatch(/^cb_/);
+    expect(created.key).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     expect(created.id).toBe(ROW.id);
     expect(created.created_at).toBe('2026-06-16T00:00:00.000Z');
     expect(repo.lastCreate?.name).toBe('ci');

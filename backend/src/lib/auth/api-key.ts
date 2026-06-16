@@ -3,11 +3,9 @@ import type { OpenAPIV3 } from 'openapi-types';
 export const API_KEY_HEADER = 'Api-Key';
 export const API_KEY_SECURITY_SCHEME = 'apiKey';
 
-const TOKEN_PREFIX = 'cb_';
-const TOKEN_RANDOM_BYTES = 24;
 // Leading characters kept on the row for display, so a key can be recognised in
 // listings without exposing the secret (the full key is shown only at creation).
-const DISPLAY_PREFIX_LENGTH = 11;
+const DISPLAY_PREFIX_LENGTH = 8;
 
 export const apiKeySecuritySchemes = {
   [API_KEY_SECURITY_SCHEME]: {
@@ -21,8 +19,7 @@ export const apiKeySecuritySchemes = {
 export type RequestHeaders = Headers | Record<string, string | undefined>;
 
 export function generateApiKey(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(TOKEN_RANDOM_BYTES));
-  return `${TOKEN_PREFIX}${Buffer.from(bytes).toString('base64url')}`;
+  return crypto.randomUUID();
 }
 
 export function hashApiKey(key: string): string {
