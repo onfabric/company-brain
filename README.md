@@ -13,6 +13,14 @@ curl -fsSL https://raw.githubusercontent.com/onfabric/company-brain/main/scripts
 company-brain setup
 ```
 
+AWS is the only supported cloud provider today. The CLI stores the selected
+deployment target separately from provider-specific config:
+
+```bash
+company-brain deployment target
+company-brain deployment target --provider aws
+```
+
 `setup` downloads the release assets, provisions AWS infrastructure, deploys
 the released containers, verifies DNS/HTTPS, then asks for the hosted Nango dev
 API key. If DNS or certificate setup needs a pause, run this after making the
@@ -164,6 +172,7 @@ The primary entrypoint is the installed CLI:
 ```bash
 company-brain --help
 company-brain version
+company-brain deployment target
 company-brain setup
 company-brain update
 company-brain add integrations
