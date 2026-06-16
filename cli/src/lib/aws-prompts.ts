@@ -139,6 +139,9 @@ export async function collectAwsConfig({
     validateAllowedEmailsInput,
   );
   const allowedDashboardAccountsEmails = normalizeAllowedEmails(allowedEmailsInput);
+  if (!allowedDashboardAccountsEmails) {
+    throw new Error('At least one allowed sign-in email is required.');
+  }
   const googleClientId = await promptText(
     'Brain Google OAuth client ID',
     'OAuth client ID from Google Cloud for Brain sign-in. Use the Brain redirect URI shown above.',

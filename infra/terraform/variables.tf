@@ -99,12 +99,13 @@ variable "google_client_secret" {
 }
 
 # Allowlist the brain matches (case-insensitively) against an email before
-# allowing sign-in. Defaults to the workspace so prod can never silently fall
-# open; the interactive CLI overrides it via TF_VAR when a value is configured.
+# allowing sign-in. Required with no default: every deploy must supply it
+# explicitly (CI via the BACKEND_ALLOWED_DASHBOARD_EMAILS repo Variable, the
+# CLI via its required setup prompt), so access is never granted to anyone
+# outside the list — a missing value fails the plan rather than falling open.
 variable "allowed_dashboard_accounts_emails" {
   type        = string
   description = "Comma-separated allowlist of emails (or *@domain) allowed to sign in to the brain. A bare '*' or empty value is rejected."
-  default     = "*@onfabric.io"
 
   validation {
     condition     = trimspace(var.allowed_dashboard_accounts_emails) != ""
