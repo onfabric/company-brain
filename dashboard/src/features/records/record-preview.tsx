@@ -28,7 +28,9 @@ export function RecordPreview({ record }: RecordPreviewProps) {
       <CardHeader className="gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{record.data_source_key}</Badge>
-          <span className="text-muted-foreground text-xs">{formatDateTime(record.created_at)}</span>
+          <span className="text-muted-foreground text-xs">
+            Updated {formatDateTime(record.updated_at)}
+          </span>
         </div>
         <CardTitle className="leading-snug">{recordTitle(record)}</CardTitle>
         <div className="flex flex-wrap gap-1">

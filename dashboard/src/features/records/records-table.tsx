@@ -14,7 +14,7 @@ import {
 import {
   formatDateTime,
   participantLabel,
-  recordDayLabel,
+  recordActivityDayLabel,
   recordPreview,
   recordTitle,
 } from '#/features/records/record-format.ts';
@@ -69,11 +69,11 @@ const columns: Array<ColumnDef<RecordHit>> = [
     ),
   },
   {
-    accessorKey: 'created_at',
-    header: 'Created',
+    accessorKey: 'updated_at',
+    header: 'Updated',
     cell: ({ row }) => (
       <span className="whitespace-nowrap text-muted-foreground">
-        {formatDateTime(row.original.created_at)}
+        {formatDateTime(row.original.updated_at)}
       </span>
     ),
   },
@@ -83,7 +83,7 @@ const columnClassNames: Record<string, string> = {
   data_source_key: 'w-36',
   record: 'w-[34rem]',
   participants: 'w-56',
-  created_at: 'w-44',
+  updated_at: 'w-44',
 };
 
 export function RecordsTable({ records, selectedRecordId, onSelectRecord }: RecordsTableProps) {
@@ -113,7 +113,7 @@ export function RecordsTable({ records, selectedRecordId, onSelectRecord }: Reco
       </TableHeader>
       <TableBody>
         {table.getRowModel().rows.map((row) => {
-          const currentDay = dayKey(row.original.created_at);
+          const currentDay = dayKey(row.original.updated_at);
           const showDay = currentDay !== previousDay;
           previousDay = currentDay;
 
@@ -122,7 +122,7 @@ export function RecordsTable({ records, selectedRecordId, onSelectRecord }: Reco
               {showDay ? (
                 <TableRow key={`${currentDay}-header`} className="hover:bg-transparent">
                   <TableCell colSpan={columns.length} className="bg-muted/50 font-medium text-xs">
-                    {recordDayLabel(row.original)}
+                    {recordActivityDayLabel(row.original)}
                   </TableCell>
                 </TableRow>
               ) : null}

@@ -4,7 +4,7 @@ import { RECORD_SORT_FIELDS, RECORD_SORT_ORDERS } from '#repositories/records.re
 
 const RecordSortFieldSchema = literalUnion(RECORD_SORT_FIELDS, {
   description:
-    'Field used to order records. Defaults to relevance when q is present, otherwise created_at.',
+    'Field used to order records. Defaults to relevance when q is present, otherwise updated_at.',
 });
 
 const RecordSortOrderSchema = literalUnion(RECORD_SORT_ORDERS, {
