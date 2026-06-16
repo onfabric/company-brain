@@ -19,7 +19,7 @@ export type SourceRow = Pick<Records, 'data_source_id'> & {
 
 export const RECORD_SORT_FIELDS = ['created_at', 'updated_at', 'relevance'] as const;
 export const RECORD_SORT_ORDERS = ['asc', 'desc'] as const;
-export const DEFAULT_RECORD_SORT_FIELD: RecordSortField = 'created_at';
+export const DEFAULT_RECORD_SORT_FIELD: RecordSortField = 'updated_at';
 export const DEFAULT_SEARCH_SORT_FIELD: RecordSortField = 'relevance';
 export const DEFAULT_RECORD_SORT_ORDER: RecordSortOrder = 'desc';
 
