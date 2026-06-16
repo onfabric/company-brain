@@ -43,8 +43,7 @@ export const auth = betterAuth({
       );
     },
   },
-  // better-auth runs on the same Bun.sql client as the rest of the brain, via
-  // the bun:sql adapter pointed at its own `auth` schema (migration 0011).
+  // Shares the brain's Bun.sql client, scoped to the `auth` schema (migration 0011).
   database: bunSqlAdapter({ sql, schema: 'auth' }),
   trustedOrigins: [env.publicUrl.origin],
   socialProviders: {
