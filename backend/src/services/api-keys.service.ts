@@ -10,6 +10,7 @@ export type ApiKey = {
   key_prefix: string;
   created_at: string;
   updated_at: string;
+  created_by: ApiKeys['created_by'];
 };
 
 export type CreatedApiKey = ApiKey & { key: string };
@@ -21,6 +22,7 @@ function toApiKey(row: ApiKeyRow): ApiKey {
     key_prefix: row.key_prefix,
     created_at: row.created_at.toISOString(),
     updated_at: row.updated_at.toISOString(),
+    created_by: row.created_by,
   };
 }
 

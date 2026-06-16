@@ -17,6 +17,7 @@ const ROW: ApiKeyRow = {
   key_prefix: '019e8882',
   created_at: new Date('2026-06-16T00:00:00.000Z'),
   updated_at: new Date('2026-06-16T00:00:00.000Z'),
+  created_by: USER_ID,
 };
 
 class MockApiKeysRepository extends ApiKeysRepositoryContract {
@@ -81,6 +82,7 @@ describe('ApiKeysService', () => {
         key_prefix: ROW.key_prefix,
         created_at: '2026-06-16T00:00:00.000Z',
         updated_at: '2026-06-16T00:00:00.000Z',
+        created_by: USER_ID,
       },
     ]);
   });

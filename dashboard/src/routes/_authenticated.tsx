@@ -1,8 +1,16 @@
 import { createFileRoute, Link, type LinkProps, Outlet, redirect } from '@tanstack/react-router';
-import { BookOpen, FileText, LogOut, Users } from 'lucide-react';
+import { BookOpen, ChevronDown, FileText, LogOut, Settings, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '#/components/ui/button.tsx';
-import { signInUrl } from '#/lib/auth.ts';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '#/components/ui/dropdown-menu.tsx';
+import { type AuthContext, signInUrl } from '#/lib/auth.ts';
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async ({ context }) => {
@@ -27,15 +35,47 @@ function AppShell() {
             <NavTab to="/people" icon={<Users />} label="People" />
             <NavTab to="/knowledge" icon={<BookOpen />} label="Knowledge" />
           </nav>
-          <Button type="button" variant="outline" onClick={() => void auth.signOut()}>
-            <LogOut />
-            Log out
-          </Button>
+          <UserMenu auth={auth} />
         </div>
       </header>
 
       <Outlet />
     </main>
+  );
+}
+
+function UserMenu({ auth }: { auth: AuthContext }) {
+  const user = auth.session?.user;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="outline">
+          <span className="max-w-[12rem] truncate">{user?.name || user?.email || 'Account'}</span>
+          <ChevronDown />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        {user?.email ? (
+          <>
+            <DropdownMenuLabel className="truncate text-muted-foreground">
+              {user.email}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
+        <DropdownMenuItem asChild>
+          <Link to="/settings">
+            <Settings />
+            Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void auth.signOut()}>
+          <LogOut />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

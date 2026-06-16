@@ -11,6 +11,7 @@ export const ApiKeySchema = t.Object({
     description: 'Derived from the uuidv7 id; the moment the key was created.',
   }),
   updated_at: t.String({ format: 'date-time', description: 'Last time the key was modified.' }),
+  created_by: t.String({ description: 'Id of the user who created the key.' }),
 });
 
 export const CreatedApiKeySchema = t.Composite([
