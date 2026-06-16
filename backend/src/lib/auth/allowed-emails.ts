@@ -1,16 +1,17 @@
-// The dashboard sign-in allowlist, parsed once from a comma-separated list of
-// entries. Each entry is either a literal email (`alice@example.com`) or a
-// whole-workspace wildcard (`*@example.com`). Matching is case-insensitive.
-// A null allowlist means "unset" — every account is allowed.
+// The dashboard sign-in allowlist. Each entry is a literal email
+// (`alice@example.com`) or a domain wildcard (`*@example.com`). An empty value,
+// a bare `*`, a `*@*`, or any other shape is rejected — the allowlist can never
+// silently fall open to every account. Matching is case-insensitive.
 export type AllowedEmails = {
   exact: ReadonlySet<string>;
   wildcardDomains: ReadonlySet<string>;
 };
 
-export function parseAllowedEmails(input: string | undefined): AllowedEmails | null {
-  if (!input) {
-    return null;
-  }
+// A literal `local@domain.tld` or a domain wildcard `*@domain.tld`. A bare `*`,
+// `*@*`, or a dotless domain does not match, so a catch-all can't be expressed.
+const ENTRY_PATTERN = /^(\*|[^@\s]+)@[^@\s]+\.[^@\s]+$/;
+
+export function parseAllowedEmails(input: string): AllowedEmails {
   const exact = new Set<string>();
   const wildcardDomains = new Set<string>();
   for (const raw of input.split(',')) {
@@ -18,23 +19,27 @@ export function parseAllowedEmails(input: string | undefined): AllowedEmails | n
     if (!entry) {
       continue;
     }
+    if (!ENTRY_PATTERN.test(entry)) {
+      throw new Error(
+        `Invalid ALLOWED_DASHBOARD_ACCOUNTS_EMAILS entry "${entry}": use email@domain or *@domain (a bare "*" is not allowed).`,
+      );
+    }
     const at = entry.lastIndexOf('@');
-    if (at > 0 && entry.slice(0, at) === '*') {
+    if (entry.slice(0, at) === '*') {
       wildcardDomains.add(entry.slice(at + 1));
     } else {
       exact.add(entry);
     }
   }
   if (exact.size === 0 && wildcardDomains.size === 0) {
-    return null;
+    throw new Error(
+      'ALLOWED_DASHBOARD_ACCOUNTS_EMAILS must list at least one allowed email or *@domain.',
+    );
   }
   return { exact, wildcardDomains };
 }
 
-export function isEmailAllowed(allowed: AllowedEmails | null, email: string): boolean {
-  if (allowed === null) {
-    return true;
-  }
+export function isEmailAllowed(allowed: AllowedEmails, email: string): boolean {
   const normalized = email.toLowerCase();
   if (allowed.exact.has(normalized)) {
     return true;

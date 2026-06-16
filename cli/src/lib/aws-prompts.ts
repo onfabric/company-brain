@@ -130,17 +130,15 @@ export async function collectAwsConfig({
   const dns = await promptDns(existing, force, nonInteractive);
 
   note('Configure who can sign in to the Brain web app.', 'Brain sign-in');
-  const allowedEmailsInput = await promptOptionalText(
+  const allowedEmailsInput = await promptText(
     'Emails allowed to sign in (comma-separated, *@domain for a whole workspace)',
-    `${ALLOWED_EMAILS_PLACEHOLDER} — empty keeps the deployment default (*@onfabric.io).`,
-    '',
+    `${ALLOWED_EMAILS_PLACEHOLDER} — required; a bare "*" is not allowed.`,
+    existing?.allowedDashboardAccountsEmails ?? '',
     force,
     nonInteractive,
     validateAllowedEmailsInput,
   );
-  const allowedDashboardAccountsEmails = allowedEmailsInput
-    ? normalizeAllowedEmails(allowedEmailsInput)
-    : existing?.allowedDashboardAccountsEmails;
+  const allowedDashboardAccountsEmails = normalizeAllowedEmails(allowedEmailsInput);
   const googleClientId = await promptText(
     'Brain Google OAuth client ID',
     'OAuth client ID from Google Cloud for Brain sign-in. Use the Brain redirect URI shown above.',
@@ -370,6 +368,7 @@ async function promptText(
   defaultValue: string,
   _force: boolean | undefined,
   nonInteractive: boolean | undefined,
+  validate?: (value: string | undefined) => string | undefined,
 ): Promise<string> {
   if (nonInteractive) {
     if (defaultValue) {
@@ -382,7 +381,7 @@ async function promptText(
     message: promptMessage(message, description),
     defaultValue,
     placeholder: defaultValue,
-    validate: (value) => validateRequired(value, defaultValue),
+    validate: validate ?? ((value) => validateRequired(value, defaultValue)),
   });
 
   if (isCancel(answer)) {
@@ -395,32 +394,6 @@ async function promptText(
   }
 
   return value;
-}
-
-async function promptOptionalText(
-  message: string,
-  description: string,
-  defaultValue: string,
-  _force: boolean | undefined,
-  nonInteractive: boolean | undefined,
-  validate?: (value: string | undefined) => string | undefined,
-): Promise<string> {
-  if (nonInteractive) {
-    return defaultValue.trim();
-  }
-
-  const answer = await text({
-    message: promptMessage(message, description),
-    defaultValue,
-    placeholder: defaultValue,
-    validate,
-  });
-
-  if (isCancel(answer)) {
-    throw new Error('Setup cancelled.');
-  }
-
-  return (answer || defaultValue).trim();
 }
 
 async function promptHostname(

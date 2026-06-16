@@ -9,12 +9,12 @@ export function normalizeAllowedEmails(input: string): string | undefined {
 
 export function validateAllowedEmailsInput(value: string | undefined): string | undefined {
   if (!value || value.trim().length === 0) {
-    return undefined;
+    return 'Enter at least one email or *@domain — sign-in cannot be left open to everyone.';
   }
 
   for (const entry of splitEntries(value)) {
     if (!isValidEntry(entry)) {
-      return `Invalid entry "${entry}". Use email@domain or *@domain, comma-separated.`;
+      return `Invalid entry "${entry}". Use email@domain or *@domain, comma-separated (a bare "*" is not allowed).`;
     }
   }
 

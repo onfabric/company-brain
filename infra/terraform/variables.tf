@@ -103,6 +103,19 @@ variable "google_client_secret" {
 # open; the interactive CLI overrides it via TF_VAR when a value is configured.
 variable "allowed_dashboard_accounts_emails" {
   type        = string
-  description = "Comma-separated allowlist of emails (or *@domain) allowed to sign in to the brain."
+  description = "Comma-separated allowlist of emails (or *@domain) allowed to sign in to the brain. A bare '*' or empty value is rejected."
   default     = "*@onfabric.io"
+
+  validation {
+    condition     = trimspace(var.allowed_dashboard_accounts_emails) != ""
+    error_message = "allowed_dashboard_accounts_emails must not be empty — sign-in cannot be left open to everyone."
+  }
+
+  validation {
+    condition = !anytrue([
+      for entry in split(",", var.allowed_dashboard_accounts_emails) :
+      contains(["*", "*@*"], trimspace(entry))
+    ])
+    error_message = "A generic '*' wildcard is not allowed; scope it to a domain like *@onfabric.io or list explicit emails."
+  }
 }

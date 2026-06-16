@@ -21,9 +21,9 @@ describe('normalizeAllowedEmails', () => {
 });
 
 describe('validateAllowedEmailsInput', () => {
-  it('accepts empty input (allow any)', () => {
-    expect(validateAllowedEmailsInput('')).toBeUndefined();
-    expect(validateAllowedEmailsInput(undefined)).toBeUndefined();
+  it('rejects empty input — sign-in must not be left open', () => {
+    expect(validateAllowedEmailsInput('')).toBeString();
+    expect(validateAllowedEmailsInput(undefined)).toBeString();
   });
 
   it('accepts emails and wildcard domains', () => {
@@ -33,5 +33,6 @@ describe('validateAllowedEmailsInput', () => {
   it('rejects entries that are not an email or wildcard domain', () => {
     expect(validateAllowedEmailsInput('not-an-email')).toContain('not-an-email');
     expect(validateAllowedEmailsInput('alice@localhost')).toContain('alice@localhost');
+    expect(validateAllowedEmailsInput('*')).toContain('*');
   });
 });

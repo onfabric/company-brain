@@ -36,7 +36,7 @@ type Env = {
   betterAuthSecret: string;
   googleClientId: string;
   googleClientSecret: string;
-  allowedDashboardAccountsEmails: AllowedEmails | null;
+  allowedDashboardAccountsEmails: AllowedEmails;
   knowledgeWorkflowDocsRoot: string | undefined;
 };
 
@@ -65,7 +65,7 @@ function loadEnv(): Env {
     googleClientId: required('GOOGLE_CLIENT_ID'),
     googleClientSecret: required('GOOGLE_CLIENT_SECRET'),
     allowedDashboardAccountsEmails: parseAllowedEmails(
-      process.env.ALLOWED_DASHBOARD_ACCOUNTS_EMAILS,
+      required('ALLOWED_DASHBOARD_ACCOUNTS_EMAILS'),
     ),
     knowledgeWorkflowDocsRoot: process.env.KNOWLEDGE_WORKFLOW_DOCS_ROOT,
   };
