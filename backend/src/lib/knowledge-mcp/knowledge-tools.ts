@@ -172,7 +172,7 @@ export function registerKnowledgeTools(
     {
       name: 'create_knowledge',
       description:
-        'Create a distilled knowledge item. Body is sanitized HTML. Use exact names from ' +
+        'Create a distilled knowledge item only after following the relevant get_knowledge_workflow instructions and receiving explicit draft approval. Body is sanitized HTML. Use exact names from ' +
         'get_knowledge_types and get_people, plus record ids from get_records, for references.',
       schema: CreateKnowledgeSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
@@ -193,7 +193,7 @@ export function registerKnowledgeTools(
     {
       name: 'update_knowledge',
       description:
-        'Update a distilled knowledge item. Only included fields are changed. people and ' +
+        'Update a distilled knowledge item only after following the relevant get_knowledge_workflow instructions and receiving explicit draft approval. Only included fields are changed. people and ' +
         'record_ids replace their full sets when present.',
       schema: UpdateKnowledgeSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },

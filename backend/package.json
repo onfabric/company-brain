@@ -9,7 +9,7 @@
     "./types": "./src/types.ts"
   },
   "scripts": {
-    "start": "NODE_ENV=production bun run src/index.ts",
+    "start": "KNOWLEDGE_WORKFLOW_DOCS_ROOT=../.agents/skills NODE_ENV=production bun run src/index.ts",
     "build": "bun run build.ts",
     "check:types": "bun run --bun tsc",
     "test": "NODE_ENV=production bun test"
