@@ -20,6 +20,9 @@ export type ListKnowledgeTypesResponse = ResponseData<
   ReturnType<(typeof brain.api)['knowledge-types']['get']>
 >;
 export type KnowledgeType = ListKnowledgeTypesResponse['knowledge_types'][number];
+export type ListApiKeysResponse = ResponseData<ReturnType<(typeof brain.api)['api-keys']['get']>>;
+export type ApiKey = ListApiKeysResponse['api_keys'][number];
+export type CreatedApiKey = ResponseData<ReturnType<(typeof brain.api)['api-keys']['post']>>;
 
 export type PeopleSortField = NonNullable<PeopleQuery['sort_by']>;
 export type PeopleSortOrder = NonNullable<PeopleQuery['sort_order']>;
@@ -115,6 +118,22 @@ export async function getPerson(id: string): Promise<Person> {
 
 export async function updatePerson(id: string, input: UpdatePersonInput): Promise<Person> {
   return unwrap(await brain.api.people({ id }).patch(input));
+}
+
+export async function listApiKeys(): Promise<ListApiKeysResponse> {
+  return unwrap(await brain.api['api-keys'].get());
+}
+
+export async function createApiKey(name: string): Promise<CreatedApiKey> {
+  return unwrap(await brain.api['api-keys'].post({ name }));
+}
+
+export async function updateApiKey(id: string, name: string): Promise<ApiKey> {
+  return unwrap(await brain.api['api-keys']({ id }).patch({ name }));
+}
+
+export async function deleteApiKey(id: string): Promise<string> {
+  return unwrap(await brain.api['api-keys']({ id }).delete()).id;
 }
 
 function cleanString(value: string | undefined) {

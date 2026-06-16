@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
 import { useState } from 'react';
+import { TooltipProvider } from '#/components/ui/tooltip.tsx';
 import type { AuthContext } from '#/lib/auth.ts';
 
 export type RouterContext = {
@@ -16,7 +17,9 @@ function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <TooltipProvider>
+        <Outlet />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

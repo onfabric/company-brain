@@ -1,7 +1,10 @@
 import type { ApiKeys } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
 
-export type ApiKeyRow = Pick<ApiKeys, 'id' | 'name' | 'key_prefix' | 'created_at' | 'updated_at'>;
+export type ApiKeyRow = Pick<
+  ApiKeys,
+  'id' | 'name' | 'key_prefix' | 'created_at' | 'updated_at' | 'created_by'
+>;
 
 export type CreateApiKeyInput = {
   name: ApiKeys['name'];
@@ -24,7 +27,7 @@ export class ApiKeysRepository extends Repository implements ApiKeysRepositoryCo
     const [row] = await this.sql<ApiKeyRow[]>`
       INSERT INTO brain.api_keys (name, key_hash, key_prefix, created_by)
       VALUES (${name}, ${keyHash}, ${keyPrefix}, ${createdBy})
-      RETURNING id, name, key_prefix, created_at, updated_at
+      RETURNING id, name, key_prefix, created_at, updated_at, created_by
     `;
     if (!row) {
       throw new Error('Failed to insert API key');
@@ -34,7 +37,7 @@ export class ApiKeysRepository extends Repository implements ApiKeysRepositoryCo
 
   list(): Promise<ApiKeyRow[]> {
     return this.sql<ApiKeyRow[]>`
-      SELECT id, name, key_prefix, created_at, updated_at
+      SELECT id, name, key_prefix, created_at, updated_at, created_by
       FROM brain.api_keys ORDER BY id DESC
     `;
   }
@@ -58,7 +61,7 @@ export class ApiKeysRepository extends Repository implements ApiKeysRepositoryCo
   async update(id: ApiKeys['id'], name: ApiKeys['name']): Promise<ApiKeyRow | null> {
     const [row] = await this.sql<ApiKeyRow[]>`
       UPDATE brain.api_keys SET name = ${name} WHERE id = ${id}
-      RETURNING id, name, key_prefix, created_at, updated_at
+      RETURNING id, name, key_prefix, created_at, updated_at, created_by
     `;
     return row ?? null;
   }
