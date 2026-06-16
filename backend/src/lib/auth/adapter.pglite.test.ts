@@ -1,15 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
+import { bunSqlAdapter } from '@ilbertt/better-auth-bun-sql';
 import type { SQL } from 'bun';
-import { bunSqlAdapter } from '#lib/auth/adapter.ts';
+
+const AUTH_SCHEMA = 'auth';
 
 const migrationsDir = join(import.meta.dir, '..', '..', 'db', 'migrations');
 const readMigration = (file: string): Promise<string> => Bun.file(join(migrationsDir, file)).text();
 
-// PGlite resolves a query to `{ rows, affectedRows }`; the Bun.sql adapter expects
+// PGlite resolves a query to `{ rows, affectedRows }`; the bun:sql adapter expects
 // the rows array to carry `count` (affected rows). This shim bridges the two so
-// the real adapter runs unmodified against in-memory Postgres.
+// the package runs unmodified against in-memory Postgres.
 function pgliteShim(db: PGlite): SQL {
   const unsafe = async (text: string, params: unknown[]) => {
     const result = await db.query(text, params);
@@ -82,14 +84,16 @@ const SETUP_TIMEOUT_MS = 30_000;
 beforeAll(async () => {
   db = new PGlite();
   await migrate(db);
-  adapter = bunSqlAdapter(pgliteShim(db))({} as Parameters<ReturnType<typeof bunSqlAdapter>>[0]);
+  adapter = bunSqlAdapter({ sql: pgliteShim(db), schema: AUTH_SCHEMA })(
+    {} as Parameters<ReturnType<typeof bunSqlAdapter>>[0],
+  );
 }, SETUP_TIMEOUT_MS);
 
 afterAll(async () => {
   await db.close();
 });
 
-// The base-model CRUD surface the Bun.sql adapter implements, exercised against
+// The base-model CRUD surface the bun:sql adapter implements, exercised against
 // the real auth.* schema in in-memory Postgres so the rendered SQL, type
 // coercions and affected-row counts are checked end to end.
 describe('bun-sql adapter against pglite', () => {

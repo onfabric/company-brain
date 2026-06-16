@@ -15,6 +15,7 @@
       "dependencies": {
         "@better-auth/oauth-provider": "^1.6.18",
         "@elysiajs/openapi": "^1.4.15",
+        "@ilbertt/better-auth-bun-sql": "^0.1.0",
         "@modelcontextprotocol/sdk": "^1.29.0",
         "better-auth": "^1.6.18",
         "elysia": "^1.4.28",
@@ -44,7 +45,7 @@
     },
     "cli": {
       "name": "@company-brain/cli",
-      "version": "0.0.0",
+      "version": "0.1.1",
       "bin": {
         "company-brain": "./src/main.ts",
       },
@@ -349,6 +350,8 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
 
     "@hono/node-server": ["@hono/node-server@1.19.14", "", { "peerDependencies": { "hono": "^4" } }, "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw=="],
+
+    "@ilbertt/better-auth-bun-sql": ["@ilbertt/better-auth-bun-sql@0.1.0", "", { "peerDependencies": { "better-auth": ">=1.6.0" } }, "sha512-M84guRKvqLAl2RSZ+j2veDs5WmFuIxdqWuPgtEbRhkU4ex1AyeacDYu+8KE0dG1S8sed3RaWRhvVPo+dDjog8Q=="],
 
     "@inquirer/ansi": ["@inquirer/ansi@2.0.7", "", {}, "sha512-3eTuUO1vH2cZm2ZKHeQxnOqlTi9EfZDGgIe3BL3I4u+rJHocr9Fz86M4fjYABPvFnQG/gGK551HqDiIcETwU6Q=="],
 
