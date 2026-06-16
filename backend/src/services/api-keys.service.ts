@@ -1,5 +1,6 @@
+import type { ApiKeys } from '#db/tables.ts';
 import { apiKeyDisplayPrefix, generateApiKey, hashApiKey } from '#lib/auth/api-key.ts';
-import { NotFoundError } from '#lib/errors.ts';
+import { ForbiddenError, NotFoundError } from '#lib/errors.ts';
 import type { ApiKeyRow, ApiKeysRepositoryContract } from '#repositories/api-keys.repository.ts';
 import { Service } from '#services/service.ts';
 
@@ -31,14 +32,15 @@ export class ApiKeysService extends Service {
     this.apiKeysRepo = apiKeysRepo;
   }
 
-  async create(name: string): Promise<CreatedApiKey> {
+  async create(name: string, createdBy: ApiKeys['created_by']): Promise<CreatedApiKey> {
     const key = generateApiKey();
     const created = await this.apiKeysRepo.create({
       name,
       keyHash: hashApiKey(key),
       keyPrefix: apiKeyDisplayPrefix(key),
+      createdBy,
     });
-    this.logger.info(`created api key ${created.id}`);
+    this.logger.info(`created api key ${created.id} by ${createdBy}`);
     return { ...toApiKey(created), key };
   }
 
@@ -47,7 +49,14 @@ export class ApiKeysService extends Service {
     return rows.map(toApiKey);
   }
 
-  async update(id: string, name: string): Promise<ApiKey> {
+  async update(id: string, name: string, userId: ApiKeys['created_by']): Promise<ApiKey> {
+    const createdBy = await this.apiKeysRepo.findCreatedBy(id);
+    if (createdBy === null) {
+      throw new NotFoundError(`API key not found: ${id}`);
+    }
+    if (createdBy !== userId) {
+      throw new ForbiddenError('You can only modify API keys you created.');
+    }
     const updated = await this.apiKeysRepo.update(id, name);
     if (!updated) {
       throw new NotFoundError(`API key not found: ${id}`);

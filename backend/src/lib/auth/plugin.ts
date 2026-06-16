@@ -5,7 +5,7 @@ import {
   getHeader,
   type RequestHeaders,
 } from '#lib/auth/api-key.ts';
-import { hasValidSession, SESSION_SECURITY_SCHEME } from '#lib/auth/better-auth.ts';
+import { type AuthUser, SESSION_SECURITY_SCHEME, sessionUser } from '#lib/auth/better-auth.ts';
 import type { ApiKeysService } from '#services/api-keys.service.ts';
 import { ApiKeysServicePlugin } from '#services/plugins.ts';
 
@@ -22,10 +22,22 @@ type VerifierContext = {
   apiKeysService: ApiKeysService;
 };
 
-const VERIFY: Record<AuthMethod, (ctx: VerifierContext) => boolean | Promise<boolean>> = {
-  [AuthMethod.ApiKey]: ({ headers, apiKeysService }) =>
-    apiKeysService.verify(getHeader(headers, API_KEY_HEADER)),
-  [AuthMethod.Session]: ({ request }) => hasValidSession(request.headers),
+// The principal a successful method resolves into the handler context,
+// discriminated by which method authenticated: Session carries the better-auth
+// user, ApiKey carries no user. A failing method resolves to null.
+export type AuthSession =
+  | { authType: AuthMethod.Session; user: AuthUser }
+  | { authType: AuthMethod.ApiKey };
+
+const VERIFY: Record<AuthMethod, (ctx: VerifierContext) => Promise<AuthSession | null>> = {
+  [AuthMethod.ApiKey]: async ({ headers, apiKeysService }) => {
+    const isValidApiKey = await apiKeysService.verify(getHeader(headers, API_KEY_HEADER));
+    return isValidApiKey ? { authType: AuthMethod.ApiKey } : null;
+  },
+  [AuthMethod.Session]: async ({ request }) => {
+    const user = await sessionUser(request.headers);
+    return user ? { authType: AuthMethod.Session, user } : null;
+  },
 };
 
 const SECURITY_SCHEME: Record<AuthMethod, string> = {
@@ -33,30 +45,36 @@ const SECURITY_SCHEME: Record<AuthMethod, string> = {
   [AuthMethod.Session]: SESSION_SECURITY_SCHEME,
 };
 
-// One auth plugin exposing a single `requireAuth` macro: an endpoint lists the
-// methods it accepts and passes if any one verifies (OR). Each method is a
-// self-contained strategy (verifier + OpenAPI scheme); adding one is a single
-// entry in the maps above.
+// One `requireAuth` macro: an endpoint lists the methods it accepts and passes if
+// any one verifies (OR). It `resolve`s the authenticated `session` into context as
+// a non-nullable union — a request that satisfies no method is rejected with 401
+// before any handler runs. Endpoints (or the services they call) narrow on
+// `session.authType` to enforce method-specific rules, e.g. "only a user".
 export const authPlugin = new Elysia({ name: 'auth' }).use(ApiKeysServicePlugin).macro({
   [REQUIRE_AUTH]: (methods: AuthMethod[]) => ({
     detail: { security: methods.map((method) => ({ [SECURITY_SCHEME[method]]: [] })) },
     response: {
       [StatusMap.Unauthorized]: t.Object({ error: t.String() }),
     },
-    async beforeHandle({ headers, request, status, apiKeysService }) {
-      if (!(await isAuthorized(methods, { headers, request, apiKeysService }))) {
+    async resolve({ headers, request, status, apiKeysService }) {
+      const session = await authenticate(methods, { headers, request, apiKeysService });
+      if (!session) {
         return status(StatusMap.Unauthorized, { error: 'Unauthorized' });
       }
+      return { session };
     },
   }),
 });
 
-async function isAuthorized(methods: AuthMethod[], ctx: VerifierContext): Promise<boolean> {
+async function authenticate(
+  methods: AuthMethod[],
+  ctx: VerifierContext,
+): Promise<AuthSession | null> {
   for (const method of methods) {
-    const verify = VERIFY[method];
-    if (await verify(ctx)) {
-      return true;
+    const session = await VERIFY[method](ctx);
+    if (session) {
+      return session;
     }
   }
-  return false;
+  return null;
 }

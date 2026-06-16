@@ -1,6 +1,8 @@
 // Row types for the `brain` schema tables — one exported type per table.
 // Add a type here whenever a migration adds a table; see AGENTS.md.
 
+import type { AuthUserId } from '#lib/auth/better-auth.ts';
+
 export type DataSources = {
   id: string;
   nango_integration_id: string;
@@ -79,4 +81,5 @@ export type ApiKeys = {
   name: string;
   key_hash: string;
   key_prefix: string;
+  created_by: AuthUserId;
 };

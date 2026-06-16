@@ -120,6 +120,9 @@ function resourceParam(contentType: string | null, body: string): string {
   return resource ? ` (resource=${resource})` : '';
 }
 
+export type AuthUser = (typeof auth)['$Infer']['Session']['user'];
+export type AuthUserId = AuthUser['id'];
+
 export const SESSION_SECURITY_SCHEME = 'betterAuthSession';
 
 export const sessionSecuritySchemes = {
@@ -131,10 +134,11 @@ export const sessionSecuritySchemes = {
   },
 } satisfies Record<string, OpenAPIV3.SecuritySchemeObject>;
 
-export async function hasValidSession(headers: Headers): Promise<boolean> {
+export async function sessionUser(headers: Headers): Promise<AuthUser | null> {
   try {
-    return (await auth.api.getSession({ headers })) !== null;
+    const session = await auth.api.getSession({ headers });
+    return session?.user ?? null;
   } catch {
-    return false;
+    return null;
   }
 }

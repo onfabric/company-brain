@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'bun:test';
+import type { ApiKeys } from '#db/tables.ts';
 import { apiKeyDisplayPrefix, hashApiKey } from '#lib/auth/api-key.ts';
-import { NotFoundError } from '#lib/errors.ts';
+import { ForbiddenError, NotFoundError } from '#lib/errors.ts';
 import {
   type ApiKeyRow,
   ApiKeysRepositoryContract,
   type CreateApiKeyInput,
 } from '#repositories/api-keys.repository.ts';
 import { ApiKeysService } from '#services/api-keys.service.ts';
+
+const USER_ID = 'user_019e8882';
 
 const ROW: ApiKeyRow = {
   id: '019e8882-07f1-771c-993e-f6825a9224bb',
@@ -24,6 +27,7 @@ class MockApiKeysRepository extends ApiKeysRepositoryContract {
       created?: ApiKeyRow;
       keys?: ApiKeyRow[];
       exists?: boolean;
+      createdBy?: ApiKeys['created_by'] | null;
       updated?: ApiKeyRow | null;
       removed?: ApiKeyRow['id'] | null;
     } = {},
@@ -41,6 +45,9 @@ class MockApiKeysRepository extends ApiKeysRepositoryContract {
   existsByHash(): Promise<boolean> {
     return Promise.resolve(this.behavior.exists ?? false);
   }
+  findCreatedBy(): Promise<ApiKeys['created_by'] | null> {
+    return Promise.resolve(this.behavior.createdBy ?? null);
+  }
   update(): Promise<ApiKeyRow | null> {
     return Promise.resolve(this.behavior.updated ?? null);
   }
@@ -54,7 +61,7 @@ describe('ApiKeysService', () => {
     const repo = new MockApiKeysRepository({ created: ROW });
     const service = new ApiKeysService(repo);
 
-    const created = await service.create('ci');
+    const created = await service.create('ci', USER_ID);
 
     expect(created.key).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     expect(created.id).toBe(ROW.id);
@@ -62,6 +69,7 @@ describe('ApiKeysService', () => {
     expect(repo.lastCreate?.name).toBe('ci');
     expect(repo.lastCreate?.keyHash).toBe(hashApiKey(created.key));
     expect(repo.lastCreate?.keyPrefix).toBe(apiKeyDisplayPrefix(created.key));
+    expect(repo.lastCreate?.createdBy).toBe(USER_ID);
   });
 
   it('serializes timestamps to ISO strings on list', async () => {
@@ -78,8 +86,24 @@ describe('ApiKeysService', () => {
   });
 
   it('reports a missing key on update', async () => {
-    const service = new ApiKeysService(new MockApiKeysRepository({ updated: null }));
-    await expect(service.update(ROW.id, 'renamed')).rejects.toBeInstanceOf(NotFoundError);
+    const service = new ApiKeysService(new MockApiKeysRepository({ createdBy: null }));
+    await expect(service.update(ROW.id, 'renamed', USER_ID)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('renames a key owned by the caller', async () => {
+    const service = new ApiKeysService(
+      new MockApiKeysRepository({ createdBy: USER_ID, updated: ROW }),
+    );
+    expect(await service.update(ROW.id, 'renamed', USER_ID)).toMatchObject({ id: ROW.id });
+  });
+
+  it('forbids renaming a key created by another user', async () => {
+    const service = new ApiKeysService(
+      new MockApiKeysRepository({ createdBy: USER_ID, updated: ROW }),
+    );
+    await expect(service.update(ROW.id, 'renamed', 'someone-else')).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
   });
 
   it('reports a missing key on delete', async () => {
