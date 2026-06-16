@@ -141,4 +141,20 @@ describe('api key auth', () => {
     );
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
+
+  it('rejects creating an api key with only an api key (a user session is required)', async () => {
+    const apiKeyHeader = await withAcceptedApiKey();
+    const { createApp } = await import('#app.ts');
+    const res = await createApp().handle(
+      new Request('http://localhost/api/api-keys', {
+        method: 'POST',
+        headers: {
+          [apiKeyHeader]: '00000000-0000-4000-8000-000000000000',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ name: 'ci' }),
+      }),
+    );
+    expect(res.status).toBe(StatusMap.Unauthorized);
+  });
 });

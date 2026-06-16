@@ -6,6 +6,7 @@ import {
   DeleteApiKeyResponseSchema,
   UpdateApiKeyBodySchema,
 } from '#routes/api/api-keys/[id]/model.ts';
+import { UNAUTHORIZED_ERROR, UnauthorizedErrorSchema } from '#routes/api/api-keys/errors.ts';
 import { ApiKeysServicePlugin, loggerPlugin } from '#services/plugins.ts';
 
 export const apiKeysIdController = new Elysia()
@@ -14,9 +15,12 @@ export const apiKeysIdController = new Elysia()
   .use(authPlugin)
   .patch(
     '/api-keys/:id',
-    async ({ params, body, apiKeysService, logger, status }) => {
+    async ({ params, body, session, apiKeysService, logger, status }) => {
+      if (session.authType !== AuthMethod.Session) {
+        return status(StatusMap.Unauthorized, UNAUTHORIZED_ERROR);
+      }
       logger.info(`updating api key ${params.id}`);
-      const updated = await apiKeysService.update(params.id, body.name);
+      const updated = await apiKeysService.update(params.id, body.name, session.user.id);
       return status(StatusMap.OK, updated);
     },
     {
@@ -25,12 +29,14 @@ export const apiKeysIdController = new Elysia()
       detail: {
         tags: ['API Keys'],
         summary: 'Rename an API key',
-        description: 'Updates an API key’s label. The secret is unchanged.',
+        description:
+          'Updates an API key’s label. The secret is unchanged. Only the user who created the key may rename it.',
       },
       params: ApiKeyParamsSchema,
       body: UpdateApiKeyBodySchema,
       response: {
         [StatusMap.OK]: ApiKeyResponseSchema,
+        [StatusMap.Unauthorized]: UnauthorizedErrorSchema,
       },
     },
   )

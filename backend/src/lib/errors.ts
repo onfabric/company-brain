@@ -27,6 +27,13 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(message = 'Forbidden') {
+    super(StatusMap.Forbidden, message);
+    this.name = 'ForbiddenError';
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message = 'Not Found') {
     super(StatusMap['Not Found'], message);

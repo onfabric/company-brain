@@ -7,21 +7,23 @@ export type CreateApiKeyInput = {
   name: ApiKeys['name'];
   keyHash: ApiKeys['key_hash'];
   keyPrefix: ApiKeys['key_prefix'];
+  createdBy: ApiKeys['created_by'];
 };
 
 export abstract class ApiKeysRepositoryContract {
   abstract create(input: CreateApiKeyInput): Promise<ApiKeyRow>;
   abstract list(): Promise<ApiKeyRow[]>;
   abstract existsByHash(keyHash: ApiKeys['key_hash']): Promise<boolean>;
+  abstract findCreatedBy(id: ApiKeys['id']): Promise<ApiKeys['created_by'] | null>;
   abstract update(id: ApiKeys['id'], name: ApiKeys['name']): Promise<ApiKeyRow | null>;
   abstract remove(id: ApiKeys['id']): Promise<ApiKeys['id'] | null>;
 }
 
 export class ApiKeysRepository extends Repository implements ApiKeysRepositoryContract {
-  async create({ name, keyHash, keyPrefix }: CreateApiKeyInput): Promise<ApiKeyRow> {
+  async create({ name, keyHash, keyPrefix, createdBy }: CreateApiKeyInput): Promise<ApiKeyRow> {
     const [row] = await this.sql<ApiKeyRow[]>`
-      INSERT INTO brain.api_keys (name, key_hash, key_prefix)
-      VALUES (${name}, ${keyHash}, ${keyPrefix})
+      INSERT INTO brain.api_keys (name, key_hash, key_prefix, created_by)
+      VALUES (${name}, ${keyHash}, ${keyPrefix}, ${createdBy})
       RETURNING id, name, key_prefix, created_at, updated_at
     `;
     if (!row) {
@@ -44,6 +46,13 @@ export class ApiKeysRepository extends Repository implements ApiKeysRepositoryCo
       ) AS exists
     `;
     return row?.exists ?? false;
+  }
+
+  async findCreatedBy(id: ApiKeys['id']): Promise<ApiKeys['created_by'] | null> {
+    const [row] = await this.sql<Pick<ApiKeys, 'created_by'>[]>`
+      SELECT created_by FROM brain.api_keys WHERE id = ${id}
+    `;
+    return row?.created_by ?? null;
   }
 
   async update(id: ApiKeys['id'], name: ApiKeys['name']): Promise<ApiKeyRow | null> {
