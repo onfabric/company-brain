@@ -98,11 +98,11 @@ variable "google_client_secret" {
   description = "Google OAuth client secret; GitHub Actions secret BACKEND_BETTER_AUTH_GOOGLE_CLIENT_SECRET."
 }
 
-# Regex the brain matches (case-insensitively) against an email before allowing
-# sign-in. Defaults to the workspace so prod can never silently fall open; the
-# interactive CLI overrides it via TF_VAR when a value is configured.
-variable "allowed_dashboard_accounts_emails_regex" {
+# Allowlist the brain matches (case-insensitively) against an email before
+# allowing sign-in. Defaults to the workspace so prod can never silently fall
+# open; the interactive CLI overrides it via TF_VAR when a value is configured.
+variable "allowed_dashboard_accounts_emails" {
   type        = string
-  description = "Regex of emails allowed to sign in to the brain."
-  default     = ".*@onfabric\\.io$"
+  description = "Comma-separated allowlist of emails (or *@domain) allowed to sign in to the brain."
+  default     = "*@onfabric.io"
 }

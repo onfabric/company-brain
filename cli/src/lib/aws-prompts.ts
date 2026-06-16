@@ -1,7 +1,7 @@
 import { confirm, isCancel, note, password, select, text } from '@clack/prompts';
 import {
   ALLOWED_EMAILS_PLACEHOLDER,
-  allowedEmailsToRegex,
+  normalizeAllowedEmails,
   validateAllowedEmailsInput,
 } from './allowed-emails.ts';
 import type { AwsConfig } from './aws-config.ts';
@@ -132,15 +132,15 @@ export async function collectAwsConfig({
   note('Configure who can sign in to the Brain web app.', 'Brain sign-in');
   const allowedEmailsInput = await promptOptionalText(
     'Emails allowed to sign in (comma-separated, *@domain for a whole workspace)',
-    `${ALLOWED_EMAILS_PLACEHOLDER} — empty keeps the deployment default (.*@onfabric\\.io$).`,
+    `${ALLOWED_EMAILS_PLACEHOLDER} — empty keeps the deployment default (*@onfabric.io).`,
     '',
     force,
     nonInteractive,
     validateAllowedEmailsInput,
   );
-  const allowedDashboardAccountsEmailsRegex = allowedEmailsInput
-    ? allowedEmailsToRegex(allowedEmailsInput)
-    : existing?.allowedDashboardAccountsEmailsRegex;
+  const allowedDashboardAccountsEmails = allowedEmailsInput
+    ? normalizeAllowedEmails(allowedEmailsInput)
+    : existing?.allowedDashboardAccountsEmails;
   const googleClientId = await promptText(
     'Brain Google OAuth client ID',
     'OAuth client ID from Google Cloud for Brain sign-in. Use the Brain redirect URI shown above.',
@@ -202,7 +202,7 @@ export async function collectAwsConfig({
     brainHostname: hostnames.brainHostname,
     dozzleHostname: hostnames.dozzleHostname,
     acmeEmail,
-    allowedDashboardAccountsEmailsRegex,
+    allowedDashboardAccountsEmails,
     googleClientId,
     dozzleUsername,
     dozzleEmail,

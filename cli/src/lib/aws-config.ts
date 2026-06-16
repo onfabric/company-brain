@@ -57,7 +57,7 @@ const AwsConfigSchema = z.object({
   brainHostname: z.string(),
   dozzleHostname: z.string(),
   acmeEmail: z.string(),
-  allowedDashboardAccountsEmailsRegex: z.string().optional(),
+  allowedDashboardAccountsEmails: z.string().optional(),
   googleClientId: z.string(),
   dozzleUsername: z.string(),
   dozzleEmail: z.string(),

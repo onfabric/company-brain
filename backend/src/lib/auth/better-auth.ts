@@ -6,6 +6,7 @@ import { jwt } from 'better-auth/plugins';
 import { StatusMap } from 'elysia';
 import type { OpenAPIV3 } from 'openapi-types';
 import { sql } from '#db/client.ts';
+import { isEmailAllowed } from '#lib/auth/allowed-emails.ts';
 import { env } from '#lib/env.ts';
 import { createLogger } from '#lib/logger.ts';
 
@@ -22,10 +23,7 @@ export const OAUTH_SCOPES = ['openid', 'profile', 'email', 'offline_access', MCP
 const logger = createLogger('better-auth');
 
 function isAllowedEmail(email: string): boolean {
-  return (
-    env.allowedDashboardAccountsEmailsRegex === null ||
-    env.allowedDashboardAccountsEmailsRegex.test(email.toLowerCase())
-  );
+  return isEmailAllowed(env.allowedDashboardAccountsEmails, email);
 }
 
 export const auth = betterAuth({
