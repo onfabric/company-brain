@@ -54,7 +54,10 @@ Example client configuration:
 ## Auth
 
 The REST API accepts either the `Api-Key` header or a better-auth session cookie
-(Google sign-in, restricted to the workspace domain). The dashboard SPA relies on
+(Google sign-in, restricted to the workspace domain). API keys are managed via
+`/api/api-keys` (create returns the full key once; only its SHA-256 hash is
+stored) and verified by hashing the incoming header and looking it up in
+`brain.api_keys`. The dashboard SPA relies on
 the session cookie: when a request is unauthenticated it redirects the browser to
 the dashboard's `/sign-in` page, which signs in with Google and returns to the
 `callbackURL`. The OAuth login and consent prompts are dashboard routes too

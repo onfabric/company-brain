@@ -11,8 +11,6 @@ resource "random_password" "brain_db" {
   special = false # used inside a postgres:// URL, keep it URL-safe
 }
 
-resource "random_uuid4" "brain_api_key" {}
-
 resource "random_password" "better_auth_secret" {
   length  = 48
   special = false
@@ -35,16 +33,6 @@ resource "aws_ssm_parameter" "brain_db_password" {
 
   tags = {
     Name = "${local.resource_name_prefix}-brain-db-password"
-  }
-}
-
-resource "aws_ssm_parameter" "brain_api_key" {
-  name  = "${var.ssm_secret_prefix}/brain_api_key"
-  type  = "SecureString"
-  value = random_uuid4.brain_api_key.result
-
-  tags = {
-    Name = "${local.resource_name_prefix}-brain-api-key"
   }
 }
 

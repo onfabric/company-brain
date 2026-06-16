@@ -22,7 +22,6 @@ secret() {
 
 NANGO_DB_PASSWORD="$(secret nango_db_password)"
 BRAIN_DB_PASSWORD="$(secret brain_db_password)"
-BRAIN_API_KEY="$(secret brain_api_key)"
 BETTER_AUTH_SECRET="$(secret better_auth_secret)"
 GOOGLE_CLIENT_ID="$(secret google_client_id)"
 GOOGLE_CLIENT_SECRET="$(secret google_client_secret)"
@@ -47,7 +46,6 @@ NANGO_DB_SCHEMA=nango
 NANGO_RECORDS_DATABASE_SCHEMA=nango_records
 BRAIN_DB_USER=brain
 BRAIN_DB_PASSWORD=${BRAIN_DB_PASSWORD}
-BRAIN_API_KEY=${BRAIN_API_KEY}
 BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
 GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
 GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}

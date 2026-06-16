@@ -4,7 +4,6 @@ import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 
 const testEnv = process.env as Record<string, string | undefined>;
 testEnv.DATABASE_URL ??= 'postgresql://test:test@localhost:5432/test';
-testEnv.BRAIN_API_KEY ??= '00000000-0000-4000-8000-000000000000';
 testEnv.BETTER_AUTH_SECRET ??= 'test-better-auth-secret-0000000000000000';
 testEnv.GOOGLE_CLIENT_ID ??= 'test-google-client-id';
 testEnv.GOOGLE_CLIENT_SECRET ??= 'test-google-client-secret';
@@ -117,7 +116,7 @@ describe('mcp auth', () => {
   });
 
   it('no longer accepts the static api key on /mcp', async () => {
-    const res = await fetch(initializeRequest({ 'api-key': process.env.BRAIN_API_KEY as string }));
+    const res = await fetch(initializeRequest({ 'api-key': 'cb_not-accepted-on-mcp' }));
     expect(res.status).toBe(StatusMap.Unauthorized);
   });
 

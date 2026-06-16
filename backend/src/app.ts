@@ -40,6 +40,10 @@ export function createApp() {
               name: 'Knowledge Types',
               description: 'Manage the controlled vocabulary of knowledge types.',
             },
+            {
+              name: 'API Keys',
+              description: 'Manage the API keys that authenticate requests to the brain.',
+            },
           ],
           components: {
             securitySchemes: {

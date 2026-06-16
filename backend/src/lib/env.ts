@@ -3,7 +3,6 @@ declare global {
     interface ProcessEnv {
       readonly DATABASE_URL?: string;
       readonly PORT?: string;
-      readonly BRAIN_API_KEY?: string;
       readonly BRAIN_PUBLIC_URL?: string;
       readonly BETTER_AUTH_SECRET?: string;
       readonly GOOGLE_CLIENT_ID?: string;
@@ -19,7 +18,6 @@ const DEFAULT_PUBLIC_URL = `http://localhost:${DEFAULT_PORT}`;
 type Env = {
   databaseUrl: string;
   port: number;
-  brainApiKey: string;
   // Public origin the brain is reachable at — the OAuth issuer, the JWKS host,
   // and the base for every discovery document. Parsed once so every derivation
   // (issuer, resource, callback) is consistently normalized.
@@ -55,7 +53,6 @@ function loadEnv(): Env {
   return {
     databaseUrl: required('DATABASE_URL'),
     port: Number(optional('PORT', DEFAULT_PORT)),
-    brainApiKey: required('BRAIN_API_KEY'),
     publicUrl,
     mcpResource: new URL('/mcp', publicUrl),
     issuer: new URL('/api/auth', publicUrl).href,

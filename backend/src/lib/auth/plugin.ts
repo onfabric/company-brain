@@ -1,6 +1,12 @@
 import { Elysia, StatusMap, t } from 'elysia';
-import { API_KEY_SECURITY_SCHEME, hasValidApiKey, type RequestHeaders } from '#lib/auth/api-key.ts';
+import {
+  API_KEY_HEADER,
+  API_KEY_SECURITY_SCHEME,
+  getHeader,
+  type RequestHeaders,
+} from '#lib/auth/api-key.ts';
 import { hasValidSession, SESSION_SECURITY_SCHEME } from '#lib/auth/better-auth.ts';
+import { apiKeysService } from '#services/plugins.ts';
 
 export enum AuthMethod {
   ApiKey = 'apiKey',
@@ -12,7 +18,7 @@ export const REQUIRE_AUTH = 'requireAuth';
 type VerifierContext = { headers: RequestHeaders; request: Request };
 
 const VERIFY: Record<AuthMethod, (ctx: VerifierContext) => boolean | Promise<boolean>> = {
-  [AuthMethod.ApiKey]: ({ headers }) => hasValidApiKey(headers),
+  [AuthMethod.ApiKey]: ({ headers }) => apiKeysService.verify(getHeader(headers, API_KEY_HEADER)),
   [AuthMethod.Session]: ({ request }) => hasValidSession(request.headers),
 };
 

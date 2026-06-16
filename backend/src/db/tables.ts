@@ -71,3 +71,12 @@ export type KnowledgeRecords = {
   created_at: Date;
   updated_at: Date;
 };
+
+export type ApiKeys = {
+  id: string;
+  created_at: Date;
+  updated_at: Date;
+  name: string;
+  key_hash: string;
+  key_prefix: string;
+};

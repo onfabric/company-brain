@@ -1,4 +1,6 @@
 import { Elysia } from 'elysia';
+import { apiKeysIdController } from '#routes/api/api-keys/[id]/controller.ts';
+import { apiKeysController } from '#routes/api/api-keys/controller.ts';
 import { dataSourcesController } from '#routes/api/data-sources/controller.ts';
 import { healthController } from '#routes/api/health/controller.ts';
 import { knowledgeIdController } from '#routes/api/knowledge/[id]/controller.ts';
@@ -28,4 +30,6 @@ export const apiController = new Elysia({ prefix: RoutePrefix.Api })
   .use(knowledgeTypesController)
   .use(knowledgeTypesIdController)
   .use(recordsController)
-  .use(recordsIdController);
+  .use(recordsIdController)
+  .use(apiKeysController)
+  .use(apiKeysIdController);
