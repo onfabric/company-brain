@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { resolve } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -31,6 +32,7 @@ const PERSON_NAME = 'Ada Lovelace';
 const PERSON_EMAIL = 'ada@example.com';
 const INDEX_HTML = `<html><body><a href="/api/knowledge/pages/${KNOWLEDGE_ID}">Onboarding</a></body></html>`;
 const PAGE_HTML = '<html><body><h1>Onboarding</h1></body></html>';
+const WORKFLOW_DOCS_ROOT = resolve(import.meta.dir, '../../../.agents/skills');
 
 const KNOWLEDGE_ITEM: KnowledgeItem = {
   id: KNOWLEDGE_ID,
@@ -57,6 +59,7 @@ const config = {
   issuer: 'http://localhost:3010/api/auth',
   scopes: ['openid', 'mcp'],
   authHandler: () => Promise.resolve(new Response(null, { status: 404 })),
+  knowledgeWorkflowDocsRoot: WORKFLOW_DOCS_ROOT,
 };
 
 class MockKnowledgeReader implements KnowledgeReader {
@@ -289,9 +292,11 @@ describe('knowledge mcp server', () => {
       'get_index_page',
       'get_knowledge',
       'get_knowledge_types',
+      'get_knowledge_workflow',
       'get_page',
       'get_people',
       'get_records',
+      'list_knowledge_workflows',
       'search_knowledge',
       'update_knowledge',
       'update_knowledge_type',
@@ -301,6 +306,53 @@ describe('knowledge mcp server', () => {
       expect(inputProperties[toolName]).not.toContain('knowledge_type_id');
       expect(inputProperties[toolName]).not.toContain('person_ids');
     }
+  });
+
+  it('lists knowledge workflows from the injected skill docs', async () => {
+    const { client } = await connectClient();
+
+    const result = (await client.callTool({
+      name: 'list_knowledge_workflows',
+      arguments: {},
+    })) as CallToolResult;
+
+    expect(result.isError).toBeFalsy();
+    expect(parseJsonContent(result)).toEqual({
+      workflows: [
+        {
+          name: 'build-knowledge-base',
+          title: 'Build Knowledge Base',
+          description: expect.stringContaining('iteratively distill'),
+        },
+        {
+          name: 'research-knowledge-entity',
+          title: 'Research a Knowledge Entity',
+          description: expect.stringContaining('research a single Company Brain entity'),
+        },
+        {
+          name: 'build-weekly-timeline',
+          title: 'Build Weekly Timeline',
+          description: expect.stringContaining('weekly timeline'),
+        },
+      ],
+    });
+  });
+
+  it('returns a knowledge workflow as markdown', async () => {
+    const { client } = await connectClient();
+
+    const result = (await client.callTool({
+      name: 'get_knowledge_workflow',
+      arguments: { name: 'build-knowledge-base' },
+    })) as CallToolResult;
+
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: expect.stringContaining('# Build Knowledge Base'),
+      },
+    ]);
   });
 
   it('marks delete_knowledge as destructive', async () => {

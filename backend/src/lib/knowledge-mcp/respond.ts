@@ -16,6 +16,18 @@ export async function readPage(read: () => Promise<string>) {
   }
 }
 
+export async function readText(read: () => Promise<string>, label: string) {
+  try {
+    return text(await read());
+  } catch (err) {
+    if (err instanceof AppError) {
+      return error(err.message);
+    }
+    logger.error(`failed to read ${label}`, err);
+    return error(`Failed to read ${label}`);
+  }
+}
+
 export async function readJson(read: () => Promise<unknown>) {
   try {
     return text(JSON.stringify(await read(), null, 2));

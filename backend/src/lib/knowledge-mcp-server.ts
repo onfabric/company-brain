@@ -4,6 +4,7 @@ import { registerKnowledgeTypeTools } from '#lib/knowledge-mcp/knowledge-type-to
 import { registerKnowledgePageTools } from '#lib/knowledge-mcp/page-tools.ts';
 import { registerRecordTools } from '#lib/knowledge-mcp/record-tools.ts';
 import type { KnowledgeMcpServices } from '#lib/knowledge-mcp/types.ts';
+import { registerKnowledgeWorkflowTools } from '#lib/knowledge-mcp/workflow-tools.ts';
 
 export type {
   KnowledgeMcpServices,
@@ -23,11 +24,14 @@ export type KnowledgeMcpServerConfig = {
   scopes: string[];
   /** better-auth request handler, mounted on the same Hono app under its `/api/auth` basePath. */
   authHandler: (request: Request) => Promise<Response>;
+  /** Directory containing workflow folders named `{workflow}/SKILL.md`. Defaults to production dist. */
+  knowledgeWorkflowDocsRoot?: string;
 };
 
 const AUTH_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'] as const;
 
 const INSTRUCTIONS =
+  'Before creating or updating knowledge pages, call list_knowledge_workflows and get_knowledge_workflow, then follow the selected workflow including draft-before-write and explicit user approval. ' +
   'Access to the company knowledge base, distilled knowledge entries, knowledge types, and source records. ' +
   'Call get_index_page first for navigable HTML pages, or search_knowledge for structured JSON entries. ' +
   'Use get_knowledge_types, get_people, get_data_sources, and get_records to discover readable filters and record ids before writing. ' +
@@ -47,6 +51,7 @@ export function createKnowledgeMcpServer(
 
   server.app.on([...AUTH_METHODS], '/api/auth/*', (c) => config.authHandler(c.req.raw));
 
+  registerKnowledgeWorkflowTools(server, { docsRoot: config.knowledgeWorkflowDocsRoot });
   registerKnowledgePageTools(server, services.knowledge);
   registerRecordTools(server, services.records, services.people);
   registerKnowledgeTools(server, services.knowledge, services.people, services.knowledgeTypes);
