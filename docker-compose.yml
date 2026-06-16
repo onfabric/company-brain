@@ -43,6 +43,7 @@ services:
     command: ["packages/server/entrypoint.sh"]
     environment:
       - NANGO_ENCRYPTION_KEY
+      - NANGO_RECORDS_PLAINTEXT
       - NANGO_DB_USER
       - NANGO_DB_PASSWORD
       - NANGO_DB_HOST=postgres-db
@@ -94,6 +95,7 @@ services:
     command: ["node", "packages/orchestrator/dist/app.js"]
     environment:
       - NANGO_ENCRYPTION_KEY
+      - NANGO_RECORDS_PLAINTEXT
       - NANGO_DB_USER
       - NANGO_DB_PASSWORD
       - NANGO_DB_HOST=postgres-db
@@ -127,6 +129,7 @@ services:
     command: ["node", "packages/persist/dist/app.js"]
     environment:
       - NANGO_ENCRYPTION_KEY
+      - NANGO_RECORDS_PLAINTEXT
       - NANGO_DB_USER
       - NANGO_DB_PASSWORD
       - NANGO_DB_HOST=postgres-db
@@ -160,6 +163,7 @@ services:
     command: ["node", "packages/jobs/dist/app.js"]
     environment:
       - NANGO_ENCRYPTION_KEY
+      - NANGO_RECORDS_PLAINTEXT
       - NANGO_DB_USER
       - NANGO_DB_PASSWORD
       - NANGO_DB_HOST=postgres-db

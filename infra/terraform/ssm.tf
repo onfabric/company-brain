@@ -16,6 +16,19 @@ resource "random_password" "better_auth_secret" {
   special = false
 }
 
+# Nango at-rest encryption key for credentials/configs/secrets (NOT records, which
+# stay plaintext via NANGO_RECORDS_PLAINTEXT). 32 random bytes, base64-encoded —
+# the form `openssl rand -base64 32` produces. Effectively permanent once a deploy
+# has run: nango refuses to boot if it is removed and does not support rotation, so
+# never change or destroy this.
+resource "random_id" "nango_encryption_key" {
+  byte_length = 32
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "aws_ssm_parameter" "db_password" {
   name  = "${var.ssm_secret_prefix}/nango_db_password"
   type  = "SecureString"
@@ -43,6 +56,20 @@ resource "aws_ssm_parameter" "better_auth_secret" {
 
   tags = {
     Name = "${local.resource_name_prefix}-better-auth-secret"
+  }
+}
+
+resource "aws_ssm_parameter" "nango_encryption_key" {
+  name  = "${var.ssm_secret_prefix}/nango_encryption_key"
+  type  = "SecureString"
+  value = random_id.nango_encryption_key.b64_std
+
+  tags = {
+    Name = "${local.resource_name_prefix}-nango-encryption-key"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
