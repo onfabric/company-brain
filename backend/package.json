@@ -11,7 +11,9 @@
   "scripts": {
     "start": "KNOWLEDGE_WORKFLOW_DOCS_ROOT=../.agents/skills NODE_ENV=production bun run src/index.ts",
     "build": "bun run build.ts",
-    "check:types": "bun run --bun tsc",
+    "generate": "bun bun-sqlgen generate 'src/repositories/*.repository.ts' --migrations src/db/migrations --out src/db/queries.gen.d.ts",
+    "check:sql-codegen": "bun bun-sqlgen generate 'src/repositories/*.repository.ts' --migrations src/db/migrations --out src/db/queries.gen.d.ts --check",
+    "check:types": "bun check:sql-codegen && bun run --bun tsc",
     "test": "NODE_ENV=production bun test"
   },
   "devDependencies": {
@@ -23,6 +25,7 @@
     "@better-auth/oauth-provider": "^1.6.18",
     "@elysiajs/openapi": "^1.4.15",
     "@ilbertt/better-auth-bun-sql": "^0.1.1",
+    "@ilbertt/bun-sqlgen": "^0.2.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "better-auth": "^1.6.18",
     "elysia": "^1.4.28",

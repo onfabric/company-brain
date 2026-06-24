@@ -379,7 +379,8 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
       return null;
     }
 
-    const [countRow] = await this.sql<{ total: number }[]>`
+    const [countRow] = await this.sql.CountKnowledge`
+      /* @notNull total */
       SELECT COUNT(*)::int AS total FROM brain.knowledge ${where}
     `;
     return countRow?.total ?? 0;

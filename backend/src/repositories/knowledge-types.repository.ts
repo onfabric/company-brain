@@ -24,7 +24,7 @@ export class KnowledgeTypesRepository
   implements KnowledgeTypesRepositoryContract
 {
   async create(name: KnowledgeTypes['name']): Promise<KnowledgeTypeRow | null> {
-    const [row] = await this.sql<KnowledgeTypeRow[]>`
+    const [row] = await this.sql.CreateKnowledgeType`
       INSERT INTO brain.knowledge_types (name)
       VALUES (${name})
       ON CONFLICT (name) DO NOTHING
@@ -34,20 +34,20 @@ export class KnowledgeTypesRepository
   }
 
   list(): Promise<KnowledgeTypeRow[]> {
-    return this.sql<KnowledgeTypeRow[]>`
+    return this.sql.ListKnowledgeTypes`
       SELECT id, name FROM brain.knowledge_types ORDER BY name ASC
     `;
   }
 
   async findById(id: KnowledgeTypes['id']): Promise<KnowledgeTypeRow | null> {
-    const [row] = await this.sql<KnowledgeTypeRow[]>`
+    const [row] = await this.sql.FindKnowledgeTypeById`
       SELECT id, name FROM brain.knowledge_types WHERE id = ${id}
     `;
     return row ?? null;
   }
 
   async nameTaken(name: KnowledgeTypes['name'], excludeId: KnowledgeTypes['id']): Promise<boolean> {
-    const [row] = await this.sql<{ taken: boolean }[]>`
+    const [row] = await this.sql.KnowledgeTypeNameTaken`
       SELECT EXISTS (
         SELECT 1 FROM brain.knowledge_types WHERE name = ${name} AND id <> ${excludeId}
       ) AS taken
@@ -59,7 +59,7 @@ export class KnowledgeTypesRepository
     id: KnowledgeTypes['id'],
     name: KnowledgeTypes['name'],
   ): Promise<KnowledgeTypeRow | null> {
-    const [row] = await this.sql<KnowledgeTypeRow[]>`
+    const [row] = await this.sql.UpdateKnowledgeType`
       UPDATE brain.knowledge_types SET name = ${name} WHERE id = ${id}
       RETURNING id, name
     `;
@@ -67,7 +67,7 @@ export class KnowledgeTypesRepository
   }
 
   async isReferenced(id: KnowledgeTypes['id']): Promise<boolean> {
-    const [row] = await this.sql<{ referenced: boolean }[]>`
+    const [row] = await this.sql.KnowledgeTypeIsReferenced`
       SELECT EXISTS (
         SELECT 1 FROM brain.knowledge WHERE knowledge_type_id = ${id}
       ) AS referenced
@@ -76,7 +76,7 @@ export class KnowledgeTypesRepository
   }
 
   async remove(id: KnowledgeTypes['id']): Promise<KnowledgeTypes['id'] | null> {
-    const [row] = await this.sql<Pick<KnowledgeTypes, 'id'>[]>`
+    const [row] = await this.sql.RemoveKnowledgeType`
       DELETE FROM brain.knowledge_types WHERE id = ${id} RETURNING id
     `;
     return row?.id ?? null;

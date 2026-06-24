@@ -77,7 +77,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
         query: filters.query,
       }),
     );
-    const [row] = await this.sql<{ total: number }[]>`
+    const [row] = await this.sql.CountPeople`
       SELECT COUNT(*)::int AS total FROM brain.people p ${where}
     `;
     return row?.total ?? 0;
@@ -92,7 +92,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     if (ids.length === 0) {
       return Promise.resolve([]);
     }
-    return this.sql<PersonIdentity[]>`
+    return this.sql.FindPeopleByIds`
       SELECT id, name, email
       FROM brain.people
       WHERE id IN ${this.sql(ids)}
@@ -106,7 +106,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     if (normalized.length === 0) {
       return Promise.resolve([]);
     }
-    return this.sql<PersonIdentity[]>`
+    return this.sql.FindPeopleByNameOrEmail`
       SELECT id, name, email
       FROM brain.people
       WHERE (name IS NOT NULL OR email IS NOT NULL)
@@ -116,7 +116,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
   }
 
   async updatePerson(id: People['id'], updates: PersonUpdate): Promise<PersonRow | null> {
-    const [updated] = await this.sql<Pick<People, 'id'>[]>`
+    const [updated] = await this.sql.UpdatePerson`
       UPDATE brain.people
       SET ${this.sql(updates)}
       WHERE id = ${id}
@@ -233,7 +233,11 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     // Select and order the page from brain.people first, then join data sources
     // for that page only. This keeps the json_agg bounded to the page instead of
     // aggregating every matching person on each fetch.
-    return this.sql<PersonRow[]>`
+    // json_agg(json_build_object(...)) introspects as `unknown`; an inline @type
+    // pins the aggregate's shape (structural so it needs no import in the .d.ts).
+    return this.sql.SelectPeoplePage`
+      /* @type data_sources Array<{ data_source_key: string; data_source_user_id: string }> */
+      /* @notNull records_count */
       WITH page AS (
         SELECT
           p.id,

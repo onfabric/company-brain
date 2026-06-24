@@ -1,10 +1,8 @@
+import type { QueryResults } from '@ilbertt/bun-sqlgen';
 import type { ApiKeys } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
 
-export type ApiKeyRow = Pick<
-  ApiKeys,
-  'id' | 'name' | 'key_prefix' | 'created_at' | 'updated_at' | 'created_by'
->;
+export type ApiKeyRow = QueryResults['ListApiKeys'];
 
 export type CreateApiKeyInput = {
   name: ApiKeys['name'];
@@ -24,7 +22,7 @@ export abstract class ApiKeysRepositoryContract {
 
 export class ApiKeysRepository extends Repository implements ApiKeysRepositoryContract {
   async create({ name, keyHash, keyPrefix, createdBy }: CreateApiKeyInput): Promise<ApiKeyRow> {
-    const [row] = await this.sql<ApiKeyRow[]>`
+    const [row] = await this.sql.CreateApiKey`
       INSERT INTO brain.api_keys (name, key_hash, key_prefix, created_by)
       VALUES (${name}, ${keyHash}, ${keyPrefix}, ${createdBy})
       RETURNING id, name, key_prefix, created_at, updated_at, created_by
@@ -36,14 +34,14 @@ export class ApiKeysRepository extends Repository implements ApiKeysRepositoryCo
   }
 
   list(): Promise<ApiKeyRow[]> {
-    return this.sql<ApiKeyRow[]>`
+    return this.sql.ListApiKeys`
       SELECT id, name, key_prefix, created_at, updated_at, created_by
       FROM brain.api_keys ORDER BY id DESC
     `;
   }
 
   async existsByHash(keyHash: ApiKeys['key_hash']): Promise<boolean> {
-    const [row] = await this.sql<{ exists: boolean }[]>`
+    const [row] = await this.sql.ApiKeyExists`
       SELECT EXISTS (
         SELECT 1 FROM brain.api_keys WHERE key_hash = ${keyHash}
       ) AS exists
@@ -52,14 +50,14 @@ export class ApiKeysRepository extends Repository implements ApiKeysRepositoryCo
   }
 
   async findCreatedBy(id: ApiKeys['id']): Promise<ApiKeys['created_by'] | null> {
-    const [row] = await this.sql<Pick<ApiKeys, 'created_by'>[]>`
+    const [row] = await this.sql.FindApiKeyCreatedBy`
       SELECT created_by FROM brain.api_keys WHERE id = ${id}
     `;
     return row?.created_by ?? null;
   }
 
   async update(id: ApiKeys['id'], name: ApiKeys['name']): Promise<ApiKeyRow | null> {
-    const [row] = await this.sql<ApiKeyRow[]>`
+    const [row] = await this.sql.UpdateApiKey`
       UPDATE brain.api_keys SET name = ${name} WHERE id = ${id}
       RETURNING id, name, key_prefix, created_at, updated_at, created_by
     `;
@@ -67,7 +65,7 @@ export class ApiKeysRepository extends Repository implements ApiKeysRepositoryCo
   }
 
   async remove(id: ApiKeys['id']): Promise<ApiKeys['id'] | null> {
-    const [row] = await this.sql<Pick<ApiKeys, 'id'>[]>`
+    const [row] = await this.sql.RemoveApiKey`
       DELETE FROM brain.api_keys WHERE id = ${id} RETURNING id
     `;
     return row?.id ?? null;

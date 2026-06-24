@@ -78,7 +78,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     }
 
     return await this.sql.begin(async (tx) => {
-      const [dataSource] = await tx<Pick<DataSources, 'id'>[]>`
+      const [dataSource] = await tx.UpsertDataSource`
         INSERT INTO brain.data_sources (nango_integration_id)
         VALUES (${batch.nangoIntegrationId})
         ON CONFLICT (nango_integration_id)
@@ -220,7 +220,11 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
   }
 
   listSources(): Promise<SourceRow[]> {
-    return this.sql<SourceRow[]>`
+    return this.sql.ListRecordSources`
+      /* @notNull count */
+      /* @notNull oldest_created_at */
+      /* @notNull newest_created_at */
+      /* @notNull newest_updated_at */
       SELECT
         r.data_source_id,
         ds.nango_integration_id AS data_source_key,
@@ -306,7 +310,8 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
       return { total: null, results };
     }
 
-    const [countRow] = await this.sql<{ total: number }[]>`
+    const [countRow] = await this.sql.CountRecords`
+      /* @notNull total */
       SELECT COUNT(*)::int AS total FROM brain.records ${where}
     `;
 

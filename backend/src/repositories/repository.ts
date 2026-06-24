@@ -1,9 +1,9 @@
-import type { SQL } from 'bun';
+import type { TypedSQL } from '@ilbertt/bun-sqlgen';
 
 export abstract class Repository {
-  protected readonly sql: SQL;
+  protected readonly sql: TypedSQL;
 
-  constructor(sql: SQL) {
+  constructor(sql: TypedSQL) {
     this.sql = sql;
   }
 }
