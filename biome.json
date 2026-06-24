@@ -16,6 +16,7 @@
       "!**/nango",
       "!**/.nango",
       "!**/routeTree.gen.ts",
+      "!**/*.gen.d.ts",
       "!**/*.lock",
       "!nango-integrations/**/*.test.json"
     ]
