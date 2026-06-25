@@ -106,7 +106,7 @@ export interface ISearchKnowledgeFullResult {
     knowledge_type_name: string;
     score: number | null;
     snippet: string | null;
-    participants: Array<import("#repositories/participant.ts").Participant>;
+    participants: Array<import("#db/types.ts").Participant>;
     source_record_ids: string[];
 }
 
@@ -135,7 +135,7 @@ export interface ISelectKnowledgeResult {
     body: string;
     knowledge_type_id: string;
     knowledge_type_name: string;
-    participants: Array<import("#repositories/participant.ts").Participant>;
+    participants: Array<import("#db/types.ts").Participant>;
     source_record_ids: string[];
 }
 
@@ -231,7 +231,7 @@ export interface ISearchRecordsResult {
     body: string;
     score: number | null;
     snippet: string | null;
-    participants: Array<import("#repositories/participant.ts").Participant>;
+    participants: Array<import("#db/types.ts").Participant>;
 }
 
 /** Result of query `CountRecords`. */
@@ -247,7 +247,7 @@ export interface IGetRecordResult {
     created_at: Date;
     updated_at: Date;
     body: string;
-    participants: Array<import("#repositories/participant.ts").Participant>;
+    participants: Array<import("#db/types.ts").Participant>;
 }
 
 declare module "@ilbertt/bun-sqlgen" {

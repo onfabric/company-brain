@@ -227,7 +227,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     const pageOrderBy = this.orderBy(params, 'page');
 
     const results = await this.sql.SearchRecords`
-      /* @type participants Array<import('#repositories/participant.ts').Participant> */
+      /* @type participants Array<import('#db/types.ts').Participant> */
       /* @type score number | null */
       /* @type snippet string | null */
       /* @notNull data_source_key */
@@ -327,7 +327,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
 
   async getById(id: string): Promise<RecordRow | null> {
     const [row] = await this.sql.GetRecord`
-      /* @type participants Array<import('#repositories/participant.ts').Participant> */
+      /* @type participants Array<import('#db/types.ts').Participant> */
       /* @notNull data_source_key */
       SELECT
         r.id,

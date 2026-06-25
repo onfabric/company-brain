@@ -121,7 +121,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     const snippetExpr = params.query ? this.sql`paradedb.snippet(body)` : this.sql`NULL::text`;
 
     const results = await this.sql.SearchKnowledgeFull`
-      /* @type participants Array<import('#repositories/participant.ts').Participant> */
+      /* @type participants Array<import('#db/types.ts').Participant> */
       /* @type source_record_ids string[] */
       /* @type score number | null */
       /* @type snippet string | null */
@@ -289,7 +289,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
 
   private async getMany(condition: SqlFragment, limit: number): Promise<KnowledgeRow[]> {
     return await this.sql.SelectKnowledge`
-      /* @type participants Array<import('#repositories/participant.ts').Participant> */
+      /* @type participants Array<import('#db/types.ts').Participant> */
       /* @type source_record_ids string[] */
       /* @notNull knowledge_type_name */
       SELECT
