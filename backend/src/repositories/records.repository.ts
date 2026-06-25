@@ -1,5 +1,5 @@
+import type { QueryResults } from '@ilbertt/bun-sqlgen';
 import type { SQL } from 'bun';
-import type { DataSources, People, PeopleDataSources, Records } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
 
 export type IngestBatch = {
@@ -9,13 +9,7 @@ export type IngestBatch = {
   externalIds: string[];
 };
 
-export type SourceRow = Pick<Records, 'data_source_id'> & {
-  data_source_key: DataSources['nango_integration_id'];
-  count: number;
-  oldest_created_at: Date;
-  newest_created_at: Date;
-  newest_updated_at: Date;
-};
+export type SourceRow = QueryResults['ListRecordSources'];
 
 export const RECORD_SORT_FIELDS = ['created_at', 'updated_at', 'relevance'] as const;
 export const RECORD_SORT_ORDERS = ['asc', 'desc'] as const;
@@ -40,22 +34,9 @@ export type SearchParams = {
   offset: number;
 };
 
-export type RecordRow = Pick<
-  Records,
-  'id' | 'data_source_id' | 'created_at' | 'updated_at' | 'body'
-> & {
-  data_source_key: DataSources['nango_integration_id'];
-  participants: Array<
-    Pick<People, 'id' | 'name' | 'email' | 'is_external'> & {
-      handle: PeopleDataSources['data_source_user_id'] | null;
-    }
-  >;
-};
+export type RecordRow = QueryResults['GetRecord'];
 
-export type SearchResultRow = RecordRow & {
-  score: number | null;
-  snippet: string | null;
-};
+export type SearchResultRow = QueryResults['SearchRecords'];
 
 export type SearchPage = {
   // Computed only on the first page (offset 0) so scrolling does not re-run a
@@ -68,7 +49,7 @@ export abstract class RecordsRepositoryContract {
   abstract ingestBatch(batch: IngestBatch): Promise<number>;
   abstract listSources(): Promise<SourceRow[]>;
   abstract search(params: SearchParams): Promise<SearchPage>;
-  abstract getById(id: Records['id']): Promise<RecordRow | null>;
+  abstract getById(id: string): Promise<RecordRow | null>;
 }
 
 export class RecordsRepository extends Repository implements RecordsRepositoryContract {
@@ -78,7 +59,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     }
 
     return await this.sql.begin(async (tx) => {
-      const [dataSource] = await tx<Pick<DataSources, 'id'>[]>`
+      const [dataSource] = await tx.UpsertDataSource`
         INSERT INTO brain.data_sources (nango_integration_id)
         VALUES (${batch.nangoIntegrationId})
         ON CONFLICT (nango_integration_id)
@@ -90,7 +71,9 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
       }
       const dataSourceId = dataSource.id;
 
-      const ingested = await tx<Pick<Records, 'id'>[]>`
+      // Hand-typed, not a named tag: the body is a dynamic CTE over nango_records,
+      // which isn't in the introspection schema and can't be statically planned.
+      const ingested = await tx<{ id: string }[]>`
         WITH source AS (${this.sourceRecords(tx, batch)})
         INSERT INTO brain.records (
           created_at,
@@ -149,11 +132,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     `;
   }
 
-  private async linkParticipants(
-    tx: SQL,
-    batch: IngestBatch,
-    dataSourceId: DataSources['id'],
-  ): Promise<void> {
+  private async linkParticipants(tx: SQL, batch: IngestBatch, dataSourceId: string): Promise<void> {
     // Data-modifying CTEs do not see each other's writes, so people creation,
     // link clearing, and link insertion run as separate statements: each later
     // statement reads the mappings the previous one committed.
@@ -220,7 +199,11 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
   }
 
   listSources(): Promise<SourceRow[]> {
-    return this.sql<SourceRow[]>`
+    return this.sql.ListRecordSources`
+      /* @notNull count */
+      /* @notNull oldest_created_at */
+      /* @notNull newest_created_at */
+      /* @notNull newest_updated_at */
       SELECT
         r.data_source_id,
         ds.nango_integration_id AS data_source_key,
@@ -243,7 +226,11 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     const orderBy = this.orderBy(params);
     const pageOrderBy = this.orderBy(params, 'page');
 
-    const results = await this.sql<SearchResultRow[]>`
+    const results = await this.sql.SearchRecords`
+      /* @type participants Array<import('#db/types.ts').Participant> */
+      /* @type score number | null */
+      /* @type snippet string | null */
+      /* @notNull data_source_key */
       WITH page AS (
         SELECT
           id,
@@ -306,7 +293,8 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
       return { total: null, results };
     }
 
-    const [countRow] = await this.sql<{ total: number }[]>`
+    const [countRow] = await this.sql.CountRecords`
+      /* @notNull total */
       SELECT COUNT(*)::int AS total FROM brain.records ${where}
     `;
 
@@ -337,8 +325,10 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
       .sql`ORDER BY ${createdAt} ${direction}, ${updatedAt} ${direction}, ${id} ${direction}`;
   }
 
-  async getById(id: Records['id']): Promise<RecordRow | null> {
-    const [row] = await this.sql<RecordRow[]>`
+  async getById(id: string): Promise<RecordRow | null> {
+    const [row] = await this.sql.GetRecord`
+      /* @type participants Array<import('#db/types.ts').Participant> */
+      /* @notNull data_source_key */
       SELECT
         r.id,
         r.data_source_id,
