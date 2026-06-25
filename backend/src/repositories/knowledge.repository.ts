@@ -1,5 +1,5 @@
+import type { QueryResults } from '@ilbertt/bun-sqlgen';
 import type { SQL } from 'bun';
-import type { Knowledge, KnowledgeTypes, People, PeopleDataSources, Records } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
 
 type SqlFragment = SQL.Query<unknown>;
@@ -11,7 +11,7 @@ export const KNOWLEDGE_RESULT_VIEWS = ['preview', 'full'] as const;
 export type KnowledgeSortField = (typeof KNOWLEDGE_SORT_FIELDS)[number];
 export type KnowledgeSortOrder = (typeof KNOWLEDGE_SORT_ORDERS)[number];
 export type KnowledgeResultView = (typeof KNOWLEDGE_RESULT_VIEWS)[number];
-export type KnowledgeTypeName = KnowledgeTypes['name'];
+export type KnowledgeTypeName = string;
 
 export const DEFAULT_KNOWLEDGE_SORT_FIELD: KnowledgeSortField = 'created_at';
 export const DEFAULT_KNOWLEDGE_SEARCH_SORT_FIELD: KnowledgeSortField = 'relevance';
@@ -29,25 +29,11 @@ export type KnowledgeSearchParams = {
   offset: number;
 };
 
-export type KnowledgeParticipant = Pick<People, 'id' | 'name' | 'email' | 'is_external'> & {
-  handle: PeopleDataSources['data_source_user_id'] | null;
-};
+export type KnowledgeRow = QueryResults['SelectKnowledge'];
 
-export type KnowledgeRow = Pick<
-  Knowledge,
-  'id' | 'created_at' | 'updated_at' | 'title' | 'body' | 'knowledge_type_id'
-> & {
-  knowledge_type_name: KnowledgeTypes['name'];
-  participants: KnowledgeParticipant[];
-  source_record_ids: Records['id'][];
-};
+export type KnowledgeHitRow = QueryResults['SearchKnowledgeFull'];
 
-export type KnowledgeHitRow = KnowledgeRow & {
-  score: number | null;
-  snippet: string | null;
-};
-
-export type KnowledgePreviewRow = Pick<Knowledge, 'id' | 'title'>;
+export type KnowledgePreviewRow = QueryResults['SearchKnowledgePreview'];
 
 export type KnowledgePreviewSearchPage = {
   total: number | null;
@@ -59,46 +45,46 @@ export type KnowledgeFullSearchPage = {
   results: KnowledgeHitRow[];
 };
 
-export type CreateKnowledgeInput = Pick<Knowledge, 'title' | 'body' | 'knowledge_type_id'> & {
-  personIds: People['id'][];
-  recordIds: Records['id'][];
+type KnowledgeFields = Pick<KnowledgeRow, 'title' | 'body' | 'knowledge_type_id'>;
+
+export type CreateKnowledgeInput = KnowledgeFields & {
+  personIds: string[];
+  recordIds: string[];
 };
 
 export type CreateKnowledgeResult =
-  | { ok: true; id: Knowledge['id'] }
+  | { ok: true; id: string }
   | {
       ok: false;
       missingType: boolean;
-      missingPersonIds: People['id'][];
-      missingRecordIds: Records['id'][];
+      missingPersonIds: string[];
+      missingRecordIds: string[];
     };
 
-export type UpdateKnowledgeInput = Partial<
-  Pick<Knowledge, 'title' | 'body' | 'knowledge_type_id'>
-> & {
-  personIds?: People['id'][];
-  recordIds?: Records['id'][];
+export type UpdateKnowledgeInput = Partial<KnowledgeFields> & {
+  personIds?: string[];
+  recordIds?: string[];
 };
 
 export type UpdateKnowledgeResult =
-  | { ok: true; id: Knowledge['id'] }
+  | { ok: true; id: string }
   | { ok: false; notFound: true }
   | {
       ok: false;
       notFound: false;
       missingType: boolean;
-      missingPersonIds: People['id'][];
-      missingRecordIds: Records['id'][];
+      missingPersonIds: string[];
+      missingRecordIds: string[];
     };
 
 export abstract class KnowledgeRepositoryContract {
   abstract searchPreview(params: KnowledgeSearchParams): Promise<KnowledgePreviewSearchPage>;
   abstract searchFull(params: KnowledgeSearchParams): Promise<KnowledgeFullSearchPage>;
-  abstract getById(id: Knowledge['id']): Promise<KnowledgeRow | null>;
+  abstract getById(id: string): Promise<KnowledgeRow | null>;
   abstract getByKnowledgeTypeName(name: KnowledgeTypeName): Promise<KnowledgeRow[]>;
   abstract create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult>;
-  abstract update(id: Knowledge['id'], input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult>;
-  abstract remove(id: Knowledge['id']): Promise<Knowledge['id'] | null>;
+  abstract update(id: string, input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult>;
+  abstract remove(id: string): Promise<string | null>;
 }
 
 export class KnowledgeRepository extends Repository implements KnowledgeRepositoryContract {
@@ -106,7 +92,9 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     const where = this.buildWhere(params);
     const scoreExpr = params.query ? this.sql`paradedb.score(id)` : this.sql`NULL::real`;
 
-    const results = await this.sql<KnowledgePreviewRow[]>`
+    const results = await this.sql.SearchKnowledgePreview`
+      /* @notNull id */
+      /* @notNull title */
       WITH page AS (
         SELECT
           id,
@@ -132,7 +120,12 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     const scoreExpr = params.query ? this.sql`paradedb.score(id)` : this.sql`NULL::real`;
     const snippetExpr = params.query ? this.sql`paradedb.snippet(body)` : this.sql`NULL::text`;
 
-    const results = await this.sql<KnowledgeHitRow[]>`
+    const results = await this.sql.SearchKnowledgeFull`
+      /* @type participants Array<{ id: string; name: string | null; email: string | null; is_external: boolean; handle: string | null }> */
+      /* @type source_record_ids string[] */
+      /* @type score number | null */
+      /* @type snippet string | null */
+      /* @notNull knowledge_type_name */
       WITH page AS (
         SELECT
           id,
@@ -168,7 +161,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     return { total: await this.count(where, params.offset), results };
   }
 
-  getById(id: Knowledge['id']): Promise<KnowledgeRow | null> {
+  getById(id: string): Promise<KnowledgeRow | null> {
     return this.getOne(this.sql`k.id = ${id}`);
   }
 
@@ -188,7 +181,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
         return { ok: false, missingType: !type, missingPersonIds, missingRecordIds };
       }
 
-      const [created] = await tx<Pick<Knowledge, 'id'>[]>`
+      const [created] = await tx<{ id: string }[]>`
         INSERT INTO brain.knowledge (knowledge_type_id, title, body)
         VALUES (${input.knowledge_type_id}, ${input.title}, ${input.body})
         RETURNING id
@@ -216,7 +209,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     });
   }
 
-  update(id: Knowledge['id'], input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult> {
+  update(id: string, input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult> {
     return this.sql.begin(async (tx) => {
       const [existing] = await tx<{ exists: true }[]>`
         SELECT true AS exists FROM brain.knowledge WHERE id = ${id}
@@ -241,7 +234,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
         return { ok: false, notFound: false, missingType, missingPersonIds, missingRecordIds };
       }
 
-      const columns: Partial<Pick<Knowledge, 'title' | 'body' | 'knowledge_type_id'>> = {
+      const columns: Partial<KnowledgeFields> = {
         ...(input.title !== undefined && { title: input.title }),
         ...(input.body !== undefined && { body: input.body }),
         ...(input.knowledge_type_id !== undefined && {
@@ -282,11 +275,11 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     });
   }
 
-  remove(id: Knowledge['id']): Promise<Knowledge['id'] | null> {
+  remove(id: string): Promise<string | null> {
     return this.sql.begin(async (tx) => {
       await tx`DELETE FROM brain.knowledge_people WHERE knowledge_id = ${id}`;
       await tx`DELETE FROM brain.knowledge_records WHERE knowledge_id = ${id}`;
-      const [row] = await tx<Pick<Knowledge, 'id'>[]>`
+      const [row] = await tx<{ id: string }[]>`
         DELETE FROM brain.knowledge WHERE id = ${id} RETURNING id
       `;
       return row?.id ?? null;
@@ -299,7 +292,10 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
   }
 
   private async getMany(condition: SqlFragment, limit: number): Promise<KnowledgeRow[]> {
-    return await this.sql<KnowledgeRow[]>`
+    return await this.sql.SelectKnowledge`
+      /* @type participants Array<{ id: string; name: string | null; email: string | null; is_external: boolean; handle: string | null }> */
+      /* @type source_record_ids string[] */
+      /* @notNull knowledge_type_name */
       SELECT
         k.id,
         k.created_at,
@@ -318,22 +314,22 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     `;
   }
 
-  private async missingPeople(tx: SQL, ids: People['id'][]): Promise<People['id'][]> {
+  private async missingPeople(tx: SQL, ids: string[]): Promise<string[]> {
     if (ids.length === 0) {
       return [];
     }
-    const present = await tx<Pick<People, 'id'>[]>`
+    const present = await tx<{ id: string }[]>`
       SELECT id FROM brain.people WHERE id IN ${tx(ids)}
     `;
     const found = new Set(present.map((row) => row.id));
     return ids.filter((id) => !found.has(id));
   }
 
-  private async missingRecords(tx: SQL, ids: Records['id'][]): Promise<Records['id'][]> {
+  private async missingRecords(tx: SQL, ids: string[]): Promise<string[]> {
     if (ids.length === 0) {
       return [];
     }
-    const present = await tx<Pick<Records, 'id'>[]>`
+    const present = await tx<{ id: string }[]>`
       SELECT id FROM brain.records WHERE id IN ${tx(ids)}
     `;
     const found = new Set(present.map((row) => row.id));

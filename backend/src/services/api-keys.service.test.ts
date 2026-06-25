@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { ApiKeys } from '#db/tables.ts';
 import { apiKeyDisplayPrefix, hashApiKey } from '#lib/auth/api-key.ts';
+import type { AuthUserId } from '#lib/auth/better-auth.ts';
 import { ForbiddenError, NotFoundError } from '#lib/errors.ts';
 import {
   type ApiKeyRow,
@@ -28,7 +28,7 @@ class MockApiKeysRepository extends ApiKeysRepositoryContract {
       created?: ApiKeyRow;
       keys?: ApiKeyRow[];
       exists?: boolean;
-      createdBy?: ApiKeys['created_by'] | null;
+      createdBy?: AuthUserId | null;
       updated?: ApiKeyRow | null;
       removed?: ApiKeyRow['id'] | null;
     } = {},
@@ -46,7 +46,7 @@ class MockApiKeysRepository extends ApiKeysRepositoryContract {
   existsByHash(): Promise<boolean> {
     return Promise.resolve(this.behavior.exists ?? false);
   }
-  findCreatedBy(): Promise<ApiKeys['created_by'] | null> {
+  findCreatedBy(): Promise<AuthUserId | null> {
     return Promise.resolve(this.behavior.createdBy ?? null);
   }
   update(): Promise<ApiKeyRow | null> {

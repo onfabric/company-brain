@@ -1,5 +1,5 @@
+import type { QueryResults } from '@ilbertt/bun-sqlgen';
 import type { SQL } from 'bun';
-import type { DataSources, People, PeopleDataSources } from '#db/tables.ts';
 import { Repository } from '#repositories/repository.ts';
 
 type SqlFragment = SQL.Query<unknown>;
@@ -8,19 +8,15 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
-export type PersonDataSource = {
-  data_source_key: DataSources['nango_integration_id'];
-  data_source_user_id: PeopleDataSources['data_source_user_id'];
-};
+export type PersonRow = QueryResults['SelectPeoplePage'];
 
-export type PersonRow = Pick<People, 'id' | 'name' | 'email' | 'is_external'> & {
-  data_sources: PersonDataSource[];
-  records_count: number;
-};
+export type PersonIdentity = QueryResults['FindPeopleByIds'];
 
-export type PersonIdentity = Pick<People, 'id' | 'name' | 'email'>;
-
-export type PersonUpdate = Partial<Pick<People, 'name' | 'email' | 'is_external'>>;
+export type PersonUpdate = Partial<{
+  name: string | null;
+  email: string | null;
+  is_external: boolean;
+}>;
 
 export const PERSON_SORT_FIELDS = ['name', 'records_count'] as const;
 export const PERSON_SORT_ORDERS = ['asc', 'desc'] as const;
@@ -31,7 +27,7 @@ const DEFAULT_PERSON_SORT_FIELD = 'name' satisfies PersonSortField;
 const DEFAULT_PERSON_SORT_ORDER = 'asc' satisfies PersonSortOrder;
 
 export type PersonFilters = {
-  isExternal?: People['is_external'];
+  isExternal?: boolean;
   // Used by MCP discovery to hide people that cannot be selected by readable name/email filters.
   hasReadableIdentity?: boolean;
   sortBy?: PersonSortField;
@@ -49,11 +45,11 @@ export type MergeCounts = {
 export abstract class PeopleRepositoryContract {
   abstract listPeople(filters?: PersonFilters): Promise<PersonRow[]>;
   abstract countPeople(filters?: PersonFilters): Promise<number>;
-  abstract getPerson(id: People['id']): Promise<PersonRow | null>;
-  abstract findByIds(ids: People['id'][]): Promise<PersonIdentity[]>;
+  abstract getPerson(id: string): Promise<PersonRow | null>;
+  abstract findByIds(ids: string[]): Promise<PersonIdentity[]>;
   abstract findByNameOrEmail(values: string[]): Promise<PersonIdentity[]>;
-  abstract updatePerson(id: People['id'], updates: PersonUpdate): Promise<PersonRow | null>;
-  abstract merge(fromId: People['id'], intoId: People['id']): Promise<MergeCounts>;
+  abstract updatePerson(id: string, updates: PersonUpdate): Promise<PersonRow | null>;
+  abstract merge(fromId: string, intoId: string): Promise<MergeCounts>;
 }
 
 export class PeopleRepository extends Repository implements PeopleRepositoryContract {
@@ -83,12 +79,12 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     return row?.total ?? 0;
   }
 
-  async getPerson(id: People['id']): Promise<PersonRow | null> {
+  async getPerson(id: string): Promise<PersonRow | null> {
     const [person] = await this.selectPeople({ id });
     return person ?? null;
   }
 
-  findByIds(ids: People['id'][]): Promise<PersonIdentity[]> {
+  findByIds(ids: string[]): Promise<PersonIdentity[]> {
     if (ids.length === 0) {
       return Promise.resolve([]);
     }
@@ -115,7 +111,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     `;
   }
 
-  async updatePerson(id: People['id'], updates: PersonUpdate): Promise<PersonRow | null> {
+  async updatePerson(id: string, updates: PersonUpdate): Promise<PersonRow | null> {
     const [updated] = await this.sql.UpdatePerson`
       UPDATE brain.people
       SET ${this.sql(updates)}
@@ -125,9 +121,9 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     return updated ? this.getPerson(updated.id) : null;
   }
 
-  merge(fromId: People['id'], intoId: People['id']): Promise<MergeCounts> {
+  merge(fromId: string, intoId: string): Promise<MergeCounts> {
     return this.sql.begin(async (tx) => {
-      const movedDataSources = await tx<Pick<PeopleDataSources, 'id'>[]>`
+      const movedDataSources = await tx<{ id: string }[]>`
         UPDATE brain.people_data_sources
         SET person_id = ${intoId}
         WHERE person_id = ${fromId}
@@ -168,7 +164,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     hasReadableIdentity,
     query,
   }: {
-    isExternal?: People['is_external'];
+    isExternal?: boolean;
     hasReadableIdentity?: boolean;
     query?: string;
   }): SqlFragment[] {
@@ -214,8 +210,8 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     limit,
     offset,
   }: {
-    id?: People['id'];
-    isExternal?: People['is_external'];
+    id?: string;
+    isExternal?: boolean;
     hasReadableIdentity?: boolean;
     sortBy?: PersonSortField;
     sortOrder?: PersonSortOrder;
@@ -233,8 +229,6 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
     // Select and order the page from brain.people first, then join data sources
     // for that page only. This keeps the json_agg bounded to the page instead of
     // aggregating every matching person on each fetch.
-    // json_agg(json_build_object(...)) introspects as `unknown`; an inline @type
-    // pins the aggregate's shape (structural so it needs no import in the .d.ts).
     return this.sql.SelectPeoplePage`
       /* @type data_sources Array<{ data_source_key: string; data_source_user_id: string }> */
       /* @notNull records_count */

@@ -16,7 +16,7 @@
         "@better-auth/oauth-provider": "^1.6.18",
         "@elysiajs/openapi": "^1.4.15",
         "@ilbertt/better-auth-bun-sql": "^0.1.1",
-        "@ilbertt/bun-sqlgen": "^0.2.0",
+        "@ilbertt/bun-sqlgen": "^0.2.1",
         "@modelcontextprotocol/sdk": "^1.29.0",
         "better-auth": "^1.6.18",
         "elysia": "^1.4.28",
@@ -356,7 +356,7 @@
 
     "@ilbertt/better-auth-bun-sql": ["@ilbertt/better-auth-bun-sql@0.1.1", "", { "peerDependencies": { "better-auth": ">=1.6.0" } }, "sha512-pAYERtBA0mkJZxhdpuJ27xUNy5aLSf2uvfDHiaOQowowD/B+Cg8az2+OY3OEjxrJYpIfs/3CS2vNkB7oKFKdXg=="],
 
-    "@ilbertt/bun-sqlgen": ["@ilbertt/bun-sqlgen@0.2.0", "", { "dependencies": { "@electric-sql/pglite": "^0.5.2" }, "peerDependencies": { "typescript": "^5.9.3" }, "bin": { "bun-sqlgen": "dist/cli/main.js" } }, "sha512-VrfR459VhvSSWzCn2L211IEO5WYksfFm3jCONB205VU86nQktZNx7TJxz8vsZ3WCKRAGMZrygp1YrAfC74hOyA=="],
+    "@ilbertt/bun-sqlgen": ["@ilbertt/bun-sqlgen@0.2.1", "", { "dependencies": { "@electric-sql/pglite": "^0.5.2" }, "peerDependencies": { "typescript": "^5.9.3" }, "bin": { "bun-sqlgen": "dist/cli/main.js" } }, "sha512-WWAwCMyQSMK3+d9vmsz/zknIalPMpllxYYGyjPU/ftzthanzPqtBLTMEpqYljz4Mj0KJDKny8Yh4XOWqpLrzUA=="],
 
     "@inquirer/ansi": ["@inquirer/ansi@2.0.7", "", {}, "sha512-3eTuUO1vH2cZm2ZKHeQxnOqlTi9EfZDGgIe3BL3I4u+rJHocr9Fz86M4fjYABPvFnQG/gGK551HqDiIcETwU6Q=="],
 

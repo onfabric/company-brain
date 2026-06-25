@@ -1,5 +1,5 @@
-import type { ApiKeys } from '#db/tables.ts';
 import { apiKeyDisplayPrefix, generateApiKey, hashApiKey } from '#lib/auth/api-key.ts';
+import type { AuthUserId } from '#lib/auth/better-auth.ts';
 import { ForbiddenError, NotFoundError } from '#lib/errors.ts';
 import type { ApiKeyRow, ApiKeysRepositoryContract } from '#repositories/api-keys.repository.ts';
 import { Service } from '#services/service.ts';
@@ -10,7 +10,7 @@ export type ApiKey = {
   key_prefix: string;
   created_at: string;
   updated_at: string;
-  created_by: ApiKeys['created_by'];
+  created_by: AuthUserId;
 };
 
 export type CreatedApiKey = ApiKey & { key: string };
@@ -34,7 +34,7 @@ export class ApiKeysService extends Service {
     this.apiKeysRepo = apiKeysRepo;
   }
 
-  async create(name: string, createdBy: ApiKeys['created_by']): Promise<CreatedApiKey> {
+  async create(name: string, createdBy: AuthUserId): Promise<CreatedApiKey> {
     const key = generateApiKey();
     const created = await this.apiKeysRepo.create({
       name,
@@ -51,7 +51,7 @@ export class ApiKeysService extends Service {
     return rows.map(toApiKey);
   }
 
-  async update(id: string, name: string, userId: ApiKeys['created_by']): Promise<ApiKey> {
+  async update(id: string, name: string, userId: AuthUserId): Promise<ApiKey> {
     const createdBy = await this.apiKeysRepo.findCreatedBy(id);
     if (createdBy === null) {
       throw new NotFoundError(`API key not found: ${id}`);
