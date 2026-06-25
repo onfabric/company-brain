@@ -106,14 +106,23 @@ export interface ISearchKnowledgeFullResult {
     knowledge_type_name: string;
     score: number | null;
     snippet: string | null;
-    participants: Array<{
-        id: string;
-        name: string | null;
-        email: string | null;
-        is_external: boolean;
-        handle: string | null;
-    }>;
+    participants: Array<import("#repositories/participant.ts").Participant>;
     source_record_ids: string[];
+}
+
+/** Result of query `InsertKnowledge`. */
+export interface IInsertKnowledgeResult {
+    id: string;
+}
+
+/** Result of query `KnowledgeExists`. */
+export interface IKnowledgeExistsResult {
+    exists: boolean | null;
+}
+
+/** Result of query `DeleteKnowledge`. */
+export interface IDeleteKnowledgeResult {
+    id: string;
 }
 
 /** Result of query `SelectKnowledge`. */
@@ -126,14 +135,23 @@ export interface ISelectKnowledgeResult {
     body: string;
     knowledge_type_id: string;
     knowledge_type_name: string;
-    participants: Array<{
-        id: string;
-        name: string | null;
-        email: string | null;
-        is_external: boolean;
-        handle: string | null;
-    }>;
+    participants: Array<import("#repositories/participant.ts").Participant>;
     source_record_ids: string[];
+}
+
+/** Result of query `KnowledgeTypeExists`. */
+export interface IKnowledgeTypeExistsResult {
+    exists: boolean | null;
+}
+
+/** Result of query `SelectExistingPeopleIds`. */
+export interface ISelectExistingPeopleIdsResult {
+    id: string;
+}
+
+/** Result of query `SelectExistingRecordIds`. */
+export interface ISelectExistingRecordIdsResult {
+    id: string;
 }
 
 /** Result of query `CountKnowledge`. */
@@ -163,6 +181,16 @@ export interface IFindPeopleByNameOrEmailResult {
 /** Result of query `UpdatePerson`. */
 export interface IUpdatePersonResult {
     id: string;
+}
+
+/** Result of query `ReassignPersonDataSources`. */
+export interface IReassignPersonDataSourcesResult {
+    id: string;
+}
+
+/** Result of query `ReassignPersonRecords`. */
+export interface IReassignPersonRecordsResult {
+    record_id: string;
 }
 
 /** Result of query `SelectPeoplePage`. */
@@ -203,13 +231,7 @@ export interface ISearchRecordsResult {
     body: string;
     score: number | null;
     snippet: string | null;
-    participants: Array<{
-        id: string;
-        name: string | null;
-        email: string | null;
-        is_external: boolean;
-        handle: string | null;
-    }>;
+    participants: Array<import("#repositories/participant.ts").Participant>;
 }
 
 /** Result of query `CountRecords`. */
@@ -225,13 +247,7 @@ export interface IGetRecordResult {
     created_at: Date;
     updated_at: Date;
     body: string;
-    participants: Array<{
-        id: string;
-        name: string | null;
-        email: string | null;
-        is_external: boolean;
-        handle: string | null;
-    }>;
+    participants: Array<import("#repositories/participant.ts").Participant>;
 }
 
 declare module "@ilbertt/bun-sqlgen" {
@@ -251,12 +267,20 @@ declare module "@ilbertt/bun-sqlgen" {
         RemoveKnowledgeType: IRemoveKnowledgeTypeResult;
         SearchKnowledgePreview: ISearchKnowledgePreviewResult;
         SearchKnowledgeFull: ISearchKnowledgeFullResult;
+        InsertKnowledge: IInsertKnowledgeResult;
+        KnowledgeExists: IKnowledgeExistsResult;
+        DeleteKnowledge: IDeleteKnowledgeResult;
         SelectKnowledge: ISelectKnowledgeResult;
+        KnowledgeTypeExists: IKnowledgeTypeExistsResult;
+        SelectExistingPeopleIds: ISelectExistingPeopleIdsResult;
+        SelectExistingRecordIds: ISelectExistingRecordIdsResult;
         CountKnowledge: ICountKnowledgeResult;
         CountPeople: ICountPeopleResult;
         FindPeopleByIds: IFindPeopleByIdsResult;
         FindPeopleByNameOrEmail: IFindPeopleByNameOrEmailResult;
         UpdatePerson: IUpdatePersonResult;
+        ReassignPersonDataSources: IReassignPersonDataSourcesResult;
+        ReassignPersonRecords: IReassignPersonRecordsResult;
         SelectPeoplePage: ISelectPeoplePageResult;
         UpsertDataSource: IUpsertDataSourceResult;
         ListRecordSources: IListRecordSourcesResult;

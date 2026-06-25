@@ -123,7 +123,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
 
   merge(fromId: string, intoId: string): Promise<MergeCounts> {
     return this.sql.begin(async (tx) => {
-      const movedDataSources = await tx<{ id: string }[]>`
+      const movedDataSources = await tx.ReassignPersonDataSources`
         UPDATE brain.people_data_sources
         SET person_id = ${intoId}
         WHERE person_id = ${fromId}
@@ -141,7 +141,7 @@ export class PeopleRepository extends Repository implements PeopleRepositoryCont
           )
       `;
 
-      const movedRecords = await tx<{ record_id: string }[]>`
+      const movedRecords = await tx.ReassignPersonRecords`
         UPDATE brain.records_people
         SET person_id = ${intoId}
         WHERE person_id = ${fromId}

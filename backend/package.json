@@ -11,9 +11,9 @@
   "scripts": {
     "start": "KNOWLEDGE_WORKFLOW_DOCS_ROOT=../.agents/skills NODE_ENV=production bun run src/index.ts",
     "build": "bun run build.ts",
-    "generate": "bun bun-sqlgen generate 'src/repositories/*.repository.ts' --migrations src/db/migrations --out src/db/queries.gen.d.ts",
-    "check:sql-codegen": "bun bun-sqlgen generate 'src/repositories/*.repository.ts' --migrations src/db/migrations --out src/db/queries.gen.d.ts --check",
-    "check:types": "bun check:sql-codegen && bun run --bun tsc",
+    "codegen:sql": "bun bun-sqlgen generate 'src/repositories/*.repository.ts' --migrations src/db/migrations --out src/db/queries.gen.d.ts",
+    "codegen:sql:check": "bun bun-sqlgen generate 'src/repositories/*.repository.ts' --migrations src/db/migrations --out src/db/queries.gen.d.ts --check",
+    "check:types": "bun codegen:sql:check && bun run --bun tsc",
     "test": "NODE_ENV=production bun test"
   },
   "devDependencies": {

@@ -71,6 +71,8 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
       }
       const dataSourceId = dataSource.id;
 
+      // Hand-typed, not a named tag: the body is a dynamic CTE over nango_records,
+      // which isn't in the introspection schema and can't be statically planned.
       const ingested = await tx<{ id: string }[]>`
         WITH source AS (${this.sourceRecords(tx, batch)})
         INSERT INTO brain.records (
@@ -225,7 +227,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
     const pageOrderBy = this.orderBy(params, 'page');
 
     const results = await this.sql.SearchRecords`
-      /* @type participants Array<{ id: string; name: string | null; email: string | null; is_external: boolean; handle: string | null }> */
+      /* @type participants Array<import('#repositories/participant.ts').Participant> */
       /* @type score number | null */
       /* @type snippet string | null */
       /* @notNull data_source_key */
@@ -325,7 +327,7 @@ export class RecordsRepository extends Repository implements RecordsRepositoryCo
 
   async getById(id: string): Promise<RecordRow | null> {
     const [row] = await this.sql.GetRecord`
-      /* @type participants Array<{ id: string; name: string | null; email: string | null; is_external: boolean; handle: string | null }> */
+      /* @type participants Array<import('#repositories/participant.ts').Participant> */
       /* @notNull data_source_key */
       SELECT
         r.id,

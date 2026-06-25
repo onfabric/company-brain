@@ -1,4 +1,4 @@
-import type { QueryResults } from '@ilbertt/bun-sqlgen';
+import type { QueryResults, TypedTransactionSQL } from '@ilbertt/bun-sqlgen';
 import type { SQL } from 'bun';
 import { Repository } from '#repositories/repository.ts';
 
@@ -121,7 +121,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     const snippetExpr = params.query ? this.sql`paradedb.snippet(body)` : this.sql`NULL::text`;
 
     const results = await this.sql.SearchKnowledgeFull`
-      /* @type participants Array<{ id: string; name: string | null; email: string | null; is_external: boolean; handle: string | null }> */
+      /* @type participants Array<import('#repositories/participant.ts').Participant> */
       /* @type source_record_ids string[] */
       /* @type score number | null */
       /* @type snippet string | null */
@@ -171,9 +171,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
 
   create(input: CreateKnowledgeInput): Promise<CreateKnowledgeResult> {
     return this.sql.begin(async (tx) => {
-      const [type] = await tx<{ exists: true }[]>`
-        SELECT true AS exists FROM brain.knowledge_types WHERE id = ${input.knowledge_type_id}
-      `;
+      const [type] = await this.knowledgeTypeExists(tx, input.knowledge_type_id);
       const missingPersonIds = await this.missingPeople(tx, input.personIds);
       const missingRecordIds = await this.missingRecords(tx, input.recordIds);
 
@@ -181,7 +179,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
         return { ok: false, missingType: !type, missingPersonIds, missingRecordIds };
       }
 
-      const [created] = await tx<{ id: string }[]>`
+      const [created] = await tx.InsertKnowledge`
         INSERT INTO brain.knowledge (knowledge_type_id, title, body)
         VALUES (${input.knowledge_type_id}, ${input.title}, ${input.body})
         RETURNING id
@@ -211,7 +209,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
 
   update(id: string, input: UpdateKnowledgeInput): Promise<UpdateKnowledgeResult> {
     return this.sql.begin(async (tx) => {
-      const [existing] = await tx<{ exists: true }[]>`
+      const [existing] = await tx.KnowledgeExists`
         SELECT true AS exists FROM brain.knowledge WHERE id = ${id}
       `;
       if (!existing) {
@@ -220,9 +218,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
 
       let missingType = false;
       if (input.knowledge_type_id !== undefined) {
-        const [type] = await tx<{ exists: true }[]>`
-          SELECT true AS exists FROM brain.knowledge_types WHERE id = ${input.knowledge_type_id}
-        `;
+        const [type] = await this.knowledgeTypeExists(tx, input.knowledge_type_id);
         missingType = !type;
       }
       const missingPersonIds = input.personIds ? await this.missingPeople(tx, input.personIds) : [];
@@ -279,7 +275,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     return this.sql.begin(async (tx) => {
       await tx`DELETE FROM brain.knowledge_people WHERE knowledge_id = ${id}`;
       await tx`DELETE FROM brain.knowledge_records WHERE knowledge_id = ${id}`;
-      const [row] = await tx<{ id: string }[]>`
+      const [row] = await tx.DeleteKnowledge`
         DELETE FROM brain.knowledge WHERE id = ${id} RETURNING id
       `;
       return row?.id ?? null;
@@ -293,7 +289,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
 
   private async getMany(condition: SqlFragment, limit: number): Promise<KnowledgeRow[]> {
     return await this.sql.SelectKnowledge`
-      /* @type participants Array<{ id: string; name: string | null; email: string | null; is_external: boolean; handle: string | null }> */
+      /* @type participants Array<import('#repositories/participant.ts').Participant> */
       /* @type source_record_ids string[] */
       /* @notNull knowledge_type_name */
       SELECT
@@ -314,22 +310,28 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     `;
   }
 
-  private async missingPeople(tx: SQL, ids: string[]): Promise<string[]> {
+  private knowledgeTypeExists(tx: TypedTransactionSQL, id: string) {
+    return tx.KnowledgeTypeExists`
+      SELECT true AS exists FROM brain.knowledge_types WHERE id = ${id}
+    `;
+  }
+
+  private async missingPeople(tx: TypedTransactionSQL, ids: string[]): Promise<string[]> {
     if (ids.length === 0) {
       return [];
     }
-    const present = await tx<{ id: string }[]>`
+    const present = await tx.SelectExistingPeopleIds`
       SELECT id FROM brain.people WHERE id IN ${tx(ids)}
     `;
     const found = new Set(present.map((row) => row.id));
     return ids.filter((id) => !found.has(id));
   }
 
-  private async missingRecords(tx: SQL, ids: string[]): Promise<string[]> {
+  private async missingRecords(tx: TypedTransactionSQL, ids: string[]): Promise<string[]> {
     if (ids.length === 0) {
       return [];
     }
-    const present = await tx<{ id: string }[]>`
+    const present = await tx.SelectExistingRecordIds`
       SELECT id FROM brain.records WHERE id IN ${tx(ids)}
     `;
     const found = new Set(present.map((row) => row.id));
