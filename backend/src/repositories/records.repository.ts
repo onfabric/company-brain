@@ -1,5 +1,5 @@
-import type { QueryResults } from '@ilbertt/bun-sqlgen';
 import type { SQL } from 'bun';
+import type { Queries } from '#db/queries.gen.d.ts';
 import { Repository } from '#repositories/repository.ts';
 
 export type IngestBatch = {
@@ -9,7 +9,7 @@ export type IngestBatch = {
   externalIds: string[];
 };
 
-export type SourceRow = QueryResults['ListRecordSources'];
+export type SourceRow = Queries['ListRecordSources'];
 
 export const RECORD_SORT_FIELDS = ['created_at', 'updated_at', 'relevance'] as const;
 export const RECORD_SORT_ORDERS = ['asc', 'desc'] as const;
@@ -34,9 +34,9 @@ export type SearchParams = {
   offset: number;
 };
 
-export type RecordRow = QueryResults['GetRecord'];
+export type RecordRow = Queries['GetRecord'];
 
-export type SearchResultRow = QueryResults['SearchRecords'];
+export type SearchResultRow = Queries['SearchRecords'];
 
 export type SearchPage = {
   // Computed only on the first page (offset 0) so scrolling does not re-run a

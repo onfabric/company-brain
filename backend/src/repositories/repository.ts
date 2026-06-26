@@ -1,9 +1,10 @@
 import type { TypedSQL } from '@ilbertt/bun-sqlgen';
+import type { Queries } from '#db/queries.gen.d.ts';
 
 export abstract class Repository {
-  protected readonly sql: TypedSQL;
+  protected readonly sql: TypedSQL<Queries>;
 
-  constructor(sql: TypedSQL) {
+  constructor(sql: TypedSQL<Queries>) {
     this.sql = sql;
   }
 }

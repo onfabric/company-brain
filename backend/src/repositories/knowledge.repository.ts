@@ -1,5 +1,6 @@
-import type { QueryResults, TypedTransactionSQL } from '@ilbertt/bun-sqlgen';
+import type { TypedTransactionSQL } from '@ilbertt/bun-sqlgen';
 import type { SQL } from 'bun';
+import type { Queries } from '#db/queries.gen.d.ts';
 import { Repository } from '#repositories/repository.ts';
 
 type SqlFragment = SQL.Query<unknown>;
@@ -29,11 +30,11 @@ export type KnowledgeSearchParams = {
   offset: number;
 };
 
-export type KnowledgeRow = QueryResults['SelectKnowledge'];
+export type KnowledgeRow = Queries['SelectKnowledge'];
 
-export type KnowledgeHitRow = QueryResults['SearchKnowledgeFull'];
+export type KnowledgeHitRow = Queries['SearchKnowledgeFull'];
 
-export type KnowledgePreviewRow = QueryResults['SearchKnowledgePreview'];
+export type KnowledgePreviewRow = Queries['SearchKnowledgePreview'];
 
 export type KnowledgePreviewSearchPage = {
   total: number | null;
@@ -310,13 +311,13 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     `;
   }
 
-  private knowledgeTypeExists(tx: TypedTransactionSQL, id: string) {
+  private knowledgeTypeExists(tx: TypedTransactionSQL<Queries>, id: string) {
     return tx.KnowledgeTypeExists`
       SELECT true AS exists FROM brain.knowledge_types WHERE id = ${id}
     `;
   }
 
-  private async missingPeople(tx: TypedTransactionSQL, ids: string[]): Promise<string[]> {
+  private async missingPeople(tx: TypedTransactionSQL<Queries>, ids: string[]): Promise<string[]> {
     if (ids.length === 0) {
       return [];
     }
@@ -327,7 +328,7 @@ export class KnowledgeRepository extends Repository implements KnowledgeReposito
     return ids.filter((id) => !found.has(id));
   }
 
-  private async missingRecords(tx: TypedTransactionSQL, ids: string[]): Promise<string[]> {
+  private async missingRecords(tx: TypedTransactionSQL<Queries>, ids: string[]): Promise<string[]> {
     if (ids.length === 0) {
       return [];
     }
