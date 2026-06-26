@@ -250,43 +250,46 @@ export interface IGetRecordResult {
     participants: Array<import("#db/types.ts").Participant>;
 }
 
+export interface Queries {
+    CreateApiKey: ICreateApiKeyResult;
+    ListApiKeys: IListApiKeysResult;
+    ApiKeyExists: IApiKeyExistsResult;
+    FindApiKeyCreatedBy: IFindApiKeyCreatedByResult;
+    UpdateApiKey: IUpdateApiKeyResult;
+    RemoveApiKey: IRemoveApiKeyResult;
+    CreateKnowledgeType: ICreateKnowledgeTypeResult;
+    ListKnowledgeTypes: IListKnowledgeTypesResult;
+    FindKnowledgeTypeById: IFindKnowledgeTypeByIdResult;
+    KnowledgeTypeNameTaken: IKnowledgeTypeNameTakenResult;
+    UpdateKnowledgeType: IUpdateKnowledgeTypeResult;
+    KnowledgeTypeIsReferenced: IKnowledgeTypeIsReferencedResult;
+    RemoveKnowledgeType: IRemoveKnowledgeTypeResult;
+    SearchKnowledgePreview: ISearchKnowledgePreviewResult;
+    SearchKnowledgeFull: ISearchKnowledgeFullResult;
+    InsertKnowledge: IInsertKnowledgeResult;
+    KnowledgeExists: IKnowledgeExistsResult;
+    DeleteKnowledge: IDeleteKnowledgeResult;
+    SelectKnowledge: ISelectKnowledgeResult;
+    KnowledgeTypeExists: IKnowledgeTypeExistsResult;
+    SelectExistingPeopleIds: ISelectExistingPeopleIdsResult;
+    SelectExistingRecordIds: ISelectExistingRecordIdsResult;
+    CountKnowledge: ICountKnowledgeResult;
+    CountPeople: ICountPeopleResult;
+    FindPeopleByIds: IFindPeopleByIdsResult;
+    FindPeopleByNameOrEmail: IFindPeopleByNameOrEmailResult;
+    UpdatePerson: IUpdatePersonResult;
+    ReassignPersonDataSources: IReassignPersonDataSourcesResult;
+    ReassignPersonRecords: IReassignPersonRecordsResult;
+    SelectPeoplePage: ISelectPeoplePageResult;
+    UpsertDataSource: IUpsertDataSourceResult;
+    ListRecordSources: IListRecordSourcesResult;
+    SearchRecords: ISearchRecordsResult;
+    CountRecords: ICountRecordsResult;
+    GetRecord: IGetRecordResult;
+}
+
 declare module "@ilbertt/bun-sqlgen" {
-    interface QueryResults {
-        CreateApiKey: ICreateApiKeyResult;
-        ListApiKeys: IListApiKeysResult;
-        ApiKeyExists: IApiKeyExistsResult;
-        FindApiKeyCreatedBy: IFindApiKeyCreatedByResult;
-        UpdateApiKey: IUpdateApiKeyResult;
-        RemoveApiKey: IRemoveApiKeyResult;
-        CreateKnowledgeType: ICreateKnowledgeTypeResult;
-        ListKnowledgeTypes: IListKnowledgeTypesResult;
-        FindKnowledgeTypeById: IFindKnowledgeTypeByIdResult;
-        KnowledgeTypeNameTaken: IKnowledgeTypeNameTakenResult;
-        UpdateKnowledgeType: IUpdateKnowledgeTypeResult;
-        KnowledgeTypeIsReferenced: IKnowledgeTypeIsReferencedResult;
-        RemoveKnowledgeType: IRemoveKnowledgeTypeResult;
-        SearchKnowledgePreview: ISearchKnowledgePreviewResult;
-        SearchKnowledgeFull: ISearchKnowledgeFullResult;
-        InsertKnowledge: IInsertKnowledgeResult;
-        KnowledgeExists: IKnowledgeExistsResult;
-        DeleteKnowledge: IDeleteKnowledgeResult;
-        SelectKnowledge: ISelectKnowledgeResult;
-        KnowledgeTypeExists: IKnowledgeTypeExistsResult;
-        SelectExistingPeopleIds: ISelectExistingPeopleIdsResult;
-        SelectExistingRecordIds: ISelectExistingRecordIdsResult;
-        CountKnowledge: ICountKnowledgeResult;
-        CountPeople: ICountPeopleResult;
-        FindPeopleByIds: IFindPeopleByIdsResult;
-        FindPeopleByNameOrEmail: IFindPeopleByNameOrEmailResult;
-        UpdatePerson: IUpdatePersonResult;
-        ReassignPersonDataSources: IReassignPersonDataSourcesResult;
-        ReassignPersonRecords: IReassignPersonRecordsResult;
-        SelectPeoplePage: ISelectPeoplePageResult;
-        UpsertDataSource: IUpsertDataSourceResult;
-        ListRecordSources: IListRecordSourcesResult;
-        SearchRecords: ISearchRecordsResult;
-        CountRecords: ICountRecordsResult;
-        GetRecord: IGetRecordResult;
+    interface QueryResults extends Queries {
     }
 }
 

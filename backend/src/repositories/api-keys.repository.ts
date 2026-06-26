@@ -1,8 +1,8 @@
-import type { QueryResults } from '@ilbertt/bun-sqlgen';
+import type { Queries } from '#db/queries.gen.d.ts';
 import type { AuthUserId } from '#lib/auth/better-auth.ts';
 import { Repository } from '#repositories/repository.ts';
 
-export type ApiKeyRow = QueryResults['ListApiKeys'];
+export type ApiKeyRow = Queries['ListApiKeys'];
 
 export type CreateApiKeyInput = {
   name: string;

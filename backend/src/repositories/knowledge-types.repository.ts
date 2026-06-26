@@ -1,7 +1,7 @@
-import type { QueryResults } from '@ilbertt/bun-sqlgen';
+import type { Queries } from '#db/queries.gen.d.ts';
 import { Repository } from '#repositories/repository.ts';
 
-export type KnowledgeTypeRow = QueryResults['ListKnowledgeTypes'];
+export type KnowledgeTypeRow = Queries['ListKnowledgeTypes'];
 
 export abstract class KnowledgeTypesRepositoryContract {
   abstract create(name: string): Promise<KnowledgeTypeRow | null>;

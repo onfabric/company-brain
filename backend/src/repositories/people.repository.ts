@@ -1,5 +1,5 @@
-import type { QueryResults } from '@ilbertt/bun-sqlgen';
 import type { SQL } from 'bun';
+import type { Queries } from '#db/queries.gen.d.ts';
 import { Repository } from '#repositories/repository.ts';
 
 type SqlFragment = SQL.Query<unknown>;
@@ -8,9 +8,9 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
-export type PersonRow = QueryResults['SelectPeoplePage'];
+export type PersonRow = Queries['SelectPeoplePage'];
 
-export type PersonIdentity = QueryResults['FindPeopleByIds'];
+export type PersonIdentity = Queries['FindPeopleByIds'];
 
 export type PersonUpdate = Partial<{
   name: string | null;
