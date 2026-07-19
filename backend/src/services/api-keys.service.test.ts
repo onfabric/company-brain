@@ -109,13 +109,22 @@ describe('ApiKeysService', () => {
   });
 
   it('reports a missing key on delete', async () => {
-    const service = new ApiKeysService(new MockApiKeysRepository({ removed: null }));
-    await expect(service.remove(ROW.id)).rejects.toBeInstanceOf(NotFoundError);
+    const service = new ApiKeysService(new MockApiKeysRepository({ createdBy: null }));
+    await expect(service.remove(ROW.id, USER_ID)).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('returns the deleted id', async () => {
-    const service = new ApiKeysService(new MockApiKeysRepository({ removed: ROW.id }));
-    expect(await service.remove(ROW.id)).toBe(ROW.id);
+    const service = new ApiKeysService(
+      new MockApiKeysRepository({ createdBy: USER_ID, removed: ROW.id }),
+    );
+    expect(await service.remove(ROW.id, USER_ID)).toBe(ROW.id);
+  });
+
+  it('forbids deleting a key created by another user', async () => {
+    const service = new ApiKeysService(
+      new MockApiKeysRepository({ createdBy: USER_ID, removed: ROW.id }),
+    );
+    await expect(service.remove(ROW.id, 'someone-else')).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it('rejects a missing key on verify without touching the repository', async () => {

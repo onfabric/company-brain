@@ -67,7 +67,14 @@ export class ApiKeysService extends Service {
     return toApiKey(updated);
   }
 
-  async remove(id: string): Promise<ApiKey['id']> {
+  async remove(id: string, userId: AuthUserId): Promise<ApiKey['id']> {
+    const createdBy = await this.apiKeysRepo.findCreatedBy(id);
+    if (createdBy === null) {
+      throw new NotFoundError(`API key not found: ${id}`);
+    }
+    if (createdBy !== userId) {
+      throw new ForbiddenError('You can only delete API keys you created.');
+    }
     const removed = await this.apiKeysRepo.remove(id);
     if (!removed) {
       throw new NotFoundError(`API key not found: ${id}`);
