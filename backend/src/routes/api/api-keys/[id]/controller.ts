@@ -42,9 +42,12 @@ export const apiKeysIdController = new Elysia()
   )
   .delete(
     '/api-keys/:id',
-    async ({ params, apiKeysService, logger, status }) => {
+    async ({ params, session, apiKeysService, logger, status }) => {
+      if (session.authType !== AuthMethod.Session) {
+        return status(StatusMap.Unauthorized, UNAUTHORIZED_ERROR);
+      }
       logger.info(`deleting api key ${params.id}`);
-      const id = await apiKeysService.remove(params.id);
+      const id = await apiKeysService.remove(params.id, session.user.id);
       return status(StatusMap.OK, { id });
     },
     {
@@ -52,11 +55,13 @@ export const apiKeysIdController = new Elysia()
       detail: {
         tags: ['API Keys'],
         summary: 'Delete an API key',
-        description: 'Revokes an API key. Requests using it will no longer authenticate.',
+        description:
+          'Revokes an API key. Requests using it will no longer authenticate. Only the user who created the key may delete it.',
       },
       params: ApiKeyParamsSchema,
       response: {
         [StatusMap.OK]: DeleteApiKeyResponseSchema,
+        [StatusMap.Unauthorized]: UnauthorizedErrorSchema,
       },
     },
   );
