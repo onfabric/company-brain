@@ -12,8 +12,8 @@ const WEBHOOK_TYPE = 'agent.conversation.upsert';
 const MetadataSchema = z.object({
   webhookSecret: z
     .string()
-    .optional()
-    .describe('Optional shared secret expected in agent-sync webhook payloads'),
+    .min(1)
+    .describe('Shared secret expected in agent-sync webhook payloads'),
 });
 
 const WebhookPayloadSchema = z
@@ -55,7 +55,7 @@ const sync = createSync({
   onWebhook: async (nango, rawPayload) => {
     const metadata = parseMetadata(await nango.getMetadata());
     const payload = WebhookPayloadSchema.parse(normalizeRawPayload(rawPayload));
-    if (metadata.webhookSecret && payload.secret !== metadata.webhookSecret) {
+    if (payload.secret !== metadata.webhookSecret) {
       throw new Error('Invalid agent conversation webhook secret');
     }
 

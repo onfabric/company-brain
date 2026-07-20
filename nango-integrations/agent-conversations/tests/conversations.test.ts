@@ -43,7 +43,40 @@ describe('agent conversations sync tests', () => {
     expect(record.body).not.toContain('/Users/massimo/company-brain/package.json');
     expect(record.body).not.toContain('raw command output');
   });
+
+  it('rejects a webhook whose secret does not match the connection metadata', async () => {
+    const nangoMock = new NangoSyncMock({ dirname: __dirname, name: 'conversations' });
+    const batchSaveSpy = spyOn(nangoMock, 'batchSave');
+
+    await expect(
+      createSync.onWebhook?.(asNango(nangoMock), webhookPayload('wrong-secret')),
+    ).rejects.toThrow('Invalid agent conversation webhook secret');
+    expect(batchSaveSpy).not.toHaveBeenCalled();
+  });
+
+  it('rejects a webhook when the connection has no secret configured', async () => {
+    const nangoMock = new NangoSyncMock({ dirname: __dirname, name: 'conversations' });
+    const batchSaveSpy = spyOn(nangoMock, 'batchSave');
+    spyOn(nangoMock, 'getMetadata').mockResolvedValue({});
+
+    await expect(
+      createSync.onWebhook?.(asNango(nangoMock), webhookPayload('shared-secret')),
+    ).rejects.toThrow();
+    expect(batchSaveSpy).not.toHaveBeenCalled();
+  });
 });
+
+function webhookPayload(secret: string): unknown {
+  return {
+    type: 'agent.conversation.upsert',
+    connectionId: 'local-agent-sync',
+    sentAt: '2026-06-01T09:31:00.000Z',
+    secret,
+    records: [
+      conversationRecord('codex:webhook-one', 'codex-webhook-1', '2026-06-01T09:31:00.000Z'),
+    ],
+  };
+}
 
 function conversationRecord(id: string, sessionId: string, updatedAt: string): unknown {
   return {
